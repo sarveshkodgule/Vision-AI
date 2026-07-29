@@ -18,6 +18,14 @@ class UserLogin(BaseModel):
 class PasswordReset(BaseModel):
     email: EmailStr
     new_password: str
+    otp_code: Optional[str] = None
+
+class OTPRequest(BaseModel):
+    email: EmailStr
+
+class OTPVerify(BaseModel):
+    email: EmailStr
+    code: str
 
 class UserResponse(BaseModel):
     id: str

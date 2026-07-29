@@ -19,6 +19,7 @@ patients_collection = db["patients"]
 reports_collection = db["reports"]
 clinical_data_collection = db["clinical_data"]
 chat_history_collection = db["chat_history"]
+otp_codes_collection = db["otp_codes"]
 
 def get_db():
     return db

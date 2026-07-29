@@ -1,7 +1,14 @@
 from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
-from schemas.user import UserCreate, UserUpdate, PasswordReset
-from services.auth_service import create_user, authenticate_user, update_user_profile, reset_password
+from schemas.user import UserCreate, UserUpdate, PasswordReset, OTPRequest, OTPVerify
+from services.auth_service import (
+    create_user, 
+    authenticate_user, 
+    update_user_profile, 
+    reset_password,
+    generate_and_save_otp,
+    verify_otp_code
+)
 from utils.dependencies import get_current_user
 from database.mongodb import users_collection
 
@@ -62,9 +69,26 @@ async def update_profile(user_update: UserUpdate, current_user: dict = Depends(g
         "message": "Profile updated successfully"
     }
 
+@router.post("/request-otp", response_model=dict)
+async def request_otp_route(payload: OTPRequest):
+    code = await generate_and_save_otp(payload.email)
+    return {
+        "status": "success",
+        "data": {"code": code},
+        "message": "Verification code generated successfully. Valid for 10 minutes."
+    }
+
+@router.post("/verify-otp", response_model=dict)
+async def verify_otp_route(payload: OTPVerify):
+    await verify_otp_code(payload.email, payload.code)
+    return {
+        "status": "success",
+        "message": "Verification code is valid."
+    }
+
 @router.post("/reset-password", response_model=dict)
 async def reset_password_route(payload: PasswordReset):
-    await reset_password(payload.email, payload.new_password)
+    await reset_password(payload.email, payload.new_password, payload.otp_code)
     return {
         "status": "success",
         "message": "Password updated successfully"

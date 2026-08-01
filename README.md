@@ -19,7 +19,9 @@ graph TD
 *   **Frontend Client:** React 18, Vite, Vanilla CSS styling rules, Framer Motion transitions, and Chart.js dashboards.
 *   **Backend Server:** FastAPI (Python 3.10+), PyTorch (for model inference), running on an in-memory Uvicorn local host.
 *   **Database Store:** MongoDB Atlas (Cloud NoSQL database).
-*   **Deep Learning Pipeline:** `FundusCNN` (A PyTorch Convolutional Neural Network that accepts 224x224 retina scans, processes them through sequential Conv2d layers and MaxPool2d pooling, and projects Grad-CAM attention heatmaps highlighting region classifications).
+*   **Model Pipelines:**
+    *   **Deep Learning (FundusCNN):** A PyTorch Convolutional Neural Network that processes 224x224 retina scans, extracting morphological features via Conv2D blocks and rendering diagnostic Grad-CAM heatmaps.
+    *   **Machine Learning (Lifestyle Classifier):** A tabular machine learning model that evaluates clinical parameters and lifestyle factors (screen time, reading hours, outdoor activity, sleep, age, and parental myopia) to classify myopia risk levels and predict refractive progression trends (Spherical Equivalent).
 
 ---
 

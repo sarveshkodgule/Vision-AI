@@ -1,35 +1,54 @@
-# Vision AI: Deep Learning Myopia Screening & Clinical Decision Support System
+# VisionAssistant: Clinical Myopia Screening & Decision Support System
 
-Vision AI is a web-based clinical decision support application designed as a student research project to assist eye care practitioners in screening and evaluating myopia progression risk. The project combines a Deep Learning Convolutional Neural Network (CNN) for fundus scan analysis with clinical optical biometry calculations.
-
----
-
-## 🏗️ Project Architecture
-
-The system is developed as a split full-stack application using the following components:
-
-*   **Frontend Client:** React 18, Vite, Vanilla CSS styling rules, Framer Motion transitions, and Chart.js dashboards.
-*   **Backend Server:** FastAPI (Python 3.10+), PyTorch (for model inference), running on an in-memory Uvicorn local host.
-*   **Database Store:** MongoDB Atlas (Cloud NoSQL database).
-*   **Model Pipelines:**
-    *   **Deep Learning (FundusCNN):** A PyTorch Convolutional Neural Network that processes 224x224 retina scans, extracting morphological features via Conv2D blocks and rendering diagnostic Grad-CAM heatmaps.
-    *   **Machine Learning (Lifestyle Classifier):** A tabular machine learning model that evaluates clinical parameters and lifestyle factors (screen time, reading hours, outdoor activity, sleep, age, and parental myopia) to classify myopia risk levels and predict refractive progression trends (Spherical Equivalent).
+VisionAssistant is a clinical decision support application designed to assist eye care professionals and patient directories in screening, tracking, and evaluating myopia progression risk. By combining interactive diagnostic tools, automated report exports, client-side progression tracking, and built-in security protocols, the application serves as a comprehensive assistance portal for modern clinical management.
 
 ---
 
-## 🔒 Implemented Security Features
+## 🏗️ System Architecture & Technologies
 
-For safe data handling and session management, the following security features are integrated:
+The system is structured as a decoupled full-stack architecture built to modern software standards:
 
-1.  **Password Encryption (Bcrypt):** Users' passwords are encrypted using Bcrypt salt rounds before they are stored in the MongoDB database.
-2.  **JWT Authentication & Revocation:** Access to clinical features is restricted using JSON Web Tokens (JWT). Logging out revokes the token by adding it to a database blacklist.
-3.  **Payload Input Sanitization:** Global request middleware automatically filters incoming API body content:
-    *   **XSS Protection:** Converts HTML special characters to text entities to prevent script injection.
-    *   **NoSQL Filter:** Removes fields starting with `$` to prevent query injection attacks.
-4.  **API Rate Limiting:** Restricts API requests to **150 requests per 15 minutes** per client IP address to prevent request spamming.
-5.  **OTP Verification Expiry:** Implements a strict **10-minute validity window** on generated OTP codes for signup verification and password resets.
-6.  **Uncaught Error Boundary Sanitization:** Restricts server exception outputs to sanitized JSON responses to prevent database stack traces from leaking to client logs.
-7.  **Audit Trail Logging:** Logs key authentication and clinical events inside an `audit_logs` collection with UTC timestamps.
+*   **Frontend Client:** Built using **React 18** and **Vite** for high-performance rendering. Features responsive UI dashboards, Framer Motion transitions, and interactive progression tracking.
+*   **Backend Server:** Powered by **FastAPI** (Python 3.10+) running a local Uvicorn process to handle API requests, database queries, and document generation.
+*   **Database Store:** Managed via **MongoDB Atlas** (Cloud NoSQL database) for storing patient details, clinical biometry, doctor reports, and logs.
+*   **Inference & AI Pipelines:**
+    *   **Morphological Imaging:** PyTorch custom Convolutional Network (`FundusCNN`) to classify fundus scans and overlay heatmaps.
+    *   **Tabular Evaluation:** Analyzes lifestyle variables and clinical measurements to calculate progression rates and refractive estimates.
+
+---
+
+## 📊 Core Application Modules
+
+### 👨‍⚕️ 1. Doctor Directory & Form Auto-Fill
+*   **Patient Directory:** An active patient search directory listing clinical statuses (e.g. *Needs Review*, *Monitoring*, *Cleared*).
+*   **Automatic Parameter Pre-Population:** Form fields automatically populate with selected patients' reported lifestyle variables (screen time, reading hours, outdoor activity, parental myopia) to streamline clinical data entry.
+
+### 📈 2. Patient Portal & Progress Visualizations
+*   **Lifestyle Logging:** Patients can easily log lifestyle parameters and view their assigned doctor's feedback.
+*   **Refractive Progression Trend Charts:** Renders interactive timelines showing patient progression rates, spherical equivalent histories, and axial length trends.
+
+### 📄 3. One-Click Clinical PDF Exports
+*   Allows both doctors and patients to export complete diagnostic sheets with a single click.
+*   Generates a print-ready PDF containing clinics' headers, patient metadata, lifestyle factors, clinical biometry, severity indicators, and doctor verdicts.
+
+### 💬 4. Clinical Support AI Chatbot
+*   A responsive generative support widget available on the landing page and patient dashboard.
+*   Helps answer routine patient queries regarding myopia, explains complex biometry terms, and suggests preventive habits.
+
+---
+
+## 🔒 Security Specifications
+
+To protect patient records and maintain system integrity, the platform integrates the following security features:
+
+1.  **Bcrypt Hashing:** Passwords undergo SHA-256 pre-hashing and Bcrypt salting to block brute-force and dictionary attacks.
+2.  **JWT Authorization Guards:** Sensitive endpoints are secured via JSON Web Tokens.
+3.  **Active Token Blacklisting:** Upon logout, tokens are blacklisted in MongoDB and immediately revoked to prevent session replay.
+4.  **Payload Input Sanitization:** Intercepts JSON inputs to escape HTML tags (XSS mitigation) and remove keys starting with `$` (NoSQL injection block).
+5.  **API Rate Limiting:** Limits connections to **150 requests per 15 minutes** per IP address (with loopback bypass for local development).
+6.  **Temporal OTP Code Expiry:** Strict **10-minute constraint** on random 6-digit verification codes.
+7.  **Uncaught Error Boundary Sanitization:** Suppresses verbose backend tracebacks, returning clean JSON errors to clients to prevent system configuration leaks.
+8.  **Action Audit Logging:** Logs system events in an `audit_logs` collection with timezone-aware UTC timestamps.
 
 ---
 
@@ -40,32 +59,32 @@ For safe data handling and session management, the following security features a
 *   Python (v3.10+)
 *   MongoDB Atlas Account
 
-### 1. Run Backend Server
-1.  Open your terminal in the backend directory:
+### 1. Start Backend Server
+1.  Navigate to the backend folder:
     ```bash
     cd backend
     ```
-2.  Set up your Python virtual environment:
+2.  Set up the Python virtual environment:
     ```bash
     python -m venv venv
     venv\Scripts\activate
     ```
-3.  Install the required packages:
+3.  Install dependencies:
     ```bash
     pip install -r requirements.txt
     ```
-4.  Create a `.env` file in the `backend/` directory:
+4.  Configure your environment variables in `backend/.env`:
     ```env
-    MONGODB_URI=your_mongodb_atlas_uri
-    JWT_SECRET_KEY=your_jwt_secret_key
+    MONGODB_URI=your_mongodb_atlas_connection_string
+    JWT_SECRET_KEY=your_secret_key
     ```
-5.  Start the FastAPI backend:
+5.  Start the FastAPI server:
     ```bash
     uvicorn main:app --reload
     ```
 
-### 2. Run Frontend Server
-1.  Open a second terminal in the frontend directory:
+### 2. Start Frontend Server
+1.  Navigate to the frontend folder:
     ```bash
     cd Frontend
     ```
@@ -77,16 +96,7 @@ For safe data handling and session management, the following security features a
     ```bash
     npm run dev
     ```
-4.  Click the local link printed in the terminal (e.g. `http://localhost:5173`) to view the application in your browser.
+4.  Open `http://localhost:5173` in your browser.
 
 ---
-
-## 📊 Core Project Features
-
-*   **Clinical Lifestyle Auto-Fill:** pre-populates doctor clinical evaluation forms with selected patient parameters.
-*   **Retinal Grad-CAM Cam overlays:** highlights classified morphological regions.
-*   **PDF Clinical Report Downloads:** exports diagnostic records containing patient profiles, biometry inputs, and recommendations.
-*   **Security Auditing Panel:** displays the active status of Bcrypt, JWT, and input filters on user profiles.
-
----
-*Developed as a student research study project. For educational and diagnostic support demonstration only.*
+*For investigational and clinical support demonstration purposes only.*

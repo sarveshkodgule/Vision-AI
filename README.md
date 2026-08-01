@@ -1,7 +1,6 @@
-# VisionAssistant AI: Deep Learning Myopia Screening & Clinical Decision Support System
-### Final Year Capstone Project / Academic Research Project
+# Vision AI: Deep Learning Myopia Screening & Clinical Decision Support System
 
-VisionAssistant AI is a web-based clinical decision support application designed as a student research project to assist eye care practitioners in screening and evaluating myopia progression risk. The project combines a Deep Learning Convolutional Neural Network (CNN) for fundus scan analysis with clinical optical biometry calculations.
+Vision AI is a web-based clinical decision support application designed as a student research project to assist eye care practitioners in screening and evaluating myopia progression risk. The project combines a Deep Learning Convolutional Neural Network (CNN) for fundus scan analysis with clinical optical biometry calculations.
 
 ---
 

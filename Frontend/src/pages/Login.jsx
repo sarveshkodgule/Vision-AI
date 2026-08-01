@@ -30,9 +30,9 @@ export default function Login() {
         localStorage.setItem('role', role);
         
         if (role === 'doctor') {
-          navigate('/doctor/dashboard');
+          navigate('/doctor/dashboard', { replace: true });
         } else {
-          navigate('/patient/dashboard');
+          navigate('/patient/dashboard', { replace: true });
         }
       } else {
         setError(data.detail || data.message || "Failed to login. Please check your credentials.");

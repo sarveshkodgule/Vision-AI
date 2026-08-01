@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Eye, Shield, Activity, ArrowRight, MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function LandingPage() {
+  const navigate = useNavigate();
   const features = [
     {
       icon: <Eye className="w-8 h-8 text-blue-600" />,
@@ -30,6 +31,28 @@ export default function LandingPage() {
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
   const chatEndRef = useRef(null);
+
+  // Session State
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const role = localStorage.getItem('role');
+    if (token) {
+      setIsLoggedIn(true);
+      setUserRole(role);
+      // Automatically redirect to their dashboard if they are already logged in
+      navigate(role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard', { replace: true });
+    }
+  }, [navigate]);
+
+  const handleSignOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    setIsLoggedIn(false);
+    setUserRole(null);
+  };
 
   useEffect(() => {
     if (isChatOpen) {
@@ -75,12 +98,31 @@ export default function LandingPage() {
             <span className="font-extrabold text-xl tracking-tight text-slate-800">VisionAssistant</span>
           </div>
           <div className="flex items-center space-x-4">
-            <Link to="/login" className="text-muted-foreground hover:text-foreground font-medium transition-colors">
-              Login
-            </Link>
-            <Link to="/signup" className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors">
-              Get Started
-            </Link>
+            {isLoggedIn ? (
+              <>
+                <Link 
+                  to={userRole === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard'} 
+                  className="text-blue-600 font-bold hover:underline transition-all"
+                >
+                  Dashboard
+                </Link>
+                <button 
+                  onClick={handleSignOut} 
+                  className="bg-red-500 text-white px-4 py-2 rounded-md font-medium hover:bg-red-600 transition-colors"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="text-muted-foreground hover:text-foreground font-medium transition-colors">
+                  Login
+                </Link>
+                <Link to="/signup" className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors">
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -103,12 +145,23 @@ export default function LandingPage() {
               Empowering eye care with a precise Myopia Diagnostic and Risk Assessment Tool. Designed for rapid evaluation and actionable clinical insights.
             </p>
             <div className="flex space-x-4">
-              <Link to="/signup" className="inline-flex items-center justify-center rounded-xl text-sm font-bold transition-colors shadow hover:shadow-md bg-blue-600 text-white hover:bg-blue-700 h-12 px-8">
-                Start Evaluation <ArrowRight className="ml-2 w-4 h-4" />
-              </Link>
-              <Link to="/login" className="inline-flex items-center justify-center rounded-xl text-sm font-bold transition-colors border-2 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 h-12 px-8">
-                Doctor Portal
-              </Link>
+              {isLoggedIn ? (
+                <Link 
+                  to={userRole === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard'} 
+                  className="inline-flex items-center justify-center rounded-xl text-sm font-bold transition-colors shadow hover:shadow-md bg-blue-600 text-white hover:bg-blue-700 h-12 px-8"
+                >
+                  Go to Dashboard <ArrowRight className="ml-2 w-4 h-4" />
+                </Link>
+              ) : (
+                <>
+                  <Link to="/signup" className="inline-flex items-center justify-center rounded-xl text-sm font-bold transition-colors shadow hover:shadow-md bg-blue-600 text-white hover:bg-blue-700 h-12 px-8">
+                    Start Evaluation <ArrowRight className="ml-2 w-4 h-4" />
+                  </Link>
+                  <Link to="/login" className="inline-flex items-center justify-center rounded-xl text-sm font-bold transition-colors border-2 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 h-12 px-8">
+                    Doctor Portal
+                  </Link>
+                </>
+              )}
             </div>
           </motion.div>
           <motion.div 

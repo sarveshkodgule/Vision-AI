@@ -4,3 +4,8 @@ genai-env/
 __pycache__/
 *.pyc
 uploads/
+reports/
+*.pdf
+node_modules/
+package-lock.json
+package.json

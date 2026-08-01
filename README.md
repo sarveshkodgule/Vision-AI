@@ -1,98 +1,99 @@
 # VisionAssistant AI: Deep Learning Myopia Screening & Clinical Decision Support System
+### Final Year Capstone Project / Academic Research Project
 
-VisionAssistant AI is an enterprise-grade medical support application designed to assist ophthalmologists in routine screening, tracking, and diagnosing myopia risk using a hybrid pipeline of Deep Learning (Convolutional Neural Networks) and Clinical Optical Biometry analysis.
+VisionAssistant AI is a web-based clinical decision support application designed as a student research project to assist eye care practitioners in screening and evaluating myopia progression risk. The project combines a Deep Learning Convolutional Neural Network (CNN) for fundus scan analysis with clinical optical biometry calculations.
 
 ---
 
-## 🏗️ System Architecture
+## 🏗️ Project Architecture
 
-The application is structured as a decoupled full-stack architecture built to MNC industry standards:
+The system is developed as a split full-stack application using the following components:
 
 ```mermaid
 graph TD
-    A[Vite + React Frontend] -->|REST API / JSON| B[FastAPI Backend Server]
+    A[React + Vite Frontend] -->|REST API / JSON| B[FastAPI Backend Server]
     B -->|PyMongo Driver| C[MongoDB Atlas Cloud Database]
     B -->|Inference Engine| D[PyTorch FundusCNN Model]
     B -->|ReportLab PDF Engine| E[Clinical Report Generator]
 ```
 
-*   **Frontend:** React 18, Vite, TailwindCSS (Vanilla CSS theme rules), Framer Motion (micro-animations), Lucide Icons, and Chart.js.
-*   **Backend:** FastAPI (Python 3.10+), PyTorch (Inference model evaluation), Uvicorn server.
-*   **Database:** MongoDB Atlas (Cloud NoSQL Database).
-*   **Model Pipeline:** `FundusCNN` (PyTorch architecture processing 224x224 retina scans, extracting features via Conv2D blocks, downsampling via MaxPool2D, and rendering diagnostic Grad-CAM heatmaps).
+*   **Frontend Client:** React 18, Vite, Vanilla CSS styling rules, Framer Motion transitions, and Chart.js dashboards.
+*   **Backend Server:** FastAPI (Python 3.10+), PyTorch (for model inference), running on an in-memory Uvicorn local host.
+*   **Database Store:** MongoDB Atlas (Cloud NoSQL database).
+*   **Deep Learning Pipeline:** `FundusCNN` (A PyTorch Convolutional Neural Network that accepts 224x224 retina scans, processes them through sequential Conv2d layers and MaxPool2d pooling, and projects Grad-CAM attention heatmaps highlighting region classifications).
 
 ---
 
-## 🔒 MNC-Grade Security Implementations
+## 🔒 Implemented Security Features
 
-To ensure patient privacy, prevent data leaks, and comply with standard medical software protocols (HIPAA-ready), the system integrates the following security features:
+For safe data handling and session management, the following security features are integrated:
 
-1.  **Password Cryptography (Bcrypt):** All user credentials undergo SHA-256 pre-hashing (bypassing Bcrypt's native 72-byte limit) and are salted/hashed prior to database write.
-2.  **JWT Guards & Token Blacklisting:** Sensitive clinical routes are guarded. Upon logout, active tokens are blacklisted in MongoDB and immediately revoked to prevent session replay attacks.
-3.  **Global Input Sanitization Middleware:** A custom request-pipeline interceptor automatically scans all incoming JSON payloads:
-    *   **XSS Mitigation:** Escapes HTML special characters in string inputs.
-    *   **NoSQL Injection Block:** Automatically drops incoming query keys starting with `$` to prevent MongoDB operator manipulation.
-4.  **API Rate Limiting:** Dynamic rate limiter restricts incoming connections to a maximum of **150 requests per 15 minutes per IP address** to block bot attacks (loopback bypass enabled for local developer convenience).
-5.  **Temporal OTP Code Expiry:** Generates a secure random 6-digit verification code with a strict **10-minute expiration constraint** for password resets and signup validation.
-6.  **Uncaught Error Boundary Sanitization:** Global FastAPI exception handlers catch uncaught exceptions, log detailed tracebacks to the server console, and return a sanitized, non-verbose JSON error to clients to prevent system/database structure leaks.
-7.  **Action Audit Logging:** Record clinical actions (e.g. logouts, logins, diagnostic outputs) inside the `audit_logs` collection with timezone-aware UTC timestamps.
+1.  **Password Encryption (Bcrypt):** Users' passwords are encrypted using Bcrypt salt rounds before they are stored in the MongoDB database.
+2.  **JWT Authentication & Revocation:** Access to clinical features is restricted using JSON Web Tokens (JWT). Logging out revokes the token by adding it to a database blacklist.
+3.  **Payload Input Sanitization:** Global request middleware automatically filters incoming API body content:
+    *   **XSS Protection:** Converts HTML special characters to text entities to prevent script injection.
+    *   **NoSQL Filter:** Removes fields starting with `$` to prevent query injection attacks.
+4.  **API Rate Limiting:** Restricts API requests to **150 requests per 15 minutes** per client IP address to prevent request spamming.
+5.  **OTP Verification Expiry:** Implements a strict **10-minute validity window** on generated OTP codes for signup verification and password resets.
+6.  **Uncaught Error Boundary Sanitization:** Restricts server exception outputs to sanitized JSON responses to prevent database stack traces from leaking to client logs.
+7.  **Audit Trail Logging:** Logs key authentication and clinical events inside an `audit_logs` collection with UTC timestamps.
 
 ---
 
-## 🚀 Installation & Running Locally
+## 🚀 Setup & Execution Guide
 
 ### Prerequisites
 *   Node.js (v18+)
 *   Python (v3.10+)
-*   MongoDB Atlas Account (URI configured)
+*   MongoDB Atlas Account
 
-### 1. Setup Backend
-1.  Navigate to the backend folder:
+### 1. Run Backend Server
+1.  Open your terminal in the backend directory:
     ```bash
     cd backend
     ```
-2.  Create a virtual environment:
+2.  Set up your Python virtual environment:
     ```bash
     python -m venv venv
     venv\Scripts\activate
     ```
-3.  Install dependencies:
+3.  Install the required packages:
     ```bash
     pip install -r requirements.txt
     ```
-4.  Configure your environment variables (`backend/.env`):
+4.  Create a `.env` file in the `backend/` directory:
     ```env
-    MONGODB_URI=your_mongodb_atlas_connection_string
-    JWT_SECRET_KEY=your_secret_key
+    MONGODB_URI=your_mongodb_atlas_uri
+    JWT_SECRET_KEY=your_jwt_secret_key
     ```
-5.  Launch the FastAPI server:
+5.  Start the FastAPI backend:
     ```bash
     uvicorn main:app --reload
     ```
 
-### 2. Setup Frontend
-1.  Navigate to the frontend folder:
+### 2. Run Frontend Server
+1.  Open a second terminal in the frontend directory:
     ```bash
     cd Frontend
     ```
-2.  Install packages:
+2.  Install dependencies:
     ```bash
     npm install
     ```
-3.  Launch the Vite development server:
+3.  Start the development server:
     ```bash
     npm run dev
     ```
-4.  Open `http://localhost:5173` in your browser.
+4.  Click the local link printed in the terminal (e.g. `http://localhost:5173`) to view the application in your browser.
 
 ---
 
-## 📊 Core Application Features
+## 📊 Core Project Features
 
-*   **Clinical Auto-Fill:** Doctor forms automatically capture patient lifestyle data (Screen Time, Reading Time, Outdoor Time, Sleep) upon patient selection in the dashboard.
-*   **Grad-CAM Highlight Overlay:** Real-time retinal scan heatmaps highlight morphological risk areas.
-*   **Interactive PDF Report Exports:** Generating professional, clinic-ready diagnostic PDF summaries containing client metadata, biometry details, and lifestyle factors with a single click.
-*   **Security Auditing Panel:** Real-time security statuses displayed directly on patient and doctor profiles.
+*   **Clinical Lifestyle Auto-Fill:** pre-populates doctor clinical evaluation forms with selected patient parameters.
+*   **Retinal Grad-CAM Cam overlays:** highlights classified morphological regions.
+*   **PDF Clinical Report Downloads:** exports diagnostic records containing patient profiles, biometry inputs, and recommendations.
+*   **Security Auditing Panel:** displays the active status of Bcrypt, JWT, and input filters on user profiles.
 
 ---
-*For investigational and diagnostic support purposes only.*
+*Developed as a student research study project. For educational and diagnostic support demonstration only.*

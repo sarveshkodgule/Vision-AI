@@ -1,18 +1,44 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, Mail, Lock, User, ArrowLeft } from 'lucide-react';
+import { Eye, Mail, Lock, User, ArrowLeft, Key } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { api } from '../lib/api';
 
 export default function Signup() {
   const navigate = useNavigate();
+  const [step, setStep] = useState(1); // 1 = Enter Details, 2 = Verify OTP & Register
   const [role, setRole] = useState('patient');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSentCode, setOtpSentCode] = useState(''); // For demo mode
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const handleRequestOTP = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const res = await api.post('/auth/request-otp', { email, is_signup: true });
+      if (res && res.status === 'success') {
+        setStep(2);
+        if (res.data && res.data.code) {
+          setOtpSentCode(res.data.code);
+        }
+      } else {
+        setError(res.detail || res.message || "Failed to generate verification code.");
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || "Network error or email already registered.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSignup = async (e) => {
     e.preventDefault();
@@ -25,7 +51,8 @@ export default function Signup() {
         name,
         email,
         password,
-        role
+        role,
+        otp_code: otpCode
       });
       
       if (data.status === 'success') {
@@ -37,7 +64,7 @@ export default function Signup() {
         setError(data.detail || data.message || "Registration failed.");
       }
     } catch (err) {
-      setError("Server error. Ensure the FastAPI backend is running.");
+      setError(err.response?.data?.detail || "Invalid or expired verification code.");
     } finally {
       setLoading(false);
     }
@@ -68,75 +95,120 @@ export default function Signup() {
           {error && <div className="p-3 mb-6 bg-red-50 text-red-600 rounded-lg text-sm text-center font-semibold">{error}</div>}
           {success && <div className="p-3 mb-6 bg-green-50 text-green-600 rounded-lg text-sm text-center font-semibold">{success}</div>}
 
+          {step === 1 ? (
+            <>
+              <div className="flex p-1.5 mb-8 space-x-1 bg-slate-100 rounded-xl">
+                <button
+                  type="button"
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'patient' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                  onClick={() => setRole('patient')}
+                >
+                  Patient
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'doctor' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                  onClick={() => setRole('doctor')}
+                >
+                  Doctor
+                </button>
+              </div>
 
-          <div className="flex p-1.5 mb-8 space-x-1 bg-slate-100 rounded-xl">
-            <button
-              type="button"
-              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'patient' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-              onClick={() => setRole('patient')}
-            >
-              Patient
-            </button>
-            <button
-              type="button"
-              className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'doctor' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-              onClick={() => setRole('doctor')}
-            >
-              Doctor
-            </button>
-          </div>
+              <form onSubmit={handleRequestOTP} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
+                  <div className="relative">
+                    <User className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
+                      placeholder="John Doe" 
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
+                    <input 
+                      type="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
+                      placeholder="name@example.com" 
+                      required
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
+                    <input 
+                      type="password" 
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
+                      placeholder="••••••••" 
+                      required
+                    />
+                  </div>
+                </div>
+                <button 
+                  type="submit"
+                  disabled={loading}
+                  className={`w-full inline-flex items-center justify-center rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-4 transition-all shadow-lg hover:shadow-blue-500/30 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {loading ? 'Sending OTP...' : 'Request Registration OTP'}
+                </button>
+              </form>
+            </>
+          ) : (
+            <>
+              <p className="text-slate-500 text-center mb-6 text-sm">
+                A 10-minute temporary verification code has been generated.
+              </p>
+              {otpSentCode && (
+                <div className="p-3.5 mb-6 bg-blue-50 border border-blue-100 text-blue-800 rounded-xl text-sm font-medium text-center">
+                  🔐 Demo Mode: Verification Code is <span className="font-extrabold text-blue-900 tracking-wider text-base">{otpSentCode}</span>
+                </div>
+              )}
+              <form onSubmit={handleSignup} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Verification Code (OTP)</label>
+                  <div className="relative">
+                    <Key className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value)}
+                      className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
+                      placeholder="Enter 6-digit code" 
+                      required
+                    />
+                  </div>
+                </div>
+                <button 
+                  type="submit"
+                  disabled={loading}
+                  className={`w-full inline-flex items-center justify-center rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-4 transition-all shadow-lg hover:shadow-blue-500/30 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  {loading ? 'Verifying...' : 'Verify & Create Account'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="w-full text-center text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors mt-2"
+                >
+                  Go Back & Change Details
+                </button>
+              </form>
+            </>
+          )}
 
-          <form onSubmit={handleSignup} className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
-              <div className="relative">
-                <User className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
-                <input 
-                  type="text" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
-                  placeholder="John Doe" 
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
-                <input 
-                  type="email" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
-                  placeholder="name@example.com" 
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
-                <input 
-                  type="password" 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
-                  placeholder="••••••••" 
-                  required
-                />
-              </div>
-            </div>
-            <button 
-              type="submit"
-              disabled={loading}
-              className={`w-full inline-flex items-center justify-center rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-4 transition-all shadow-lg hover:shadow-blue-500/30 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {loading ? 'Creating...' : 'Create Account'}
-            </button>
-          </form>
           <p className="text-center text-sm text-slate-500 mt-8 font-medium">
             Already have an account? <Link to="/login" className="text-blue-600 font-bold hover:underline">Log in</Link>
           </p>

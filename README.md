@@ -8,14 +8,6 @@ Vision AI is a web-based clinical decision support application designed as a stu
 
 The system is developed as a split full-stack application using the following components:
 
-```mermaid
-graph TD
-    A[React + Vite Frontend] -->|REST API / JSON| B[FastAPI Backend Server]
-    B -->|PyMongo Driver| C[MongoDB Atlas Cloud Database]
-    B -->|Inference Engine| D[PyTorch FundusCNN Model]
-    B -->|ReportLab PDF Engine| E[Clinical Report Generator]
-```
-
 *   **Frontend Client:** React 18, Vite, Vanilla CSS styling rules, Framer Motion transitions, and Chart.js dashboards.
 *   **Backend Server:** FastAPI (Python 3.10+), PyTorch (for model inference), running on an in-memory Uvicorn local host.
 *   **Database Store:** MongoDB Atlas (Cloud NoSQL database).

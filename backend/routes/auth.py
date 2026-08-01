@@ -9,7 +9,7 @@ from services.auth_service import (
     generate_and_save_otp,
     verify_otp_code
 )
-from utils.dependencies import get_current_user
+from utils.dependencies import get_current_user, oauth2_scheme
 from database.mongodb import users_collection
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -27,6 +27,14 @@ async def signup(user: UserCreate):
 @router.post("/login", response_model=dict)
 async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     token_data = await authenticate_user(form_data.username, form_data.password)
+    
+    # Audit logging
+    from utils.audit import log_action
+    from database.mongodb import users_collection
+    user = await users_collection.find_one({"email": form_data.username})
+    if user:
+        await log_action(str(user["_id"]), "USER_LOGIN", f"User logged in successfully: {form_data.username}")
+
     # Swagger UI's internal logic strictly requires access_token to be at the top level of the JSON response
     return {
         "access_token": token_data["access_token"],
@@ -71,7 +79,7 @@ async def update_profile(user_update: UserUpdate, current_user: dict = Depends(g
 
 @router.post("/request-otp", response_model=dict)
 async def request_otp_route(payload: OTPRequest):
-    code = await generate_and_save_otp(payload.email)
+    code = await generate_and_save_otp(payload.email, is_signup=payload.is_signup)
     return {
         "status": "success",
         "data": {"code": code},
@@ -104,4 +112,26 @@ async def get_doctors(current_user: dict = Depends(get_current_user)):
         "status": "success",
         "data": result,
         "message": "Doctors fetched successfully"
+    }
+
+@router.post("/logout", response_model=dict)
+async def logout(token: str = Depends(oauth2_scheme)):
+    from database.mongodb import blacklist_tokens_collection
+    await blacklist_tokens_collection.insert_one({"token": token})
+    
+    # Audit logging
+    try:
+        import jwt
+        from utils.dependencies import SECRET_KEY, ALGORITHM
+        from utils.audit import log_action
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user_id = payload.get("sub")
+        if user_id:
+            await log_action(user_id, "USER_LOGOUT", "User logged out voluntarily")
+    except Exception:
+        pass
+
+    return {
+        "status": "success",
+        "message": "Successfully logged out. Session terminated."
     }

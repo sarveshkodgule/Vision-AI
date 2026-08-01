@@ -66,6 +66,49 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     return response
 
+# Input Sanitization: Mitigates XSS (HTML escaping) and NoSQL injection (removes query operators starting with $)
+import html
+import json
+
+def sanitize_payload(data):
+    if isinstance(data, dict):
+        sanitized = {}
+        for k, v in data.items():
+            if isinstance(k, str) and k.startswith("$"):
+                # Drop NoSQL query operators to block injection
+                continue
+            sanitized[k] = sanitize_payload(v)
+        return sanitized
+    elif isinstance(data, list):
+        return [sanitize_payload(item) for item in data]
+    elif isinstance(data, str):
+        # Escape strings to prevent HTML script tag injections
+        return html.escape(data)
+    else:
+        return data
+
+@app.middleware("http")
+async def input_sanitization_middleware(request: Request, call_next):
+    if request.method in ["POST", "PUT", "PATCH"]:
+        content_type = request.headers.get("content-type", "")
+        if "application/json" in content_type:
+            try:
+                body = await request.body()
+                if body:
+                    data = json.loads(body)
+                    sanitized_data = sanitize_payload(data)
+                    new_body = json.dumps(sanitized_data).encode("utf-8")
+                    
+                    # Override receive function to return sanitized body
+                    async def receive():
+                        return {"type": "http.request", "body": new_body, "more_body": False}
+                    request._receive = receive
+            except Exception as e:
+                print(f"[SANITIZATION WARNING] Payload parsing failed: {e}")
+                
+    response = await call_next(request)
+    return response
+
 os.makedirs("uploads", exist_ok=True)
 os.makedirs("reports", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

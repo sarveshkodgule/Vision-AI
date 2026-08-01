@@ -20,6 +20,8 @@ reports_collection = db["reports"]
 clinical_data_collection = db["clinical_data"]
 chat_history_collection = db["chat_history"]
 otp_codes_collection = db["otp_codes"]
+blacklist_tokens_collection = db["blacklist_tokens"]
+audit_logs_collection = db["audit_logs"]
 
 def get_db():
     return db

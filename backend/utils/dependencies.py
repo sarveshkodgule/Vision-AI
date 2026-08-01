@@ -21,6 +21,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    
+    # Check if the token is blacklisted (revoked logout session)
+    from database.mongodb import blacklist_tokens_collection
+    blacklisted = await blacklist_tokens_collection.find_one({"token": token})
+    if blacklisted:
+        raise credentials_exception
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")

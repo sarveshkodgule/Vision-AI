@@ -6,6 +6,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     role: str  # e.g., "patient" or "doctor"
+    otp_code: Optional[str] = None
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -22,6 +23,7 @@ class PasswordReset(BaseModel):
 
 class OTPRequest(BaseModel):
     email: EmailStr
+    is_signup: Optional[bool] = False
 
 class OTPVerify(BaseModel):
     email: EmailStr

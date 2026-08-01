@@ -8,8 +8,12 @@ async def create_user(user: UserCreate):
     existing_user = await users_collection.find_one({"email": user.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
+        
+    # Verify OTP if provided for signup flow
+    if user.otp_code is not None:
+        await verify_otp_code(user.email, user.otp_code)
     
-    user_data = user.model_dump()
+    user_data = user.model_dump(exclude={"otp_code"})
     user_data["password"] = get_password_hash(user.password)
     
     result = await users_collection.insert_one(user_data)
@@ -61,14 +65,18 @@ async def reset_password(email: str, new_password: str, otp_code: str = None):
     )
     return True
 
-async def generate_and_save_otp(email: str) -> str:
+async def generate_and_save_otp(email: str, is_signup: bool = False) -> str:
     import random
     from datetime import datetime, timezone
     from database.mongodb import otp_codes_collection
     
     db_user = await users_collection.find_one({"email": email})
-    if not db_user:
-        raise HTTPException(status_code=404, detail="Email not found")
+    if is_signup:
+        if db_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+    else:
+        if not db_user:
+            raise HTTPException(status_code=404, detail="Email not found")
         
     # Generate 6-digit random code
     code = f"{random.randint(100000, 999999)}"

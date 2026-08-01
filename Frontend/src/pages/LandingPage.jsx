@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, Shield, Activity, ArrowRight, MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { api } from '../lib/api';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -47,7 +48,12 @@ export default function LandingPage() {
     }
   }, [navigate]);
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      console.error("Logout backend request failed:", err);
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     setIsLoggedIn(false);

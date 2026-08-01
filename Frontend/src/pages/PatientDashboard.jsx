@@ -87,7 +87,12 @@ export default function PatientDashboard() {
     } catch (err) { console.error("Update failed"); }
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      console.error("Logout backend request failed:", err);
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('role');
     navigate('/login', { replace: true });

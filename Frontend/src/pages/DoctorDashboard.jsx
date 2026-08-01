@@ -289,6 +289,33 @@ export default function DoctorDashboard() {
                 <button onClick={() => setIsEditingProfile(true)} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">Edit Details</button>
               )}
             </div>
+            
+            <div className="mt-8 pt-8 border-t border-slate-100">
+              <h4 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider text-left">Account Security Status</h4>
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start space-x-3 text-left">
+                  <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">🔒</div>
+                  <div>
+                    <h5 className="font-bold text-slate-800 text-sm">Bcrypt Password Hashing</h5>
+                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">SHA-256 pre-hashed & salted</p>
+                  </div>
+                </div>
+                <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start space-x-3 text-left">
+                  <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">🛡️</div>
+                  <div>
+                    <h5 className="font-bold text-slate-800 text-sm">JWT Auth & Blacklisting</h5>
+                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Secure logout & token checks</p>
+                  </div>
+                </div>
+                <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start space-x-3 text-left">
+                  <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">🧹</div>
+                  <div>
+                    <h5 className="font-bold text-slate-800 text-sm">XSS & NoSQL Filters</h5>
+                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Payload HTML escaping active</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </motion.div>
       );
@@ -442,10 +469,42 @@ export default function DoctorDashboard() {
                 <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4 tracking-widest">{selectedPatient.name.charAt(0)}</div>
                 <h2 className="text-xl font-bold text-slate-800">{selectedPatient.name}</h2>
                 <p className="text-slate-500 text-sm mt-1">{selectedPatient.id} • {selectedPatient.age} yrs</p>
-                <div className="mt-4 flex justify-center">
+                <div className="mt-4 flex flex-col items-center gap-3">
                   <span className={`px-4 py-1.5 rounded-full text-sm font-bold ${selectedPatient.riskLevel === 'High' ? 'bg-red-50 text-red-600' : selectedPatient.riskLevel === 'Low' ? 'bg-teal-50 text-teal-600' : 'bg-amber-50 text-amber-600'}`}>
                     Prior Risk: {selectedPatient.riskLevel}
                   </span>
+                  
+                  <button 
+                    onClick={async () => {
+                      try {
+                        const token = localStorage.getItem('token');
+                        const response = await fetch(
+                          `http://localhost:8000/doctor/generate-report/${selectedPatient.id}`,
+                          {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                          }
+                        );
+                        if (!response.ok) {
+                          alert('No clinical report has been generated for this patient yet. Please fill out the Deep Learning Clinical Diagnostic Form first.');
+                          return;
+                        }
+                        const blob = await response.blob();
+                        const url  = URL.createObjectURL(blob);
+                        const a    = document.createElement('a');
+                        a.href     = url;
+                        a.download = `myopia_report_${selectedPatient.name.replace(/\s+/g, '_')}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                      } catch (err) {
+                        alert('Network error. Failed to download report PDF.');
+                      }
+                    }}
+                    className="w-full mt-2 inline-flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold py-2.5 px-4 rounded-xl transition-all border border-blue-100 shadow-sm active:scale-95"
+                  >
+                    <Download className="w-3.5 h-3.5 mr-1.5" /> Download Report (PDF)
+                  </button>
                 </div>
               </div>
 

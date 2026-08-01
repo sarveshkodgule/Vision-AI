@@ -356,6 +356,33 @@ export default function PatientDashboard() {
                   )}
                 </div>
               </div>
+
+              <div className="mt-8 pt-8 border-t border-slate-100">
+                <h4 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider text-left">Account Security Status</h4>
+                <div className="grid sm:grid-cols-3 gap-4">
+                  <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start space-x-3 text-left">
+                    <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">🔒</div>
+                    <div>
+                      <h5 className="font-bold text-slate-800 text-sm">Bcrypt Hashed</h5>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Password securely encrypted</p>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start space-x-3 text-left">
+                    <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">🛡️</div>
+                    <div>
+                      <h5 className="font-bold text-slate-800 text-sm">JWT Protection</h5>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Strict endpoint auth checks</p>
+                    </div>
+                  </div>
+                  <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start space-x-3 text-left">
+                    <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">🧹</div>
+                    <div>
+                      <h5 className="font-bold text-slate-800 text-sm">Input Filters</h5>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">HTML escaping enabled</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </motion.div>
         ) : activeTab === 'history' ? (

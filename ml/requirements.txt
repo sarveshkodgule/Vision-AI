@@ -1,0 +1,11 @@
+torch>=2.0.0
+torchvision>=0.15.0
+efficientnet_pytorch
+opencv-python-headless
+Pillow
+numpy
+openpyxl
+scikit-learn
+matplotlib
+onnx
+onnxruntime

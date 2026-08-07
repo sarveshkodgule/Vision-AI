@@ -3,7 +3,7 @@ import shutil
 from fastapi import UploadFile, HTTPException
 from datetime import datetime
 from database.mongodb import patients_collection, reports_collection, clinical_data_collection
-from services.ai_service import predict_image, predict_clinical_evaluation
+from services.ai_service import predict_fundus_palm, predict_clinical_evaluation
 from typing import Optional, Any, Dict, List
 from bson import ObjectId
 
@@ -51,16 +51,16 @@ async def fetch_report(report_id: str) -> Optional[Dict[str, Any]]:
     return None
 
 async def process_prediction(patient_id: str, image_path: str, clinical_data: dict, doctor_verdict: Optional[str] = None):
-    # 1. Morphological Analysis (Placeholder for image-based Deep Learning)
+    # 1. Pathologic Myopia prediction via PALM EfficientNet-B0 microservice
     try:
         with open(image_path, "rb") as f:
             image_bytes = f.read()
     except FileNotFoundError:
         image_bytes = b"dummy"
-    image_ai = predict_image(image_bytes)
+    palm_result = await predict_fundus_palm(image_bytes)
     
-    # 2. Clinical Evaluation (REAL-TIME evaluation of doctor's form inputs)
-    # We first fetch the patient to get additional context (age, lifestyle) if missing in clinical_data
+    # 2. Clinical Evaluation (XGBoost biometry model — unchanged)
+    # Fetch the patient to get additional context (age, lifestyle) if missing in clinical_data
     patient = await patients_collection.find_one({"_id": ObjectId(patient_id) if len(patient_id) == 24 else patient_id})
     if patient:
         # Merge lifestyle factors into clinical_data for the ML model
@@ -76,15 +76,18 @@ async def process_prediction(patient_id: str, image_path: str, clinical_data: di
     
     # Generate DB report record
     report_record = {
-        "patient_id": patient_id,
-        "image_url": image_path,
-        "prediction": image_ai["prediction"],
-        "severity": clinical_ai["severity"],
-        "confidence": clinical_ai["confidence"],
+        "patient_id":            patient_id,
+        "image_url":             image_path,
+        # PALM EfficientNet-B0 fundus prediction (binary PM / Non-PM)
+        "fundus_pm_prediction":  palm_result["fundus_pm_prediction"],
+        "fundus_pm_confidence":  palm_result["fundus_pm_confidence"],
+        # Clinical XGBoost model results (unchanged)
+        "severity":              clinical_ai["severity"],
+        "confidence":            clinical_ai["confidence"],
         "predicted_next_spheq": clinical_ai["predicted_next_spheq"],
-        "progression_rate": clinical_ai["progression_rate"],
-        "doctor_verdict": doctor_verdict,
-        "created_at": datetime.now().isoformat()
+        "progression_rate":      clinical_ai["progression_rate"],
+        "doctor_verdict":        doctor_verdict,
+        "created_at":            datetime.now().isoformat()
     }
     
     result = await reports_collection.insert_one(report_record)

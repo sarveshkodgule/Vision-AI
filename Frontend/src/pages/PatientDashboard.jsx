@@ -25,6 +25,13 @@ export default function PatientDashboard() {
   const [result, setResult] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   
+  // Simulator States
+  const [simScreen, setSimScreen] = useState(4);
+  const [simOutdoor, setSimOutdoor] = useState(2);
+  const [simReading, setSimReading] = useState(2);
+  const [simSleep, setSimSleep] = useState(8);
+  const [simParental, setSimParental] = useState(0);
+  
   const [profile, setProfile] = useState({ name: 'Loading...', email: 'Loading...', role: 'patient' });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', email: '' });
@@ -285,6 +292,12 @@ export default function PatientDashboard() {
             Screening History
           </button>
           <button 
+            onClick={() => setActiveTab('simulator')} 
+            className={`text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${activeTab === 'simulator' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:text-slate-800'}`}
+          >
+            📊 Risk Simulator
+          </button>
+          <button 
             onClick={() => setActiveTab('profile')} 
             className={`w-9 h-9 bg-gradient-to-tr from-blue-500 to-teal-400 rounded-full flex items-center justify-center text-white font-bold cursor-pointer transition-all ${activeTab === 'profile' ? 'ring-2 ring-blue-600 ring-offset-2' : 'shadow-md hover:shadow-lg'}`}
           >
@@ -492,6 +505,166 @@ export default function PatientDashboard() {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          </motion.div>
+        ) : activeTab === 'simulator' ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className="max-w-4xl mx-auto mt-4 space-y-8 pb-10"
+          >
+            <div className="text-left mb-6">
+              <h2 className="text-2xl font-bold text-slate-800">What-If Myopia Risk Simulator</h2>
+              <p className="text-slate-500 text-sm mt-1">Adjust lifestyle factor sliders below to simulate and preview your myopia risk score dynamically in real-time.</p>
+            </div>
+
+            <div className="grid md:grid-cols-12 gap-8">
+              {/* Left Column: Sliders */}
+              <div className="md:col-span-7 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6 text-left">
+                <h3 className="font-bold text-slate-800 text-md border-b pb-3 mb-4">Simulate Lifestyle Factors</h3>
+
+                {/* Slider 1: Screen Time */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Daily Screen Time</span>
+                    <span className="text-sm font-black text-blue-600">{simScreen} hrs/day</span>
+                  </div>
+                  <input 
+                    type="range" min="0" max="16" step="0.5"
+                    value={simScreen} onChange={e => setSimScreen(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
+                    <span>0 hrs (Ideal)</span>
+                    <span>16 hrs (Heavy)</span>
+                  </div>
+                </div>
+
+                {/* Slider 2: Outdoor Activity */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Outdoor Activity</span>
+                    <span className="text-sm font-black text-teal-600">{simOutdoor} hrs/day</span>
+                  </div>
+                  <input 
+                    type="range" min="0" max="6" step="0.5"
+                    value={simOutdoor} onChange={e => setSimOutdoor(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
+                    <span>0 hrs (None)</span>
+                    <span>6 hrs (Protective Factor)</span>
+                  </div>
+                </div>
+
+                {/* Slider 3: Near-Work Reading Time */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Continuous Near Work / Reading</span>
+                    <span className="text-sm font-black text-indigo-600">{simReading} hrs/day</span>
+                  </div>
+                  <input 
+                    type="range" min="0" max="12" step="0.5"
+                    value={simReading} onChange={e => setSimReading(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
+                    <span>0 hrs</span>
+                    <span>12 hrs</span>
+                  </div>
+                </div>
+
+                {/* Slider 4: Sleep Time */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Sleep Hours</span>
+                    <span className="text-sm font-black text-purple-600">{simSleep} hrs/day</span>
+                  </div>
+                  <input 
+                    type="range" min="4" max="12" step="0.5"
+                    value={simSleep} onChange={e => setSimSleep(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
+                    <span>4 hrs</span>
+                    <span>12 hrs (Healthy)</span>
+                  </div>
+                </div>
+
+                {/* Dropdown 5: Parental Myopia */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">Myopia in Parents</label>
+                  <select 
+                    value={simParental} onChange={e => setSimParental(parseInt(e.target.value))}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors cursor-pointer outline-none"
+                  >
+                    <option value="0">Neither Parent has Myopia (0)</option>
+                    <option value="1">One Parent has Myopia (1)</option>
+                    <option value="2">Both Parents have Myopia (2)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Right Column: Real-time calculation visual gauge */}
+              <div className="md:col-span-5 flex flex-col space-y-6">
+                {/* Score gauge card */}
+                {(() => {
+                  // Real-time calculation formula
+                  let base = 40;
+                  base += simScreen * 6.5;
+                  base += simReading * 4.5;
+                  base -= simOutdoor * 11.5;
+                  base += simParental * 12.5;
+                  base -= (simSleep - 7) * 2.5;
+                  const finalScore = Math.max(5, Math.min(95, Math.round(base)));
+                  
+                  const isHigh = finalScore >= 65;
+                  const isMed  = finalScore >= 35 && finalScore < 65;
+                  const colorClass = isHigh ? 'text-red-500 bg-red-50/50 border-red-100' : isMed ? 'text-amber-500 bg-amber-50/50 border-amber-100' : 'text-teal-500 bg-teal-50/50 border-teal-100';
+                  const circleColor = isHigh ? 'text-red-500' : isMed ? 'text-amber-500' : 'text-teal-500';
+                  
+                  return (
+                    <>
+                      <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+                        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-6">Simulated Myopia Risk</h4>
+                        <div className="relative mb-6">
+                          <svg className="w-36 h-36 transform -rotate-90">
+                            <circle cx="72" cy="72" r="64" stroke="currentColor" strokeWidth="12" className="text-slate-100 fill-none" />
+                            <circle 
+                              cx="72" cy="72" r="64" stroke="currentColor" strokeWidth="12" 
+                              strokeDasharray="401.9" strokeDashoffset={401.9 - (401.9 * finalScore) / 100} 
+                              className={`fill-none ${circleColor} transition-all duration-300 ease-out`} 
+                              strokeLinecap="round" 
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-4xl font-black text-slate-800">{finalScore}%</span>
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Risk Score</span>
+                          </div>
+                        </div>
+                        <h3 className="text-lg font-extrabold text-slate-800 mb-1">{isHigh ? 'High Risk' : isMed ? 'Moderate Risk' : 'Low Risk'}</h3>
+                        <p className="text-xs text-slate-500 font-medium px-4">Based on current simulated parameters</p>
+                      </div>
+
+                      {/* Clinical Recommendations box */}
+                      <div className={`rounded-3xl p-6 border shadow-sm text-left ${colorClass}`}>
+                        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                          📢 AI Clinical Recommendation
+                        </h4>
+                        <p className="text-xs font-semibold text-slate-600 leading-relaxed">
+                          {isHigh ? (
+                            "CRITICAL RISK: High probability of progressive axial elongation. We strongly recommend reducing screen time, targeting 2 hours of daily outdoor activity, and consulting an ophthalmologist for a cycloplegic refraction test."
+                          ) : isMed ? (
+                            "MODERATE RISK: Moderate risk detected. Increase daily outdoor exposure to at least 1.5 hours and practice the 20-20-20 rule during screen usage to maintain current refraction ranges."
+                          ) : (
+                            "HEALTHY SCORE: Low progression risk. Your simulated habit ratio is highly protective. Keep up your healthy lifestyle parameters to maintain myopia stability!"
+                          )}
+                        </p>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </motion.div>

@@ -138,7 +138,7 @@ def run_evaluation(
         cm_path = RESULTS_DIR / f"confusion_matrix_{tag}.png"
         plt.savefig(cm_path, dpi=150)
         plt.close()
-        print(f"  Confusion matrix saved → {cm_path}")
+        print(f"  Confusion matrix saved -> {cm_path}")
 
     return metrics
 
@@ -177,7 +177,7 @@ def main():
     out_path = RESULTS_DIR / f"metrics_{tag}.json"
     with open(out_path, "w") as f:
         json.dump(metrics, f, indent=2)
-    print(f"\nMetrics saved → {out_path}")
+    print(f"\nMetrics saved -> {out_path}")
 
 
 if __name__ == "__main__":

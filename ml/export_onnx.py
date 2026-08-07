@@ -54,7 +54,7 @@ def export_onnx(checkpoint_path: Path, output_path: Path) -> None:
             "output": {0: "batch_size"},
         },
     )
-    print("  ✓ ONNX export complete.")
+    print("  [OK] ONNX export complete.")
 
     # ── Round-trip validation ─────────────────────────────────────────────────
     print("Validating round-trip (PyTorch vs ONNX)...")
@@ -72,12 +72,12 @@ def export_onnx(checkpoint_path: Path, output_path: Path) -> None:
         max_diff = float(np.abs(ort_out - pt_out).max())
         print(f"  Max output diff (PyTorch vs ONNX): {max_diff:.2e}")
         if max_diff < 1e-4:
-            print("  ✓ Round-trip validated — outputs match within tolerance.")
+            print("  [OK] Round-trip validated -- outputs match within tolerance.")
         else:
-            print("  ⚠ Outputs differ more than expected. Check opset compatibility.")
+            print("  [WARN] Outputs differ more than expected. Check opset compatibility.")
 
     except ImportError:
-        print("  ℹ onnxruntime not installed — skipping round-trip check.")
+        print("  [INFO] onnxruntime not installed -- skipping round-trip check.")
         print("    Install with: pip install onnxruntime")
 
 
@@ -100,7 +100,7 @@ def main():
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     export_onnx(ckpt_path, out_path)
-    print(f"\nDone → {out_path}")
+    print(f"\nDone -> {out_path}")
     print("Next step: start the inference service:")
     print(f"  uvicorn ml.inference_service.main:app --port 8001 --reload")
 

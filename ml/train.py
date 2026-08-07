@@ -157,7 +157,7 @@ def train_stage(
 def run_cv(args) -> list[dict]:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"\n{'='*60}")
-    print(f"PALM EfficientNet-B0 — 5-Fold Cross-Validation")
+    print(f"PALM EfficientNet-B0 -- 5-Fold Cross-Validation")
     print(f"Device : {device}")
     print(f"Data   : {args.data_root}")
     print(f"Folds  : {args.folds}")
@@ -254,10 +254,15 @@ def run_cv(args) -> list[dict]:
             global_best_auc = fold_auc
             global_best_state = copy.deepcopy(model.state_dict())
 
+        # Fast mode: only run fold 1
+        if getattr(args, "_fast_single_fold", False):
+            print("\n[FAST] Stopping after fold 1.")
+            break
+
     # ── Save global best checkpoint ───────────────────────────────────────────
     best_ckpt_path = CHECKPOINTS_DIR / "best_overall.pth"
     torch.save({"model_state_dict": global_best_state, "val_auc": global_best_auc}, best_ckpt_path)
-    print(f"\n✓ Best overall checkpoint saved → {best_ckpt_path}  (AUC={global_best_auc:.4f})")
+    print(f"\n[OK] Best overall checkpoint saved -> {best_ckpt_path}  (AUC={global_best_auc:.4f})")
 
     # ── CV summary ────────────────────────────────────────────────────────────
     print(f"\n{'='*60}")
@@ -332,15 +337,16 @@ if __name__ == "__main__":
     args = parse_args()
 
     if args.fast:
-        print("⚡ FAST mode: 1 fold, reduced epochs for quick smoke-test")
-        args.folds         = 1
+        print("[FAST] 1 fold, reduced epochs for quick smoke-test")
+        args.folds         = 2   # StratifiedKFold requires n_splits >= 2; we only use fold 1
         args.epochs_stage1 = 3
         args.epochs_stage2 = 5
         args.batch_size    = 8
+        args._fast_single_fold = True   # signal to run_cv to stop after fold 1
 
     fold_metrics = run_cv(args)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     evaluate_on_test(args, device)
 
-    print("\n✅ Training complete. Run export_onnx.py to export the model.")
+    print("\n[DONE] Training complete. Run export_onnx.py to export the model.")

@@ -1,0 +1,33 @@
+{
+  "folds": 2,
+  "per_fold": [
+    {
+      "auc": 0.9943,
+      "sensitivity": 0.9387,
+      "specificity": 0.984,
+      "f1": 0.96,
+      "confusion_matrix": [
+        [
+          185,
+          3
+        ],
+        [
+          13,
+          199
+        ]
+      ]
+    }
+  ],
+  "mean": {
+    "auc": 0.9943,
+    "sensitivity": 0.9387,
+    "specificity": 0.984,
+    "f1": 0.96
+  },
+  "std": {
+    "auc": 0.0,
+    "sensitivity": 0.0,
+    "specificity": 0.0,
+    "f1": 0.0
+  }
+}

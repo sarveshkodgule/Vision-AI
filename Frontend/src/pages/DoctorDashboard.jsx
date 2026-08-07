@@ -689,6 +689,55 @@ export default function DoctorDashboard() {
                     </div>
                   </div>
 
+                  {/* ── PALM EfficientNet-B0 Fundus DL Result ── */}
+                  {predictionData?.fundus_pm_prediction && predictionData.fundus_pm_prediction !== 'No Image' && (
+                    <div className={`rounded-2xl border p-5 ${
+                      predictionData.fundus_pm_prediction === 'PM'
+                        ? 'bg-red-50 border-red-200'
+                        : predictionData.fundus_pm_prediction === 'Service Unavailable'
+                        ? 'bg-slate-50 border-slate-200'
+                        : 'bg-emerald-50 border-emerald-200'
+                    }`}>
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block mb-1">
+                            Fundus DL Analysis · EfficientNet-B0 (PALM Dataset)
+                          </span>
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className={`px-3 py-1.5 rounded-full text-sm font-bold ${
+                              predictionData.fundus_pm_prediction === 'PM'
+                                ? 'bg-red-100 text-red-700'
+                                : predictionData.fundus_pm_prediction === 'Service Unavailable'
+                                ? 'bg-slate-100 text-slate-500'
+                                : 'bg-emerald-100 text-emerald-700'
+                            }`}>
+                              {predictionData.fundus_pm_prediction === 'PM'
+                                ? '⚠ Pathologic Myopia Detected'
+                                : predictionData.fundus_pm_prediction === 'Service Unavailable'
+                                ? '⚡ DL Service Offline'
+                                : '✓ Non-Pathologic'}
+                            </span>
+                            {predictionData.fundus_pm_prediction !== 'Service Unavailable' && (
+                              <span className="text-slate-600 text-sm font-semibold">
+                                Confidence: <strong className={predictionData.fundus_pm_prediction === 'PM' ? 'text-red-600' : 'text-emerald-600'}>
+                                  {(predictionData.fundus_pm_confidence * 100).toFixed(1)}%
+                                </strong>
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {predictionData.fundus_pm_prediction === 'Service Unavailable' && (
+                          <span className="text-xs text-slate-400 font-medium text-right max-w-[160px]">
+                            Start the inference service on port 8001
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        ⚠ Trained on PALM dataset (1,200 fundus images) · Binary pathologic myopia classification only · Clinical validation pending · Not a substitute for clinical diagnosis
+                      </p>
+                    </div>
+                  )}
+
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
                       <h3 className="font-bold text-slate-800 mb-4 flex justify-between">

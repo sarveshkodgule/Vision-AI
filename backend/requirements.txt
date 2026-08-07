@@ -14,3 +14,4 @@ scikit-learn
 pandas
 pymongo>=4.0.0
 dnspython>=2.0.0
+httpx

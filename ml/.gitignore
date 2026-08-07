@@ -1,0 +1,15 @@
+# Large model artifacts — share out-of-band (Google Drive / OneDrive)
+checkpoints/*.pth
+checkpoints/*.onnx
+
+# Dataset — too large for git
+data/
+
+# Results plots (optional to commit)
+results/*.png
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.ipynb_checkpoints/

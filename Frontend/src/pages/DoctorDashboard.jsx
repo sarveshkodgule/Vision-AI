@@ -137,6 +137,70 @@ export default function DoctorDashboard() {
     }
   }, [activeTab]);
 
+  const handleAutoInjectMockData = () => {
+    const presets = [
+      // 0: Healthy / Low Risk
+      {
+        sphericalEq: '0.75',
+        axialLength: '22.35',
+        acd: '3.70',
+        lt: '3.72',
+        vcd: '14.70',
+        iop: '14.0',
+        age: '12',
+        visitYear: new Date().getFullYear(),
+        readingHours: '1.0',
+        screenTime: '1.5',
+        outdoorActivity: '4.0',
+        sleepHours: '9.0',
+        parentalMyopia: '0',
+        doctorVerdict: 'Low'
+      },
+      // 1: Medium Risk
+      {
+        sphericalEq: '-1.50',
+        axialLength: '23.85',
+        acd: '3.45',
+        lt: '3.55',
+        vcd: '15.95',
+        iop: '16.5',
+        age: '14',
+        visitYear: new Date().getFullYear(),
+        readingHours: '3.0',
+        screenTime: '4.5',
+        outdoorActivity: '1.5',
+        sleepHours: '7.5',
+        parentalMyopia: '1',
+        doctorVerdict: 'Medium'
+      },
+      // 2: High Risk
+      {
+        sphericalEq: '-4.75',
+        axialLength: '25.95',
+        acd: '3.25',
+        lt: '3.40',
+        vcd: '17.20',
+        iop: '19.0',
+        age: '10',
+        visitYear: new Date().getFullYear(),
+        readingHours: '5.5',
+        screenTime: '7.5',
+        outdoorActivity: '0.5',
+        sleepHours: '6.5',
+        parentalMyopia: '2',
+        doctorVerdict: 'High'
+      }
+    ];
+
+    const randomIndex = Math.floor(Math.random() * 3);
+    const chosenPreset = presets[randomIndex];
+    setClinicalData(chosenPreset);
+    
+    // Inject mock image indicator so they do not need to manually browse for an eye photo!
+    setUploadedImageUrl("https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80");
+    setUploadedScan(new File(["dummy"], "retina_scan.jpg", { type: "image/jpeg" }));
+  };
+
   // Automatically pre-populate clinical form with selected patient's reported lifestyle factors
   useEffect(() => {
     if (selectedPatient) {
@@ -530,7 +594,16 @@ export default function DoctorDashboard() {
               {!assessmentComplete ? (
                 <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative overflow-hidden flex flex-col h-full">
                   <div className="absolute top-0 right-0 p-4 opacity-5"><Activity className="w-48 h-48 text-blue-600" /></div>
-                  <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center relative z-10"><Eye className="w-5 h-5 mr-2 text-blue-600" /> Deep Learning Clinical Diagnostic Form</h3>
+                  <div className="flex justify-between items-center mb-6 relative z-10">
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center"><Eye className="w-5 h-5 mr-2 text-blue-600" /> Diagnostic Form</h3>
+                    <button 
+                      type="button" 
+                      onClick={handleAutoInjectMockData}
+                      className="bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold py-1.5 px-3 rounded-lg border border-blue-100 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
+                    >
+                      ⚡ Auto-Inject Demo Case
+                    </button>
+                  </div>
 
                   <form onSubmit={handleRunAssessment} className="relative z-10 flex-1 flex flex-col">
                     

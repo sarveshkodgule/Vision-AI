@@ -95,36 +95,42 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 flex flex-col relative overflow-hidden">
+      {/* Background Decorative Blur Orbs */}
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-gradient-to-tr from-blue-300/10 to-indigo-300/10 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-gradient-to-br from-teal-200/10 to-blue-200/10 blur-[130px] pointer-events-none" />
+
       {/* Navbar */}
-      <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Eye className="w-8 h-8 text-blue-600" />
-            <span className="font-extrabold text-xl tracking-tight text-slate-800">VisionAssistant</span>
+      <nav className="border-b border-slate-100 bg-white/70 backdrop-blur-xl sticky top-0 z-50 transition-all duration-300 shadow-sm shadow-slate-100/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+          <div className="flex items-center space-x-3 cursor-pointer group">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
+              <Eye className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-slate-800 to-slate-900 bg-clip-text text-transparent">VisionAssistant</span>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
             {isLoggedIn ? (
               <>
                 <Link 
                   to={userRole === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard'} 
-                  className="text-blue-600 font-bold hover:underline transition-all"
+                  className="text-blue-600 font-extrabold hover:text-blue-700 transition-colors text-sm"
                 >
-                  Dashboard
+                  Go to Dashboard
                 </Link>
                 <button 
                   onClick={handleSignOut} 
-                  className="bg-red-500 text-white px-4 py-2 rounded-md font-medium hover:bg-red-600 transition-colors"
+                  className="bg-red-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:bg-red-600 shadow-md shadow-red-500/10 hover:shadow-red-500/20 active:scale-95 transition-all cursor-pointer"
                 >
                   Sign Out
                 </button>
               </>
             ) : (
               <>
-                <Link to="/login" className="text-muted-foreground hover:text-foreground font-medium transition-colors">
+                <Link to="/login" className="text-slate-600 hover:text-blue-600 font-bold text-sm transition-colors">
                   Login
                 </Link>
-                <Link to="/signup" className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-medium hover:bg-primary/90 transition-colors">
+                <Link to="/signup" className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs hover:opacity-95 shadow-md shadow-blue-500/10 hover:shadow-blue-500/25 active:scale-95 transition-all cursor-pointer">
                   Get Started
                 </Link>
               </>
@@ -135,63 +141,71 @@ export default function LandingPage() {
 
       {/* Hero Section */}
       <main className="flex-1">
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32 grid md:grid-cols-2 gap-12 items-center">
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 grid lg:grid-cols-12 gap-16 items-center">
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            className="lg:col-span-7 text-left"
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-blue-100 text-blue-700 hover:bg-blue-200 mb-6 uppercase tracking-wider">
-              Diagnostic Help Tool
+            <div className="inline-flex items-center rounded-full border border-blue-200/50 px-4 py-1.5 text-xs font-black bg-blue-50 text-blue-700 mb-8 uppercase tracking-widest">
+              🧬 Clinical Decision Support Tool
             </div>
-            <h1 className="text-4xl lg:text-6xl font-black tracking-tight text-slate-800 mb-6 leading-tight">
-              Early Evaluation for <span className="text-blue-600">Clearer Vision</span>
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-slate-800 mb-6 leading-[1.12]">
+              Early Screening for <br />
+              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-teal-500 bg-clip-text text-transparent">Clearer Vision</span>
             </h1>
-            <p className="text-xl text-slate-500 mb-8 max-w-lg leading-relaxed font-medium">
-              Empowering eye care with a precise Myopia Diagnostic and Risk Assessment Tool. Designed for rapid evaluation and actionable clinical insights.
+            <p className="text-lg text-slate-500 mb-10 max-w-xl leading-relaxed font-medium">
+              Empowering eye care professionals with an advanced clinical screening and myopia risk assessment platform. Engineered for swift analysis, automated biometry compilation, and explainable AI overlays.
             </p>
-            <div className="flex space-x-4">
+            <div className="flex flex-wrap gap-4">
               {isLoggedIn ? (
                 <Link 
                   to={userRole === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard'} 
-                  className="inline-flex items-center justify-center rounded-xl text-sm font-bold transition-colors shadow hover:shadow-md bg-blue-600 text-white hover:bg-blue-700 h-12 px-8"
+                  className="inline-flex items-center justify-center rounded-2xl text-sm font-extrabold transition-all shadow-lg shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-xl hover:shadow-blue-500/30 hover:opacity-98 active:scale-95 h-14 px-8 group cursor-pointer"
                 >
-                  Go to Dashboard <ArrowRight className="ml-2 w-4 h-4" />
+                  Go to Dashboard <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               ) : (
                 <>
-                  <Link to="/signup" className="inline-flex items-center justify-center rounded-xl text-sm font-bold transition-colors shadow hover:shadow-md bg-blue-600 text-white hover:bg-blue-700 h-12 px-8">
-                    Start Evaluation <ArrowRight className="ml-2 w-4 h-4" />
+                  <Link to="/signup" className="inline-flex items-center justify-center rounded-2xl text-sm font-extrabold transition-all shadow-lg shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-xl hover:shadow-blue-500/30 hover:opacity-98 active:scale-95 h-14 px-8 group cursor-pointer">
+                    Start Evaluation <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
-                  <Link to="/login" className="inline-flex items-center justify-center rounded-xl text-sm font-bold transition-colors border-2 border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-800 h-12 px-8">
+                  <Link to="/login" className="inline-flex items-center justify-center rounded-2xl text-sm font-extrabold transition-all border-2 border-slate-200 text-slate-600 hover:bg-slate-100 hover:text-slate-800 h-14 px-8 active:scale-95 cursor-pointer">
                     Doctor Portal
                   </Link>
                 </>
               )}
             </div>
           </motion.div>
+          
           <motion.div 
-            className="relative"
-            initial={{ opacity: 0, scale: 0.9 }}
+            className="lg:col-span-5 relative"
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <div className="aspect-square rounded-full bg-primary/10 absolute -inset-4 blur-3xl" />
-            <img 
-              src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" 
-              alt="Medical Eye Examination" 
-              className="relative rounded-2xl shadow-soft border border-border/50 object-cover w-full h-[400px]"
-            />
+            {/* Soft background glow */}
+            <div className="absolute -inset-4 bg-gradient-to-tr from-blue-500/10 to-indigo-500/10 rounded-[40px] blur-3xl pointer-events-none" />
+            
+            <div className="relative bg-white/40 backdrop-blur-md border border-slate-200/50 p-4 rounded-[32px] shadow-2xl shadow-slate-900/5 overflow-hidden group">
+              <img 
+                src="/eye_scan_visualization.jpg" 
+                alt="Retinal scan evaluation showcase" 
+                className="rounded-2xl shadow-inner border border-slate-100/50 object-cover w-full h-[420px] transition-all duration-700 group-hover:scale-102"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none" />
+            </div>
           </motion.div>
         </section>
 
         {/* Features Section */}
-        <section className="bg-muted/50 py-20">
+        <section className="bg-slate-50/50 py-24 border-t border-slate-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold tracking-tight mb-4">Advanced Risk Assessment</h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Our platform combines cutting-edge deep learning with clinical risk factors to provide a holistic view of patient eye health.
+            <div className="text-center mb-20">
+              <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-800 mb-4">Advanced Risk Assessment</h2>
+              <p className="text-slate-500 max-w-xl mx-auto text-md leading-relaxed font-semibold">
+                Combining high-accuracy neural networks with multi-factor clinical variables to offer a holistic screening dashboard.
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-8">
@@ -201,14 +215,14 @@ export default function LandingPage() {
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="bg-card p-6 rounded-2xl border border-border shadow-sm hover:shadow-soft transition-all"
+                  transition={{ delay: idx * 0.1, duration: 0.5 }}
+                  className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-1 transition-all duration-300 text-left"
                 >
-                  <div className="rounded-xl bg-primary/10 w-16 h-16 flex items-center justify-center mb-6">
+                  <div className="rounded-2xl bg-blue-50 w-14 h-14 flex items-center justify-center mb-6">
                     {feature.icon}
                   </div>
-                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                  <p className="text-muted-foreground leading-relaxed">
+                  <h3 className="text-xl font-bold text-slate-800 mb-3">{feature.title}</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed font-medium">
                     {feature.description}
                   </p>
                 </motion.div>

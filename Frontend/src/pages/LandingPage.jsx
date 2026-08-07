@@ -186,15 +186,64 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.2 }}
           >
             {/* Soft background glow */}
-            <div className="absolute -inset-4 bg-gradient-to-tr from-blue-500/10 to-indigo-500/10 rounded-[40px] blur-3xl pointer-events-none" />
+            <div className="absolute -inset-4 bg-gradient-to-tr from-blue-500/20 to-indigo-500/20 rounded-[40px] blur-3xl pointer-events-none animate-pulse" />
             
-            <div className="relative bg-white/40 backdrop-blur-md border border-slate-200/50 p-4 rounded-[32px] shadow-2xl shadow-slate-900/5 overflow-hidden group">
-              <img 
-                src="/eye_scan_visualization.jpg" 
-                alt="Retinal scan evaluation showcase" 
-                className="rounded-2xl shadow-inner border border-slate-100/50 object-cover w-full h-[420px] transition-all duration-700 group-hover:scale-102"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl pointer-events-none" />
+            {/* Dark Clinical Glass console widget */}
+            <div className="relative bg-slate-900 border border-slate-800 p-6 rounded-[32px] shadow-2xl overflow-hidden font-mono text-slate-300">
+              {/* Header bar */}
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-green-500 animate-ping" />
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">System Online: AI-V2</span>
+                </div>
+                <span className="text-[9px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded font-black">SCAN_READY</span>
+              </div>
+
+              {/* Scanning visual area using CSS and inline styles */}
+              <div className="w-full aspect-[4/3] rounded-2xl bg-slate-950 border border-slate-800/80 flex flex-col items-center justify-center relative overflow-hidden my-4 group">
+                {/* Simulated grid lines */}
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:1.5rem_1.5rem] opacity-30" />
+                
+                {/* Glowing crosshair */}
+                <div className="absolute w-6 h-6 border-t-2 border-l-2 border-blue-500 top-4 left-4" />
+                <div className="absolute w-6 h-6 border-t-2 border-r-2 border-blue-500 top-4 right-4" />
+                <div className="absolute w-6 h-6 border-b-2 border-l-2 border-blue-500 bottom-4 left-4" />
+                <div className="absolute w-6 h-6 border-b-2 border-r-2 border-blue-500 bottom-4 right-4" />
+
+                {/* Animated Scanner Radar */}
+                <div className="w-44 h-44 rounded-full border border-blue-500/20 flex items-center justify-center relative animate-[pulse_4s_infinite]">
+                  <div className="w-32 h-32 rounded-full border border-indigo-500/30 flex items-center justify-center relative">
+                    {/* Simulated retina scan heatmap using gradient */}
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-blue-600/40 via-indigo-600/30 to-rose-600/40 border border-blue-400/50 flex items-center justify-center relative shadow-[0_0_30px_rgba(59,130,246,0.2)]">
+                      <div className="w-6 h-6 rounded-full bg-blue-500/20 border-2 border-blue-400/80 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
+                    </div>
+                  </div>
+                  {/* Scanner line sweep */}
+                  <div className="absolute inset-0 rounded-full border-t-2 border-blue-400/60 animate-spin" />
+                </div>
+
+                <div className="absolute bottom-3 left-4 text-[9px] text-slate-500 tracking-wider">CAM_MODE: ACTIVE</div>
+                <div className="absolute bottom-3 right-4 text-[9px] text-teal-400 font-bold tracking-wider animate-pulse">94.2% FIT</div>
+              </div>
+
+              {/* Simulated parameters display */}
+              <div className="grid grid-cols-2 gap-3 mt-4 pt-2 border-t border-slate-800">
+                <div className="bg-slate-950/60 border border-slate-800/60 p-3 rounded-xl">
+                  <div className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Axial Length</div>
+                  <div className="text-sm font-black text-slate-200">23.45 mm</div>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/60 p-3 rounded-xl">
+                  <div className="text-[9px] text-slate-500 uppercase tracking-widest mb-1">Refractive Error</div>
+                  <div className="text-sm font-black text-slate-200">-1.25 D</div>
+                </div>
+                <div className="bg-slate-950/60 border border-slate-800/60 p-3 rounded-xl col-span-2 flex justify-between items-center">
+                  <div>
+                    <div className="text-[9px] text-slate-500 uppercase tracking-widest mb-0.5">Calculated Severity</div>
+                    <div className="text-xs font-black text-emerald-400">Low Risk Myopia</div>
+                  </div>
+                  <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded-lg font-bold">CLEARED</span>
+                </div>
+              </div>
             </div>
           </motion.div>
         </section>

@@ -6,7 +6,10 @@ import bcrypt
 import hashlib
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env explicitly using absolute path to prevent startup directory issues
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env_path = os.path.join(base_dir, ".env")
+load_dotenv(dotenv_path=env_path, override=True)
 
 SECRET_KEY = os.getenv("JWT_SECRET_KEY", "supersecretkey_please_change_in_production")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")

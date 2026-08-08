@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler
 } from 'chart.js';
-import { api } from '../lib/api';
+import { api, API_BASE_URL } from '../lib/api';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -250,7 +250,7 @@ export default function PatientDashboard() {
   const downloadReportPdf = async (patientId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://127.0.0.1:8000/patient/generate-report/${patientId}`, {
+      const response = await fetch(`${API_BASE_URL}/patient/generate-report/${patientId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const blob = await response.blob();
@@ -370,32 +370,6 @@ export default function PatientDashboard() {
                 </div>
               </div>
 
-              <div className="mt-8 pt-8 border-t border-slate-100">
-                <h4 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider text-left">Account Security Status</h4>
-                <div className="grid sm:grid-cols-3 gap-4">
-                  <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start space-x-3 text-left">
-                    <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">🔒</div>
-                    <div>
-                      <h5 className="font-bold text-slate-800 text-sm">Bcrypt Hashed</h5>
-                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Password securely encrypted</p>
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start space-x-3 text-left">
-                    <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">🛡️</div>
-                    <div>
-                      <h5 className="font-bold text-slate-800 text-sm">JWT Protection</h5>
-                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">Strict endpoint auth checks</p>
-                    </div>
-                  </div>
-                  <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start space-x-3 text-left">
-                    <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">🧹</div>
-                    <div>
-                      <h5 className="font-bold text-slate-800 text-sm">Input Filters</h5>
-                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">HTML escaping enabled</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
           </motion.div>
         ) : activeTab === 'history' ? (

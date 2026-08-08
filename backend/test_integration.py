@@ -4,7 +4,8 @@ Calls the EXACT same service functions the Patient and Doctor portals use.
 This proves the ML models are live inside the backend.
 """
 import asyncio, sys
-sys.path.insert(0, r"C:\Users\Sarvesh Kodgule\Desktop\capstone\backend")
+import os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from services.patient_service import calculate_risk
 from services.ai_service import predict_clinical_evaluation

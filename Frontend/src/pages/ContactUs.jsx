@@ -18,7 +18,7 @@ export default function ContactUs() {
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <Link to="/" className="flex items-center space-x-2">
             <Eye className="w-8 h-8 text-blue-600" />
-            <span className="font-extrabold text-xl tracking-tight text-slate-800">VisionAssistant</span>
+            <span className="font-extrabold text-xl tracking-tight text-slate-800">Vision AI</span>
           </Link>
           <button onClick={() => navigate(-1)} className="text-sm font-bold text-slate-500 hover:text-blue-600 flex items-center transition-colors">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back
@@ -54,7 +54,7 @@ export default function ContactUs() {
                   <Mail className="w-5 h-5 mr-4 text-blue-300" />
                   <div>
                     <h3 className="font-bold text-sm">Email Support</h3>
-                    <p className="text-blue-100 text-sm mt-1">clinical@visionassistant.ai</p>
+                    <p className="text-blue-100 text-sm mt-1">clinical@visionai.com</p>
                   </div>
                 </div>
                 <div className="flex items-start">
@@ -130,7 +130,7 @@ export default function ContactUs() {
 
       <footer className="border-t border-slate-200 bg-white py-12">
         <div className="max-w-7xl mx-auto px-6 text-center text-slate-500 text-sm font-semibold">
-          &copy; {new Date().getFullYear()} VisionAssistant Diagnostic Systems. For informational purposes only.
+          &copy; {new Date().getFullYear()} Vision AI Diagnostic Systems. For informational purposes only.
         </div>
       </footer>
     </div>

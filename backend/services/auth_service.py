@@ -91,7 +91,10 @@ async def generate_and_save_otp(email: str, is_signup: bool = False) -> str:
         "created_at": datetime.now(timezone.utc)
     })
     
-    # Return the OTP (in production, this would be emailed to the user)
+    # Send real verification code via email
+    from services.email_service import send_otp_email
+    send_otp_email(email, code)
+    
     return code
 
 async def verify_otp_code(email: str, code: str) -> bool:

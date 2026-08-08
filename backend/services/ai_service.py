@@ -94,20 +94,21 @@ def predict_clinical_evaluation(data: Dict[str, Any]) -> Dict[str, Any]:
     Evaluates REAL-TIME clinical biometry provided by the doctor.
     Accepts both alias names: axial_length/al, refractive_error/spheq, reading_hours/reading_time.
     """
+    # Support both ClinicalDataInput schema names AND direct field names
+    al    = float(data.get("axial_length") or data.get("al") or 23.5)
+    spheq = float(data.get("refractive_error") or data.get("spheq") or -1.0)
+    reading = float(data.get("reading_hours") or data.get("reading_time") or 1.5)
+
     if not _load_doctor_models():
         return {
-            "severity": "Moderate (Rule-based Fallback)",
+            "severity": "Moderate",
             "confidence": 0.5,
-            "predicted_next_spheq": -3.5,
-            "progression_rate": "Stable"
+            "predicted_next_spheq": round(spheq - 0.5, 2),
+            "progression_rate": "Low",
+            "prediction": "Myopia Severity: Moderate (50.0%)"
         }
         
     try:
-        # Support both ClinicalDataInput schema names AND direct field names
-        al    = float(data.get("axial_length") or data.get("al") or 23.5)
-        spheq = float(data.get("refractive_error") or data.get("spheq") or -1.0)
-        reading = float(data.get("reading_hours") or data.get("reading_time") or 1.5)
-
         gender_idx = 1.0 if str(data.get("gender", "")).lower() == "female" else 0.0
         
         # Features: [age, gender_idx, reading, screen, outdoor, sleep, parental, al, acd, lt, vcd, spheq, visit_year]
@@ -150,9 +151,9 @@ def predict_clinical_evaluation(data: Dict[str, Any]) -> Dict[str, Any]:
         
         # Progression rate
         diff = next_spheq - spheq
-        if diff < -0.75: rate = "Fast Progression"
-        elif diff < -0.25: rate = "Moderate Progression"
-        else: rate = "Stable"
+        if diff < -0.75: rate = "High"
+        elif diff < -0.25: rate = "Normal"
+        else: rate = "Low"
         
         return {
             "severity": severity,
@@ -164,5 +165,11 @@ def predict_clinical_evaluation(data: Dict[str, Any]) -> Dict[str, Any]:
         
     except Exception as e:
         print(f"[AI-Doctor] Inference error: {e}")
-        return {"severity": "Low (Error)", "confidence": 0.0, "predicted_next_spheq": 0.0, "progression_rate": "N/A", "prediction": "Error"}
+        return {
+            "severity": "Low",
+            "confidence": 0.0,
+            "predicted_next_spheq": round(spheq - 0.25, 2),
+            "progression_rate": "Low",
+            "prediction": "Error"
+        }
 

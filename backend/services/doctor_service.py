@@ -151,6 +151,31 @@ async def create_pdf_report(patient_id: str) -> str:
     if not pdf_path:
         raise HTTPException(status_code=500, detail="PDF generation failed — check ReportLab installation")
 
+    # Send generated PDF report via email to patient (if configured)
+    p_user_id = p.get("user_id")
+    if p_user_id:
+        try:
+            from database.mongodb import users_collection
+            from bson import ObjectId
+            from services.email_service import send_pdf_report_email
+            import asyncio
+            
+            user = await users_collection.find_one({"_id": ObjectId(p_user_id) if len(str(p_user_id)) == 24 else p_user_id})
+            if user and user.get("email"):
+                patient_email = user.get("email")
+                patient_name = p.get("name", "Patient")
+                
+                loop = asyncio.get_event_loop()
+                loop.run_in_executor(
+                    None,
+                    send_pdf_report_email,
+                    patient_email,
+                    patient_name,
+                    pdf_path
+                )
+        except Exception as e:
+            print(f"[Email] Skipping report send: {e}")
+
     return pdf_path
 
 async def fetch_screening_stats():

@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement, Filler
 } from 'chart.js';
-import { api } from '../lib/api';
+import { api, API_BASE_URL } from '../lib/api';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement, Filler);
 
@@ -353,34 +353,7 @@ export default function DoctorDashboard() {
                 <button onClick={() => setIsEditingProfile(true)} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">Edit Details</button>
               )}
             </div>
-            
-            <div className="mt-8 pt-8 border-t border-slate-100">
-              <h4 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider text-left">Account Security Status</h4>
-              <div className="grid sm:grid-cols-3 gap-4">
-                <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start space-x-3 text-left">
-                  <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">🔒</div>
-                  <div>
-                    <h5 className="font-bold text-slate-800 text-sm">Bcrypt Password Hashing</h5>
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">SHA-256 pre-hashed & salted</p>
-                  </div>
-                </div>
-                <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start space-x-3 text-left">
-                  <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">🛡️</div>
-                  <div>
-                    <h5 className="font-bold text-slate-800 text-sm">JWT Auth & Blacklisting</h5>
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Secure logout & token checks</p>
-                  </div>
-                </div>
-                <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-start space-x-3 text-left">
-                  <div className="w-8 h-8 rounded-lg bg-green-50 text-green-600 flex items-center justify-center font-bold text-sm">🧹</div>
-                  <div>
-                    <h5 className="font-bold text-slate-800 text-sm">XSS & NoSQL Filters</h5>
-                    <p className="text-[10px] text-slate-500 font-medium mt-0.5">Payload HTML escaping active</p>
-                  </div>
-                </div>
-              </div>
             </div>
-          </div>
         </motion.div>
       );
     }
@@ -543,7 +516,7 @@ export default function DoctorDashboard() {
                       try {
                         const token = localStorage.getItem('token');
                         const response = await fetch(
-                          `http://localhost:8000/doctor/generate-report/${selectedPatient.id}`,
+                          `${API_BASE_URL}/doctor/generate-report/${selectedPatient.id}`,
                           {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}` }
@@ -841,7 +814,7 @@ export default function DoctorDashboard() {
                       try {
                         const token = localStorage.getItem('token');
                         const response = await fetch(
-                          `http://localhost:8000/doctor/generate-report/${selectedPatient.id}`,
+                          `${API_BASE_URL}/doctor/generate-report/${selectedPatient.id}`,
                           {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}` }
@@ -918,6 +891,7 @@ export default function DoctorDashboard() {
             <tr>
               <th className="px-6 py-5 font-bold tracking-wider">Patient Details</th>
               <th className="px-6 py-5 font-bold tracking-wider">Historical Risk</th>
+              <th className="px-6 py-5 font-bold tracking-wider">Registered On</th>
               <th className="px-6 py-5 font-bold tracking-wider">Action Needed</th>
               <th className="px-6 py-5 font-bold tracking-wider text-right">Perform Eval</th>
             </tr>
@@ -934,6 +908,9 @@ export default function DoctorDashboard() {
                   <div className="text-slate-400 text-xs font-semibold">{p.id}</div>
                 </td>
                 <td className="px-6 py-4 font-bold text-slate-700">{p.riskScore}/100</td>
+                <td className="px-6 py-4 text-slate-500 font-semibold text-xs">
+                  {p.created_at ? new Date(p.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Aug 5, 2026'}
+                </td>
                 <td className="px-6 py-4">
                   <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${p.status === 'Needs Review' ? 'bg-red-50 text-red-600' : p.status === 'Monitoring' ? 'bg-amber-50 text-amber-600' : 'bg-teal-50 text-teal-600'}`}>
                     {p.status}
@@ -957,7 +934,7 @@ export default function DoctorDashboard() {
       <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-20 sticky top-0 md:h-screen transition-all">
         <div className="p-6 border-b border-slate-100 flex items-center space-x-2">
           <Eye className="w-8 h-8 text-blue-600" />
-          <span className="font-black text-xl tracking-tight text-slate-800">VisionAssistant</span>
+          <span className="font-black text-xl tracking-tight text-slate-800">Vision AI</span>
         </div>
         <div className="flex-1 py-6 px-4 space-y-2">
           <button onClick={() => { setActiveTab('patients'); setSelectedPatient(null); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'patients' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-50 hover:text-blue-600'}`}>

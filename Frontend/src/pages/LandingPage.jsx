@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, Shield, Activity, ArrowRight, MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { api } from '../lib/api';
+import { api, API_BASE_URL } from '../lib/api';
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export default function LandingPage() {
   // Chatbot State
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([
-    { role: 'bot', text: 'Hello! I am the VisionAssistant AI. How can I help you understand our services today?' }
+    { role: 'bot', text: 'Hello! I am the Vision AI Assistant. How can I help you understand our services today?' }
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
@@ -76,7 +76,7 @@ export default function LandingPage() {
     setIsChatLoading(true);
     
     try {
-      const response = await fetch('http://127.0.0.1:8000/chatbot/general', {
+      const response = await fetch(`${API_BASE_URL}/chatbot/general`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: newMsg.text })
@@ -107,7 +107,7 @@ export default function LandingPage() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform duration-300">
               <Eye className="w-5 h-5 text-white" />
             </div>
-            <span className="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-slate-800 to-slate-900 bg-clip-text text-transparent">VisionAssistant</span>
+            <span className="font-extrabold text-2xl tracking-tight bg-gradient-to-r from-slate-800 to-slate-900 bg-clip-text text-transparent">Vision AI</span>
           </div>
           <div className="flex items-center space-x-6">
             {isLoggedIn ? (
@@ -284,7 +284,7 @@ export default function LandingPage() {
         <section className="bg-white py-24 border-t border-slate-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-4">Where VisionAssistant Helps Doctors</h2>
+              <h2 className="text-3xl font-black tracking-tight text-slate-800 mb-4">Where Vision AI Helps Doctors</h2>
               <p className="text-slate-500 max-w-2xl mx-auto text-lg leading-relaxed font-medium">
                 Built for real-world clinical environments to alleviate screening pressure, organize data, and enhance diagnostic consistency.
               </p>
@@ -301,7 +301,7 @@ export default function LandingPage() {
               <div className="bg-indigo-50/50 p-8 rounded-3xl border border-indigo-100 hover:shadow-lg hover:shadow-indigo-500/5 transition-all group">
                 <div className="w-12 h-12 bg-indigo-100 group-hover:bg-indigo-600 text-indigo-700 group-hover:text-white transition-colors rounded-xl flex items-center justify-center font-black text-xl mb-6 shadow-sm">2</div>
                 <h3 className="text-xl font-bold text-slate-800 mb-3">Handles Large-Scale Screening</h3>
-                <p className="text-slate-600 text-sm leading-relaxed">In real life settings like schools, camps, and rural areas, one doctor cannot check thousands of people quickly. VisionAssistant enables mass screening.</p>
+                <p className="text-slate-600 text-sm leading-relaxed">In real life settings like schools, camps, and rural areas, one doctor cannot check thousands of people quickly. Vision AI enables mass screening.</p>
               </div>
 
               <div className="bg-teal-50/50 p-8 rounded-3xl border border-teal-100 hover:shadow-lg hover:shadow-teal-500/5 transition-all group">
@@ -334,7 +334,7 @@ export default function LandingPage() {
           <div className="flex flex-col md:flex-row justify-between items-center text-slate-500 mb-6">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
               <Eye className="w-6 h-6 text-blue-600" />
-              <span className="font-bold text-slate-800 tracking-tight">VisionAssistant &copy; {new Date().getFullYear()}</span>
+              <span className="font-bold text-slate-800 tracking-tight">Vision AI &copy; {new Date().getFullYear()}</span>
             </div>
             <div className="flex space-x-6 text-sm font-semibold">
               <Link to="/about" className="hover:text-blue-600 transition-colors">About Us</Link>
@@ -360,7 +360,7 @@ export default function LandingPage() {
                   <Eye className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm">VisionAssistant AI</h3>
+                  <h3 className="font-bold text-sm">Vision AI Assistant</h3>
                   <p className="text-[10px] text-blue-100 opacity-90 uppercase tracking-widest font-bold">Generative Support</p>
                 </div>
               </div>

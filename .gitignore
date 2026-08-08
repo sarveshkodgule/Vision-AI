@@ -1,0 +1,32 @@
+# Datasets & ZIP files
+PALM/
+PALM.zip
+*.zip
+*.bmp
+*.jpg
+*.png
+
+# Virtual environments
+venv/
+backend/venv/
+genai-env/
+.env
+
+# Dependencies
+node_modules/
+backend/node_modules/
+Frontend/node_modules/
+
+# IDE configurations
+.vscode/
+.idea/
+.DS_Store
+
+# Temporary outputs & logs
+reports/
+backend/reports/
+uploads/
+backend/uploads/
+*.log
+__pycache__/
+backend/**/__pycache__/

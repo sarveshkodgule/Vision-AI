@@ -87,11 +87,11 @@ export default function Signup() {
 
         <Link to="/" className="flex items-center justify-center mb-8 space-x-2 text-slate-800 hover:text-blue-600 transition-colors">
           <Eye className="w-8 h-8 text-blue-600" />
-          <span className="font-extrabold text-3xl tracking-tight">VisionAssistant</span>
+          <span className="font-extrabold text-3xl tracking-tight">Vision AI</span>
         </Link>
         <div className="bg-white p-8 rounded-3xl shadow-xl shadow-blue-900/5 border border-slate-100">
           <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">Create an account</h2>
-          <p className="text-slate-500 text-center mb-6 text-sm">Join VisionAssistant diagnostics</p>
+          <p className="text-slate-500 text-center mb-6 text-sm">Join Vision AI diagnostics</p>
 
           {error && <div className="p-3 mb-6 bg-red-50 text-red-600 rounded-lg text-sm text-center font-semibold">{error}</div>}
           {success && <div className="p-3 mb-6 bg-green-50 text-green-600 rounded-lg text-sm text-center font-semibold">{success}</div>}
@@ -170,7 +170,7 @@ export default function Signup() {
                   disabled={loading}
                   className={`w-full inline-flex items-center justify-center rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-4 transition-all shadow-lg hover:shadow-blue-500/30 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  {loading ? 'Sending OTP...' : 'Request Registration OTP'}
+                  {loading ? 'Sending OTP...' : 'Register'}
                 </button>
               </form>
             </>
@@ -179,11 +179,6 @@ export default function Signup() {
               <p className="text-slate-500 text-center mb-6 text-sm">
                 A 10-minute temporary verification code has been generated.
               </p>
-              {otpSentCode && (
-                <div className="p-3.5 mb-6 bg-blue-50 border border-blue-100 text-blue-800 rounded-xl text-sm font-medium text-center">
-                  🔐 Demo Mode: Verification Code is <span className="font-extrabold text-blue-900 tracking-wider text-base">{otpSentCode}</span>
-                </div>
-              )}
               <form onSubmit={handleSignup} className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Verification Code (OTP)</label>

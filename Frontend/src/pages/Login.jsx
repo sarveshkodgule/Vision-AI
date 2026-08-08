@@ -66,7 +66,7 @@ export default function Login() {
           <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/30">
             <Eye className="w-5 h-5 text-white" />
           </div>
-          <span className="font-extrabold text-xl tracking-tight">VisionAssistant</span>
+          <span className="font-extrabold text-xl tracking-tight">Vision AI</span>
         </Link>
 
         {/* Feature Highlights */}
@@ -81,15 +81,15 @@ export default function Login() {
           <div className="space-y-4">
             <div className="flex items-start space-x-3">
               <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs mt-0.5">✓</div>
-              <p className="text-slate-300 text-xs font-semibold leading-relaxed">Integrated PyTorch FundusCNN model inference with Grad-CAM overlays.</p>
+              <p className="text-slate-300 text-xs font-semibold leading-relaxed">Production-ready EfficientNet-B0 deep learning evaluation.</p>
             </div>
             <div className="flex items-start space-x-3">
               <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs mt-0.5">✓</div>
-              <p className="text-slate-300 text-xs font-semibold leading-relaxed">Interactive time-series progression curves for refractive indicators.</p>
+              <p className="text-slate-300 text-xs font-semibold leading-relaxed">Interactive clinical progression curves and lifestyle simulators.</p>
             </div>
             <div className="flex items-start space-x-3">
               <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs mt-0.5">✓</div>
-              <p className="text-slate-300 text-xs font-semibold leading-relaxed">Advanced input sanitization & rate limit protection.</p>
+              <p className="text-slate-300 text-xs font-semibold leading-relaxed">Full patient registry and medical data management.</p>
             </div>
           </div>
         </div>
@@ -111,7 +111,7 @@ export default function Login() {
           {/* Logo showing only on mobile */}
           <Link to="/" className="flex lg:hidden items-center justify-center mb-8 space-x-2 text-slate-800">
             <Eye className="w-7 h-7 text-blue-600" />
-            <span className="font-extrabold text-2xl tracking-tight">VisionAssistant</span>
+            <span className="font-extrabold text-2xl tracking-tight">Vision AI</span>
           </Link>
 
           <div className="bg-white p-8 sm:p-10 rounded-3xl shadow-xl shadow-slate-900/5 border border-slate-100/50 text-left">

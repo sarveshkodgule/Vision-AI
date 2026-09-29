@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, Shield, Activity, ArrowRight, MessageCircle, X, Send, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { api, API_BASE_URL } from '../lib/api';
 
 export default function LandingPage() {
@@ -85,9 +85,10 @@ export default function LandingPage() {
       if (data.status === 'success') {
         setChatMessages(prev => [...prev, { role: 'bot', text: data.data.response }]);
       } else {
-        setChatMessages(prev => [...prev, { role: 'bot', text: "Sorry, I couldn't process that. Please try again." }]);
+        setChatMessages(prev => [...prev, { role: 'bot', text: typeof data.detail === "string" ? data.detail : "Sorry, I couldn't process that. Please try again." }]);
       }
     } catch (err) {
+      console.error(err);
       setChatMessages(prev => [...prev, { role: 'bot', text: "Network error connecting to the AI system." }]);
     } finally {
       setIsChatLoading(false);
@@ -142,7 +143,7 @@ export default function LandingPage() {
       {/* Hero Section */}
       <main className="flex-1">
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 grid lg:grid-cols-12 gap-16 items-center">
-          <motion.div 
+          <Motion.div
             className="lg:col-span-7 text-left"
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -177,9 +178,9 @@ export default function LandingPage() {
                 </>
               )}
             </div>
-          </motion.div>
+          </Motion.div>
           
-          <motion.div 
+          <Motion.div
             className="lg:col-span-5 relative"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -245,7 +246,7 @@ export default function LandingPage() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         </section>
 
         {/* Features Section */}
@@ -259,7 +260,7 @@ export default function LandingPage() {
             </div>
             <div className="grid md:grid-cols-3 gap-8">
               {features.map((feature, idx) => (
-                <motion.div 
+                <Motion.div
                   key={idx}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -274,7 +275,7 @@ export default function LandingPage() {
                   <p className="text-slate-500 text-sm leading-relaxed font-medium">
                     {feature.description}
                   </p>
-                </motion.div>
+                </Motion.div>
               ))}
             </div>
           </div>
@@ -348,7 +349,7 @@ export default function LandingPage() {
       {/* Floating Chatbot Widget */}
       <AnimatePresence>
         {isChatOpen && (
-          <motion.div 
+          <Motion.div
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -402,7 +403,7 @@ export default function LandingPage() {
                 </button>
               </form>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
 

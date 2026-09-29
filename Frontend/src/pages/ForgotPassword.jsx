@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, ShieldCheck, Lock, Key, Eye, EyeOff } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import { api } from '../lib/api';
 
 export default function ForgotPassword() {
@@ -12,7 +12,6 @@ export default function ForgotPassword() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [otpSentCode, setOtpSentCode] = useState(''); // To display OTP on screen for demo
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -25,9 +24,6 @@ export default function ForgotPassword() {
       const res = await api.post('/auth/request-otp', { email, is_signup: false });
       if (res && res.status === 'success') {
         setStep(2);
-        if (res.data && res.data.code) {
-          setOtpSentCode(res.data.code);
-        }
       } else {
         setError(res.detail || res.message || "Failed to generate verification code.");
       }
@@ -63,7 +59,7 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50/50 p-4">
-      <motion.div 
+      <Motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="max-w-md w-full"
@@ -184,7 +180,7 @@ export default function ForgotPassword() {
              </div>
           )}
         </div>
-      </motion.div>
+      </Motion.div>
     </div>
   );
 }

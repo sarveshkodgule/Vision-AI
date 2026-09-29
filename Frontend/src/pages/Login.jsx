@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import { api } from '../lib/api';
 
 export default function Login() {
@@ -39,6 +39,7 @@ export default function Login() {
         setError(data.detail || data.message || "Failed to login. Please check your credentials.");
       }
     } catch (err) {
+      console.error(err);
       setError("Server error. Ensure the FastAPI backend is running.");
     } finally {
       setLoading(false);
@@ -102,7 +103,7 @@ export default function Login() {
 
       {/* Right Panel: Clean Centered Login Form */}
       <div className="w-full lg:w-[55%] flex items-center justify-center p-6 sm:p-12 bg-slate-50/50">
-        <motion.div 
+        <Motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
@@ -196,7 +197,7 @@ export default function Login() {
               Don't have a portal account? <Link to="/signup" className="text-blue-600 font-extrabold hover:underline">Get Started</Link>
             </p>
           </div>
-        </motion.div>
+        </Motion.div>
       </div>
     </div>
   );

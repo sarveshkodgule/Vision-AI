@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Users, FileText, Activity, Search, Bell, Eye, LogOut, ChevronRight, UploadCloud, CheckCircle2, AlertTriangle, ArrowLeft, Loader2, Info, UserCog, ClipboardList, Download, UserCheck } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { Line, Doughnut } from 'react-chartjs-2';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -45,7 +45,7 @@ export default function DoctorDashboard() {
           setEditForm({ name: res.data.name, email: res.data.email });
         }
       } catch (err) {
-        console.error("Failed to fetch profile");
+        console.error("Failed to fetch profile", err);
       }
     };
     fetchProfile();
@@ -58,7 +58,7 @@ export default function DoctorDashboard() {
         setProfile(res.data);
         setIsEditingProfile(false);
       }
-    } catch (err) { console.error("Update failed"); }
+    } catch (err) { console.error("Update failed", err); }
   };
 
   const handleSignOut = async () => {
@@ -107,6 +107,7 @@ export default function DoctorDashboard() {
               name: p.name || 'Unknown Patient',
               age: p.age || 'N/A',
               gender: p.gender || 'N/A',
+              probability: p.myopia_probability,
               riskLevel: p.risk_level || 'Low',
               status: p.risk_level === 'High' ? 'Needs Review' : p.risk_level === 'Medium' ? 'Monitoring' : 'Cleared',
               // Lifestyle factors — use real DB field names
@@ -136,70 +137,6 @@ export default function DoctorDashboard() {
       fetchPatients();
     }
   }, [activeTab]);
-
-  const handleAutoInjectMockData = () => {
-    const presets = [
-      // 0: Healthy / Low Risk
-      {
-        sphericalEq: '0.75',
-        axialLength: '22.35',
-        acd: '3.70',
-        lt: '3.72',
-        vcd: '14.70',
-        iop: '14.0',
-        age: '12',
-        visitYear: new Date().getFullYear(),
-        readingHours: '1.0',
-        screenTime: '1.5',
-        outdoorActivity: '4.0',
-        sleepHours: '9.0',
-        parentalMyopia: '0',
-        doctorVerdict: 'Low'
-      },
-      // 1: Medium Risk
-      {
-        sphericalEq: '-1.50',
-        axialLength: '23.85',
-        acd: '3.45',
-        lt: '3.55',
-        vcd: '15.95',
-        iop: '16.5',
-        age: '14',
-        visitYear: new Date().getFullYear(),
-        readingHours: '3.0',
-        screenTime: '4.5',
-        outdoorActivity: '1.5',
-        sleepHours: '7.5',
-        parentalMyopia: '1',
-        doctorVerdict: 'Medium'
-      },
-      // 2: High Risk
-      {
-        sphericalEq: '-4.75',
-        axialLength: '25.95',
-        acd: '3.25',
-        lt: '3.40',
-        vcd: '17.20',
-        iop: '19.0',
-        age: '10',
-        visitYear: new Date().getFullYear(),
-        readingHours: '5.5',
-        screenTime: '7.5',
-        outdoorActivity: '0.5',
-        sleepHours: '6.5',
-        parentalMyopia: '2',
-        doctorVerdict: 'High'
-      }
-    ];
-
-    const randomIndex = Math.floor(Math.random() * 3);
-    const chosenPreset = presets[randomIndex];
-    setClinicalData(chosenPreset);
-    
-    // Inject mock image indicator so they do not need to manually browse for an eye photo!
-    setUploadedImageUrl("https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80");
-    setUploadedScan(new File(["dummy"], "retina_scan.jpg", { type: "image/jpeg" }));
-  };
 
   // Automatically pre-populate clinical form with selected patient's reported lifestyle factors
   useEffect(() => {
@@ -235,6 +172,7 @@ export default function DoctorDashboard() {
     e.preventDefault();
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      setUploadedImageUrl("");
       const reader = new FileReader();
       reader.onload = (event) => setUploadedScan(event.target.result);
       reader.readAsDataURL(file);
@@ -246,8 +184,15 @@ export default function DoctorDashboard() {
         if (res && res.data) setUploadedImageUrl(res.data.image_url);
       } catch (err) {
         console.error(err);
+        setUploadedScan(null);
+        alert(err.message || 'Image upload failed');
       }
     }
+  };
+
+  const numberOr = (value, fallback) => {
+    const parsed = parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
   };
 
   const handleRunAssessment = async (e) => {
@@ -257,20 +202,20 @@ export default function DoctorDashboard() {
     try {
       const res = await api.post('/doctor/predict', {
         patient_id: selectedPatient.id,
-        axial_length: parseFloat(clinicalData.axialLength) || 24.0,
-        refractive_error: parseFloat(clinicalData.sphericalEq) || -1.0,
-        acd: parseFloat(clinicalData.acd) || undefined,
-        lt: parseFloat(clinicalData.lt) || undefined,
-        vcd: parseFloat(clinicalData.vcd) || undefined,
-        age: parseInt(clinicalData.age) || selectedPatient.age || undefined,
-        visit_year: parseInt(clinicalData.visitYear) || new Date().getFullYear(),
-        reading_hours: parseFloat(clinicalData.readingHours) || selectedPatient.reading_time || undefined,
-        screen_time: parseFloat(clinicalData.screenTime) || selectedPatient.screen_time || undefined,
-        outdoor_activity: parseFloat(clinicalData.outdoorActivity) || selectedPatient.outdoor_activity || undefined,
-        sleep_hours: parseFloat(clinicalData.sleepHours) || selectedPatient.sleep_hours || undefined,
-        parental_myopia: parseInt(clinicalData.parentalMyopia) || selectedPatient.parental_myopia || 0,
+        axial_length: numberOr(clinicalData.axialLength, undefined) ?? 24.0,
+        refractive_error: numberOr(clinicalData.sphericalEq, undefined) ?? -1.0,
+        acd: numberOr(clinicalData.acd, undefined) ?? undefined,
+        lt: numberOr(clinicalData.lt, undefined) ?? undefined,
+        vcd: numberOr(clinicalData.vcd, undefined) ?? undefined,
+        age: numberOr(clinicalData.age, undefined) ?? selectedPatient.age ?? undefined,
+        visit_year: numberOr(clinicalData.visitYear, undefined) ?? new Date().getFullYear(),
+        reading_hours: numberOr(clinicalData.readingHours, undefined) ?? selectedPatient.reading_time ?? undefined,
+        screen_time: numberOr(clinicalData.screenTime, undefined) ?? selectedPatient.screen_time ?? undefined,
+        outdoor_activity: numberOr(clinicalData.outdoorActivity, undefined) ?? selectedPatient.outdoor_activity ?? undefined,
+        sleep_hours: numberOr(clinicalData.sleepHours, undefined) ?? selectedPatient.sleep_hours ?? undefined,
+        parental_myopia: numberOr(clinicalData.parentalMyopia, undefined) ?? selectedPatient.parental_myopia ?? 0,
         doctor_verdict: clinicalData.doctorVerdict,
-        image_url: uploadedImageUrl || "uploads/placeholder.jpg"
+        image_url: uploadedImageUrl || ""
       });
       
       // API returns { status, data: { severity, confidence, ... }, message }
@@ -285,19 +230,20 @@ export default function DoctorDashboard() {
     }
   };
 
+  const measuredPatients = patients.filter(p => Number.isFinite(p.probability));
   const trendData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-    datasets: [{ label: 'Average Risk Score', data: [35, 38, 42, 40, 45, 48], borderColor: '#3B82F6', tension: 0.4 }]
+    labels: measuredPatients.map((_, i) => `Screening ${i + 1}`),
+    datasets: [{ label: 'Model myopia probability (%)', data: measuredPatients.map(p => p.probability * 100), borderColor: '#3B82F6' }]
   };
   const distributionData = {
-    labels: ['Low Risk', 'Moderate Risk', 'High Risk'],
-    datasets: [{ data: [45, 30, 25], backgroundColor: ['#10B981', '#F59E0B', '#EF4444'], borderWidth: 0 }]
+    labels: ['Low', 'Medium', 'High'],
+    datasets: [{ data: ['Low', 'Medium', 'High'].map(level => patients.filter(p => p.riskLevel === level).length), backgroundColor: ['#10B981', '#F59E0B', '#EF4444'] }]
   };
 
   const renderContent = () => {
     if (activeTab === 'profile') {
       return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto">
+        <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-3xl mx-auto">
           <h2 className="text-2xl font-bold text-slate-800 mb-6">Doctor Profile</h2>
           <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
             <div className="flex items-center space-x-6 mb-8 pb-8 border-b border-slate-100">
@@ -354,7 +300,7 @@ export default function DoctorDashboard() {
               )}
             </div>
             </div>
-        </motion.div>
+        </Motion.div>
       );
     }
 
@@ -368,7 +314,7 @@ export default function DoctorDashboard() {
       };
 
       return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+        <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -395,18 +341,18 @@ export default function DoctorDashboard() {
               { label: 'Medium Risk', value: currentStats.Medium, bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100' },
               { label: 'Low Risk', value: currentStats.Low, bg: 'bg-teal-50', text: 'text-teal-700', border: 'border-teal-100' },
             ].map((card, i) => (
-              <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
+              <Motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
                 className={`${card.bg} ${card.border} border rounded-2xl p-5`}>
                 <p className={`text-xs font-bold uppercase tracking-widest ${card.text} mb-2`}>{card.label}</p>
                 <p className={`text-4xl font-black ${card.text}`}>{screeningStats ? card.value : '—'}</p>
-              </motion.div>
+              </Motion.div>
             ))}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
+            <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
               className="bg-indigo-50 border-indigo-100 border rounded-2xl p-5">
               <p className="text-xs font-bold uppercase tracking-widest text-indigo-700 mb-2">AI Accuracy</p>
               <p className="text-4xl font-black text-indigo-700">{screeningStats ? (screeningStats.validation_accuracy || 0) + '%' : '—'}</p>
               <p className="text-[10px] text-indigo-500 font-bold mt-1">Validated vs Doctor</p>
-            </motion.div>
+            </Motion.div>
           </div>
 
           {/* Charts Row */}
@@ -462,38 +408,38 @@ export default function DoctorDashboard() {
               </tbody>
             </table>
           </div>
-        </motion.div>
+        </Motion.div>
       );
     }
 
     if (activeTab === 'reports') {
       return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+        <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           <h2 className="text-2xl font-bold text-slate-800">Generated Clinical Reports</h2>
           <div className="bg-white p-12 rounded-2xl border border-slate-100 shadow-sm text-center">
             <FileText className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <h3 className="text-xl font-bold text-slate-700 mb-2">No Reports Generated Yet</h3>
             <p className="text-slate-500">Run diagnostic evaluations on patients to automatically generate downloadable PDF reports.</p>
           </div>
-        </motion.div>
+        </Motion.div>
       );
     }
 
     if (activeTab === 'analytics') {
       return (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+        <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
           <h2 className="text-2xl font-bold text-slate-800">Clinic Analytics Overview</h2>
           <div className="grid lg:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-lg font-semibold mb-4">Risk Trends</h3><div className="h-[250px]"><Line data={trendData} options={{ maintainAspectRatio: false }} /></div></div>
+            <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-lg font-semibold mb-4">Recorded model probabilities</h3><div className="h-[250px]"><Line data={trendData} options={{ maintainAspectRatio: false }} /></div></div>
             <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm"><h3 className="text-lg font-semibold mb-4">Risk Distribution</h3><div className="h-[250px]"><Doughnut data={distributionData} options={{ maintainAspectRatio: false }} /></div></div>
           </div>
-        </motion.div>
+        </Motion.div>
       );
     }
 
     if (activeTab === 'patients' && selectedPatient) {
       return (
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+        <Motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
           <button onClick={() => { setSelectedPatient(null); setAssessmentComplete(false); setUploadedScan(null); }} className="flex items-center text-sm font-medium text-slate-500 hover:text-blue-600 mb-6 transition-colors">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back to Directory
           </button>
@@ -534,7 +480,9 @@ export default function DoctorDashboard() {
                         document.body.appendChild(a);
                         a.click();
                         a.remove();
+                        URL.revokeObjectURL(url);
                       } catch (err) {
+                        console.error('PDF download failed', err);
                         alert('Network error. Failed to download report PDF.');
                       }
                     }}
@@ -569,13 +517,7 @@ export default function DoctorDashboard() {
                   <div className="absolute top-0 right-0 p-4 opacity-5"><Activity className="w-48 h-48 text-blue-600" /></div>
                   <div className="flex justify-between items-center mb-6 relative z-10">
                     <h3 className="text-xl font-bold text-slate-800 flex items-center"><Eye className="w-5 h-5 mr-2 text-blue-600" /> Diagnostic Form</h3>
-                    <button 
-                      type="button" 
-                      onClick={handleAutoInjectMockData}
-                      className="bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold py-1.5 px-3 rounded-lg border border-blue-100 active:scale-95 transition-all cursor-pointer flex items-center gap-1"
-                    >
-                      ⚡ Auto-Inject Demo Case
-                    </button>
+
                   </div>
 
                   <form onSubmit={handleRunAssessment} className="relative z-10 flex-1 flex flex-col">
@@ -692,21 +634,21 @@ export default function DoctorDashboard() {
 
                 </div>
               ) : (
-                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
+                <Motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-6">
                   <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg shadow-blue-900/10">
                     <div className="flex justify-between items-start mb-6">
                       <div>
-                        <h3 className="text-xl font-bold flex items-center"><CheckCircle2 className="w-6 h-6 mr-2 text-green-400" /> Deep Learning Evaluation Complete</h3>
-                        <p className="text-blue-100 text-sm mt-1">Morphological Heatmap Analysis + Clinical Optical Biometry Analysis.</p>
+                        <h3 className="text-xl font-bold flex items-center"><CheckCircle2 className="w-6 h-6 mr-2 text-green-400" /> Model Evaluation Complete</h3>
+                        <p className="text-blue-100 text-sm mt-1">Clinical XGBoost prediction and optional fundus image classification.</p>
                       </div>
                       <div className="flex space-x-3">
                         <div className="bg-white/10 px-4 py-2 rounded-xl backdrop-blur-md border border-white/10 text-center flex flex-col justify-center">
-                          <span className="text-[10px] uppercase tracking-widest block opacity-90 mb-0.5 font-bold">Confidence</span>
-                          <span className="text-lg font-black text-green-300">{predictionData ? (predictionData.confidence * 100).toFixed(1) : 94.2}%</span>
+                          <span className="text-[10px] uppercase tracking-widest block opacity-90 mb-0.5 font-bold">Myopia probability</span>
+                          <span className="text-lg font-black text-green-300">{predictionData?.confidence != null ? (predictionData.confidence * 100).toFixed(1) + '%' : 'Unavailable'}</span>
                         </div>
                         <div className="bg-white/20 px-4 py-2 rounded-xl backdrop-blur-md border border-white/20 text-center">
                           <span className="text-[10px] uppercase tracking-widest block opacity-90 mb-0.5 font-bold">Severity Risk</span>
-                          <span className="text-xl font-black">{predictionData ? predictionData.severity : 'Moderate'}</span>
+                          <span className="text-xl font-black">{predictionData?.severity ?? 'Unavailable'}</span>
                         </div>
                       </div>
                     </div>
@@ -714,23 +656,23 @@ export default function DoctorDashboard() {
                     <div className="grid grid-cols-4 gap-3">
                       <div className="bg-white/10 rounded-xl p-3 border border-white/10 flex items-center col-span-2">
                         <div className="flex-1">
-                          <p className="text-[10px] opacity-80 uppercase tracking-widest mb-0.5 font-bold">Morphological Alert</p>
-                          <p className="font-bold text-red-300 text-xs flex items-center"><Activity className="w-3 h-3 mr-1.5" /> {predictionData ? predictionData.prediction : 'Myopic Maculopathy'}</p>
+                          <p className="text-[10px] opacity-80 uppercase tracking-widest mb-0.5 font-bold">Clinical model result</p>
+                          <p className="font-bold text-red-300 text-xs flex items-center"><Activity className="w-3 h-3 mr-1.5" /> {predictionData?.prediction ?? 'Unavailable'}</p>
                         </div>
                       </div>
                       <div className="bg-white/10 rounded-xl p-3 border border-white/10 flex items-center col-span-2">
                         <div className="flex-1">
                           <p className="text-[10px] opacity-80 uppercase tracking-widest mb-0.5 font-bold">Progression Risk</p>
-                          <p className="font-bold flex items-center text-amber-300 text-xs"><AlertTriangle className="w-3 h-3 mr-1.5" /> Escalated Trend</p>
+                          <p className="font-bold flex items-center text-amber-300 text-xs"><AlertTriangle className="w-3 h-3 mr-1.5" /> {predictionData?.progression_rate ?? 'Unavailable'}</p>
                         </div>
                       </div>
                       <div className="bg-blue-900/40 rounded-xl p-3 border border-blue-400/20 flex flex-col items-center justify-center text-center col-span-2">
                         <p className="text-[10px] text-blue-200 uppercase tracking-widest mb-0.5 font-bold">Predicted Next SPHEQ</p>
-                        <p className="text-xl font-black text-white">{predictionData?.predicted_next_spheq ? predictionData.predicted_next_spheq.toFixed(2) + ' D' : '-3.25 D'}</p>
+                        <p className="text-xl font-black text-white">{predictionData?.predicted_next_spheq != null ? predictionData.predicted_next_spheq.toFixed(2) + ' D' : 'Unavailable'}</p>
                       </div>
                       <div className="bg-indigo-900/40 rounded-xl p-3 border border-indigo-400/20 flex flex-col items-center justify-center text-center col-span-2">
-                        <p className="text-[10px] text-indigo-200 uppercase tracking-widest mb-0.5 font-bold">Progression Velocity</p>
-                        <p className="text-xl font-black text-white">{predictionData?.progression_rate || '-0.50 D/yr'}</p>
+                        <p className="text-[10px] text-indigo-200 uppercase tracking-widest mb-0.5 font-bold">Model progression category</p>
+                        <p className="text-xl font-black text-white">{predictionData?.progression_rate ?? 'Unavailable'}</p>
                       </div>
                     </div>
                   </div>
@@ -785,31 +727,31 @@ export default function DoctorDashboard() {
                   )}
 
                   <div className="grid md:grid-cols-2 gap-6">
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
-                      <h3 className="font-bold text-slate-800 mb-4 flex justify-between">
-                        Adjusted Risk Trajectory
-                        <span className="text-blue-600 text-sm font-semibold">Post-Evaluation</span>
-                      </h3>
-                      <div className="h-[200px]"><Line data={{ labels: ['S1', 'S2', 'S3', 'Current'], datasets: [{ label: 'Risk Timeline', data: [selectedPatient.riskScore - 15, selectedPatient.riskScore - 5, selectedPatient.riskScore, Math.min(100, selectedPatient.riskScore + 8)], borderColor: '#EF4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true, tension: 0.3 }] }} options={{ maintainAspectRatio: false }} /></div>
+                    <div className="bg-white rounded-2xl p-6 border">
+                      <h3 className="font-bold mb-3">Model progression estimate</h3>
+                      <p className="text-xs text-slate-500 mb-3">Measured refraction and experimental next-visit estimate. This is not a measured historical trend.</p>
+                      {predictionData?.current_spheq != null && predictionData?.predicted_next_spheq != null ? (
+                        <div className="h-52"><Line data={{
+                          labels: ['Current measurement', 'Predicted next visit'],
+                          datasets: [{ label: 'SPHEQ (D)', data: [predictionData.current_spheq, predictionData.predicted_next_spheq], borderColor: '#6366f1', borderDash: [6, 4], tension: 0 }]
+                        }} options={{ maintainAspectRatio: false }} /></div>
+                      ) : <p>No progression estimate available.</p>}
                     </div>
-
-                    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 overflow-hidden">
-                      <h3 className="font-bold text-slate-800 mb-4 flex justify-between">
-                        Grad-CAM Heatmap
-                        <span className="text-amber-500 text-sm font-semibold flex items-center"><Eye className="w-4 h-4 mr-1" /> Overlay</span>
-                      </h3>
-                      <div className="h-[200px] relative rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center">
-                        <img src={uploadedScan} alt="Base Fundus Scan" className="absolute inset-0 w-full h-full object-cover opacity-40 mix-blend-luminosity" />
-                        <div className="absolute inset-0 bg-gradient-to-tr from-red-600/50 via-yellow-500/30 to-blue-500/10 mix-blend-overlay"></div>
-                        <div className="relative z-10 bg-black/60 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/10">
-                          <span className="text-white text-xs font-bold tracking-wider uppercase flex items-center"><Activity className="w-3 h-3 mr-2 text-red-500" /> Macula Highlighting Active</span>
+                    <div className="bg-white rounded-2xl p-6 border">
+                      <h3 className="font-bold mb-3">Grad-CAM heatmap</h3>
+                      {predictionData?.gradcam ? <>
+                        <p className="text-xs text-slate-500 mb-3">Evidence for {predictionData.gradcam.target_label} on the cropped model input. This is not a lesion boundary.</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          <figure><img src={predictionData.gradcam.model_input} alt="Preprocessed model input" /><figcaption className="text-xs">Model input</figcaption></figure>
+                          <figure><img src={predictionData.gradcam.overlay} alt={`Grad-CAM for ${predictionData.gradcam.target_label}`} /><figcaption className="text-xs">Gradient attribution</figcaption></figure>
                         </div>
-                      </div>
+                        {!predictionData.gradcam.has_positive_attribution && <p className="text-xs mt-2">No positive attribution at this layer.</p>}
+                      </> : <p className="text-sm text-slate-500">Upload a fundus image to generate a model explanation.</p>}
                     </div>
                   </div>
 
                   <div className="flex justify-end space-x-3">
-                    <button onClick={() => { setAssessmentComplete(false); setUploadedScan(null); }} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Discard Draft</button>
+                    <button onClick={() => { setAssessmentComplete(false); setUploadedScan(null); }} className="px-5 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">New Assessment</button>
                     <button onClick={async () => {
                       try {
                         const token = localStorage.getItem('token');
@@ -841,45 +783,25 @@ export default function DoctorDashboard() {
                     }} className="px-5 py-2.5 rounded-xl font-bold text-blue-600 bg-blue-50 border border-blue-100 shadow-sm hover:bg-blue-100 transition-colors flex items-center">
                       <FileText className="w-5 h-5 mr-2" /> Download PDF Report
                     </button>
-                    <button onClick={async () => {
-                      try {
-                        const payload = {
-                          patient_id: selectedPatient.id,
-                          axial_length: parseFloat(clinicalData.al) || 23.5,
-                          refractive_error: parseFloat(clinicalData.spheq) || 0.0,
-                          acd: parseFloat(clinicalData.acd) || 3.5,
-                          lt: parseFloat(clinicalData.lt) || 4.0,
-                          vcd: parseFloat(clinicalData.vcd) || 16.5,
-                          age: parseInt(clinicalData.age) || 24,
-                          visit_year: parseInt(clinicalData.visitYear) || 2024,
-                          reading_hours: parseFloat(clinicalData.readingHours) || 0,
-                          screen_time: parseFloat(clinicalData.screenTime) || 0,
-                          outdoor_activity: parseFloat(clinicalData.outdoorActivity) || 0,
-                          sleep_hours: parseFloat(clinicalData.sleepHours) || 0,
-                          parental_myopia: parseInt(clinicalData.parentalMyopia) || 0,
-                          image_url: uploadedScan || "",
-                          doctor_verdict: clinicalData.doctorVerdict
-                        };
-                        const res = await api.post('/doctor/predict', payload);
-                        if (res) {
-                          setAssessmentComplete(false);
-                          setUploadedScan(null);
-                          alert("Assessment saved successfully with Clinical Validation!");
-                        }
-                      } catch (err) { console.error("Save failed", err); }
-                    }} className="px-5 py-2.5 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 shadow-md shadow-green-500/20 transition-colors">Confirm & Save to Registry</button>
+                    <button onClick={() => {
+                      setAssessmentComplete(false);
+                      setUploadedScan(null);
+                      setUploadedImageUrl('');
+                      setActiveTab('patients');
+                    }} className="px-5 py-2.5 rounded-xl font-bold text-white bg-green-600 hover:bg-green-700 shadow-md shadow-green-500/20 transition-colors">Done - Assessment Saved</button>
                   </div>
-                </motion.div>
+                </Motion.div>
               )}
 
             </div>
           </div>
-        </motion.div>
+        </Motion.div>
       );
     }
 
     return (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        {patientsLoading && <p role="status" className="p-3 text-sm text-slate-500">Loading records...</p>}
         <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <div className="relative w-80">
             <Search className="w-5 h-5 absolute left-3.5 top-2.5 text-slate-400" />
@@ -907,9 +829,9 @@ export default function DoctorDashboard() {
                   <div className="font-bold text-slate-800 text-base">{p.name}</div>
                   <div className="text-slate-400 text-xs font-semibold">{p.id}</div>
                 </td>
-                <td className="px-6 py-4 font-bold text-slate-700">{p.riskScore}/100</td>
+                <td className="px-6 py-4 font-bold text-slate-700">{Number.isFinite(p.probability) ? (p.probability * 100).toFixed(1) + '%' : 'Unavailable'}</td>
                 <td className="px-6 py-4 text-slate-500 font-semibold text-xs">
-                  {p.created_at ? new Date(p.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Aug 5, 2026'}
+                  {p.created_at ? new Date(p.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : 'Unavailable'}
                 </td>
                 <td className="px-6 py-4">
                   <span className={`px-3 py-1.5 rounded-full text-xs font-bold ${p.status === 'Needs Review' ? 'bg-red-50 text-red-600' : p.status === 'Monitoring' ? 'bg-amber-50 text-amber-600' : 'bg-teal-50 text-teal-600'}`}>
@@ -925,7 +847,7 @@ export default function DoctorDashboard() {
             ))}
           </tbody>
         </table>
-      </motion.div>
+      </Motion.div>
     );
   };
 

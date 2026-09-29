@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, AlertTriangle, CheckCircle2, Loader2, ArrowLeft, MessageSquare, Send, User, ChevronDown, Download, Bot } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { Line } from 'react-chartjs-2';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -38,6 +38,34 @@ export default function PatientDashboard() {
   
   const [history, setHistory] = useState([]);
   const [reports, setReports] = useState([]);
+  const [simResult, setSimResult] = useState(null);
+  const [simError, setSimError] = useState('');
+  const simulationAge = Number(formData.age || history[0]?.age);
+  const simulationGender = formData.gender || history[0]?.gender;
+  useEffect(() => {
+    if (activeTab !== 'simulator') return;
+    let current = true;
+    const timer = setTimeout(async () => {
+      setSimResult(null);
+      setSimError('');
+      if (!Number.isFinite(simulationAge) || simulationAge <= 0) {
+        setSimError('Enter your age in the assessment form before using the model simulator.');
+        return;
+      }
+      try {
+        const response = await api.post('/patient/preview', {
+          name: 'What-if preview', age: simulationAge, gender: simulationGender,
+          screen_time: simScreen, reading_time: simReading, outdoor_activity: simOutdoor,
+          sleep_hours: simSleep, parental_myopia: simParental, work_hours: 0,
+        });
+        if (current) setSimResult(response.data);
+      } catch (error) {
+        if (current) setSimError(error.message || 'Model unavailable');
+      }
+    }, 400);
+    return () => { current = false; clearTimeout(timer); };
+  }, [activeTab, simulationAge, simulationGender, simScreen, simReading, simOutdoor, simSleep, simParental]);
+
   const [historyLoading, setHistoryLoading] = useState(false);
   
   const fetchPatientData = async () => {
@@ -64,7 +92,7 @@ export default function PatientDashboard() {
           setEditForm({ name: res.data.name, email: res.data.email });
         }
       } catch (err) {
-        console.error("Failed to fetch profile");
+        console.error("Failed to fetch profile", err);
       }
     };
     fetchProfile();
@@ -78,7 +106,7 @@ export default function PatientDashboard() {
         const res = await api.get('/auth/doctors');
         if (res && res.data) setDoctors(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
-        console.error('Could not load doctors list');
+        console.error('Could not load doctors list', err);
       }
     };
     fetchDoctors();
@@ -91,7 +119,7 @@ export default function PatientDashboard() {
         setProfile(res.data);
         setIsEditingProfile(false);
       }
-    } catch (err) { console.error("Update failed"); }
+    } catch (err) { console.error("Update failed", err); }
   };
 
   const handleSignOut = async () => {
@@ -132,8 +160,9 @@ export default function PatientDashboard() {
         const d = response.data;
         
         // Construct dynamic historical trend line
-        const baseTrend = [40, 45, 50, 60, 68];
-        const newScore = d.risk_level === "High" ? 85 : d.risk_level === "Medium" ? 55 : 20;
+        const prior = [...history].reverse().filter(item => Number.isFinite(item.myopia_probability));
+        const baseTrend = prior.map(item => Number((item.myopia_probability * 100).toFixed(1)));
+        const newScore = Number((d.myopia_probability * 100).toFixed(1));
         
         setResult({
           patientName: formData.name || profile.name || "Patient",
@@ -144,6 +173,7 @@ export default function PatientDashboard() {
           severity: d.risk_level,
           riskScore: newScore,
           trendData: [...baseTrend, newScore],
+          trendLabels: [...prior.map(item => new Date(item.created_at).toLocaleDateString()), "Current"],
           recommendations: d.recommendation ? [d.recommendation] : ["Maintain a healthy eye routine."],
           myopiaDetected:   d.myopia_detected   ?? null,
           probability:      d.myopia_probability ?? null,
@@ -172,12 +202,13 @@ export default function PatientDashboard() {
         setMessages(prev => [...prev, { text: res.data.response, isBot: true }]);
       }
     } catch (err) {
-      setMessages(prev => [...prev, { text: "Network error fetching AI response.", isBot: true }]);
+      console.error(err);
+      setMessages(prev => [...prev, { text: err.message || "Network error fetching AI response.", isBot: true }]);
     }
   };
 
   const chartData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Current'],
+    labels: result?.trendLabels || [],
     datasets: [{
       label: 'Risk Score History',
       data: result?.trendData || [],
@@ -261,6 +292,7 @@ export default function PatientDashboard() {
       document.body.appendChild(a);
       a.click();
       a.remove();
+                        URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Failed to download PDF", err);
       alert("Error exporting report as PDF.");
@@ -269,6 +301,7 @@ export default function PatientDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50/50 to-slate-100 flex flex-col relative pb-20">
+      {historyLoading && <p role="status" className="p-3 text-sm text-slate-500">Loading records...</p>}
       <nav className="bg-white/80 backdrop-blur-md border-b px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
         <div className="flex items-center space-x-4">
           <Link to="/" className="text-slate-500 hover:text-blue-600 transition-colors">
@@ -308,7 +341,7 @@ export default function PatientDashboard() {
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'profile' ? (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto mt-4">
+          <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto mt-4">
             <h2 className="text-2xl font-bold text-slate-800 mb-6">Patient Profile</h2>
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
               <div className="flex items-center space-x-6 mb-8 pb-8 border-b border-slate-100">
@@ -371,9 +404,9 @@ export default function PatientDashboard() {
               </div>
 
             </div>
-          </motion.div>
+          </Motion.div>
         ) : activeTab === 'history' ? (
-          <motion.div 
+          <Motion.div
             initial={{ opacity: 0, y: 10 }} 
             animate={{ opacity: 1, y: 0 }} 
             className="max-w-4xl mx-auto mt-4 space-y-8 pb-10"
@@ -481,9 +514,9 @@ export default function PatientDashboard() {
                 )}
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         ) : activeTab === 'simulator' ? (
-          <motion.div 
+          <Motion.div
             initial={{ opacity: 0, y: 10 }} 
             animate={{ opacity: 1, y: 0 }} 
             className="max-w-4xl mx-auto mt-4 space-y-8 pb-10"
@@ -584,24 +617,17 @@ export default function PatientDashboard() {
               <div className="md:col-span-5 flex flex-col space-y-6">
                 {/* Score gauge card */}
                 {(() => {
-                  // Real-time calculation formula
-                  let base = 40;
-                  base += simScreen * 6.5;
-                  base += simReading * 4.5;
-                  base -= simOutdoor * 11.5;
-                  base += simParental * 12.5;
-                  base -= (simSleep - 7) * 2.5;
-                  const finalScore = Math.max(5, Math.min(95, Math.round(base)));
-                  
-                  const isHigh = finalScore >= 65;
-                  const isMed  = finalScore >= 35 && finalScore < 65;
+                  if (!simResult || simError) return <p role="status" className="p-6 text-slate-600">{simError || 'Requesting model prediction...'}</p>;
+                  const finalScore = Number((simResult.myopia_probability * 100).toFixed(1));
+                  const isHigh = simResult.risk_level === 'High';
+                  const isMed = simResult.risk_level === 'Medium';
                   const colorClass = isHigh ? 'text-red-500 bg-red-50/50 border-red-100' : isMed ? 'text-amber-500 bg-amber-50/50 border-amber-100' : 'text-teal-500 bg-teal-50/50 border-teal-100';
                   const circleColor = isHigh ? 'text-red-500' : isMed ? 'text-amber-500' : 'text-teal-500';
                   
                   return (
                     <>
                       <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-6">Simulated Myopia Risk</h4>
+                        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-6">Model-predicted Myopia Risk</h4>
                         <div className="relative mb-6">
                           <svg className="w-36 h-36 transform -rotate-90">
                             <circle cx="72" cy="72" r="64" stroke="currentColor" strokeWidth="12" className="text-slate-100 fill-none" />
@@ -627,13 +653,7 @@ export default function PatientDashboard() {
                           📢 AI Clinical Recommendation
                         </h4>
                         <p className="text-xs font-semibold text-slate-600 leading-relaxed">
-                          {isHigh ? (
-                            "CRITICAL RISK: High probability of progressive axial elongation. We strongly recommend reducing screen time, targeting 2 hours of daily outdoor activity, and consulting an ophthalmologist for a cycloplegic refraction test."
-                          ) : isMed ? (
-                            "MODERATE RISK: Moderate risk detected. Increase daily outdoor exposure to at least 1.5 hours and practice the 20-20-20 rule during screen usage to maintain current refraction ranges."
-                          ) : (
-                            "HEALTHY SCORE: Low progression risk. Your simulated habit ratio is highly protective. Keep up your healthy lifestyle parameters to maintain myopia stability!"
-                          )}
+                          {simResult.recommendation}
                         </p>
                       </div>
                     </>
@@ -641,11 +661,11 @@ export default function PatientDashboard() {
                 })()}
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         ) : (
           <AnimatePresence mode="wait">
             {!result ? (
-              <motion.div 
+              <Motion.div
               key="form"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -667,7 +687,7 @@ export default function PatientDashboard() {
                 <div className="p-6 md:p-8">
                   <form onSubmit={formStep === 1 ? (e) => { e.preventDefault(); setFormStep(2); } : handleSubmit} className="space-y-5">
                     {formStep === 1 ? (
-                      <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
+                      <Motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
                           <input 
@@ -719,9 +739,9 @@ export default function PatientDashboard() {
                           )}
                         </div>
                         <button type="submit" className="w-full rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-6 transition-all shadow-lg hover:shadow-blue-500/30">Next Step: Parameters</button>
-                      </motion.div>
+                      </Motion.div>
                     ) : (
-                      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
+                      <Motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
                         <div className="grid grid-cols-2 gap-5">
                           <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Screen Time (hrs)</label>
@@ -788,14 +808,14 @@ export default function PatientDashboard() {
                             {isSubmitting ? <><Loader2 className="w-5 h-5 mr-2 animate-spin"/> Generating...</> : 'Generate Report'}
                           </button>
                         </div>
-                      </motion.div>
+                      </Motion.div>
                     )}
                   </form>
                 </div>
               </div>
-            </motion.div>
+            </Motion.div>
           ) : (
-            <motion.div 
+            <Motion.div
               key="report"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -819,7 +839,7 @@ export default function PatientDashboard() {
                   <div className="relative mb-4">
                     <svg className="w-32 h-32 transform -rotate-90">
                       <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="12" className="text-slate-100 fill-none" />
-                      <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="12" strokeDasharray="351.8" strokeDashoffset={351.8 - (351.8 * result.riskScore) / 100} className={`fill-none ${result.riskScore > 70 ? 'text-red-500' : result.riskScore > 40 ? 'text-amber-500' : 'text-teal-500'} transition-all duration-1000 ease-out`} strokeLinecap="round" />
+                      <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="12" strokeDasharray="351.8" strokeDashoffset={351.8 - (351.8 * result.riskScore) / 100} className={`fill-none ${result.riskScore >= 70 ? 'text-red-500' : result.riskScore >= 40 ? 'text-amber-500' : 'text-teal-500'} transition-all duration-1000 ease-out`} strokeLinecap="round" />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <span className="text-3xl font-black text-slate-800">{result.riskScore}</span>
@@ -832,7 +852,7 @@ export default function PatientDashboard() {
 
                 <div className="md:col-span-2 bg-white rounded-2xl p-6 border shadow-sm">
                   <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
-                    <Activity className="w-5 h-5 mr-2 text-blue-500" /> Progression Trend
+                    <Activity className="w-5 h-5 mr-2 text-blue-500" /> Recorded Screening Probabilities
                   </h3>
                   <div className="h-[200px] w-full">
                     <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }} />
@@ -848,7 +868,7 @@ export default function PatientDashboard() {
                     <p className={`text-3xl font-black mb-1 ${result.myopiaDetected ? 'text-red-600' : 'text-teal-600'}`}>
                       {result.myopiaDetected ? '⚠️ Myopia Detected' : '✅ No Myopia'}
                     </p>
-                    <p className="text-sm text-slate-500 font-medium">Model Confidence: <span className="font-bold text-slate-700">{result.probability !== null ? (result.probability * 100).toFixed(1) + '%' : 'N/A'}</span></p>
+                    <p className="text-sm text-slate-500 font-medium">Myopia probability: <span className="font-bold text-slate-700">{result.probability !== null ? (result.probability * 100).toFixed(1) + '%' : 'N/A'}</span></p>
                   </div>
                   {result.nextSpheq !== null && (
                     <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 border shadow-sm text-center">
@@ -875,7 +895,7 @@ export default function PatientDashboard() {
                   ))}
                 </ul>
               </div>
-            </motion.div>
+            </Motion.div>
           )}
         </AnimatePresence>
         )}
@@ -885,7 +905,7 @@ export default function PatientDashboard() {
       <div className="fixed bottom-6 right-6 z-50">
         <AnimatePresence>
           {isChatOpen && (
-            <motion.div 
+            <Motion.div
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -915,17 +935,17 @@ export default function PatientDashboard() {
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </Motion.div>
           )}
         </AnimatePresence>
-        <motion.button 
+        <Motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsChatOpen(!isChatOpen)}
           className="w-14 h-14 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center text-white shadow-xl shadow-blue-900/20 border-2 border-white"
         >
           {isChatOpen ? <ChevronDown className="w-6 h-6" /> : <MessageSquare className="w-6 h-6" />}
-        </motion.button>
+        </Motion.button>
       </div>
     </div>
   );

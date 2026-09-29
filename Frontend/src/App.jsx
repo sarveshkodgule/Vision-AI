@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import LandingPage from './pages/LandingPage';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import ForgotPassword from './pages/ForgotPassword';
-import PatientDashboard from './pages/PatientDashboard';
-import DoctorDashboard from './pages/DoctorDashboard';
-import AboutUs from './pages/AboutUs';
-import ContactUs from './pages/ContactUs';
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+const Login = lazy(() => import('./pages/Login'));
+const Signup = lazy(() => import('./pages/Signup'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const PatientDashboard = lazy(() => import('./pages/PatientDashboard'));
+const DoctorDashboard = lazy(() => import('./pages/DoctorDashboard'));
+const AboutUs = lazy(() => import('./pages/AboutUs'));
+const ContactUs = lazy(() => import('./pages/ContactUs'));
 
 // Protected Route wrapper component
 function ProtectedRoute({ children, allowedRole }) {
@@ -43,6 +43,7 @@ function PublicRoute({ children }) {
 function App() {
   return (
     <BrowserRouter>
+      <Suspense fallback={<p role="status" className="p-6">Loading...</p>}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/about" element={<AboutUs />} />
@@ -71,6 +72,7 @@ function App() {
           } 
         />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

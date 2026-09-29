@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, Mail, MapPin, Phone, ArrowLeft, Send, CheckCircle2 } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 
 export default function ContactUs() {
   const navigate = useNavigate();
@@ -27,11 +27,11 @@ export default function ContactUs() {
       </nav>
 
       <main className="flex-1 max-w-6xl mx-auto px-6 py-16 w-full">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16">
+        <Motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16">
           <div className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold transition-colors border-transparent bg-indigo-100 text-indigo-700 uppercase tracking-wider mb-6">Get in Touch</div>
           <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">Contact Our Team</h1>
           <p className="text-lg text-slate-500 max-w-xl mx-auto font-medium">Have inquiries regarding enterprise clinic deployments or academic research collaboration? We'd love to hear from you.</p>
-        </motion.div>
+        </Motion.div>
 
         <div className="grid lg:grid-cols-3 gap-12 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-blue-900/5 p-4 sm:p-8 overflow-hidden">
           {/* Left Panel */}
@@ -75,14 +75,14 @@ export default function ContactUs() {
           {/* Right Panel (Form) */}
           <div className="lg:col-span-2 p-4 sm:p-8">
             {submitted ? (
-              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="h-full flex flex-col items-center justify-center text-center space-y-4 min-h-[400px]">
+              <Motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="h-full flex flex-col items-center justify-center text-center space-y-4 min-h-[400px]">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
                   <CheckCircle2 className="w-10 h-10 text-green-600" />
                 </div>
                 <h3 className="text-3xl font-black text-slate-800">Message Sent!</h3>
                 <p className="text-slate-500 max-w-md">Thank you for reaching out. A representative from our clinical routing team will follow up via email shortly.</p>
                 <button onClick={() => setSubmitted(false)} className="mt-6 text-sm font-bold text-blue-600 hover:text-blue-800 hover:underline">Send another message</button>
-              </motion.div>
+              </Motion.div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">

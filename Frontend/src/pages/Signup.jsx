@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Key } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import { api } from '../lib/api';
 
 export default function Signup() {
@@ -13,7 +13,6 @@ export default function Signup() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [otpCode, setOtpCode] = useState('');
-  const [otpSentCode, setOtpSentCode] = useState(''); // For demo mode
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,9 +27,6 @@ export default function Signup() {
       const res = await api.post('/auth/request-otp', { email, is_signup: true });
       if (res && res.status === 'success') {
         setStep(2);
-        if (res.data && res.data.code) {
-          setOtpSentCode(res.data.code);
-        }
       } else {
         setError(res.detail || res.message || "Failed to generate verification code.");
       }
@@ -73,7 +69,7 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50/50 p-4">
-      <motion.div 
+      <Motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         className="max-w-md w-full relative"
@@ -216,7 +212,7 @@ export default function Signup() {
             Already have an account? <Link to="/login" className="text-blue-600 font-bold hover:underline">Log in</Link>
           </p>
         </div>
-      </motion.div>
+      </Motion.div>
     </div>
   );
 }

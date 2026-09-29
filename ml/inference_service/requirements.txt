@@ -5,3 +5,5 @@ Pillow
 opencv-python-headless
 numpy
 python-multipart
+onnx
+torch>=2.0.0

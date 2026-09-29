@@ -22,7 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent))
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -64,7 +64,7 @@ async def health():
 
 
 @app.post("/predict")
-async def predict(file: UploadFile = File(...)):
+async def predict(file: UploadFile = File(...), explain: bool = Form(False)):
     """
     Accepts a fundus image (JPEG/PNG), returns PM vs Non-PM prediction.
 
@@ -84,12 +84,17 @@ async def predict(file: UploadFile = File(...)):
             detail=f"Expected an image file, got content-type: {content_type}"
         )
 
-    image_bytes = await file.read()
+    image_bytes = await file.read(10 * 1024 * 1024 + 1)
+    if len(image_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Image must be at most 10 MB")
     if not image_bytes:
         raise HTTPException(status_code=422, detail="Empty file received.")
 
     try:
         result = predictor.predict(image_bytes)
+        if explain:
+            from gradcam import explain as explain_image
+            result["gradcam"] = explain_image(image_bytes, result["label"])
         return {
             "status": "success",
             "data": result,
@@ -101,5 +106,7 @@ async def predict(file: UploadFile = File(...)):
         }
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Inference error: {str(e)}")

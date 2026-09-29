@@ -173,3 +173,5 @@ The training pipeline is designed to swap in the larger Kaggle myopia dataset wi
 - `PALMDataset.from_split()` → create a new `KaggleMyopiaDataset` subclass with the same `__getitem__` signature
 - `preprocessing.py` is shared — same function, same ImageNet normalization
 - Pass the new dataset to `DataLoader` in `train.py` — the training loop is dataset-agnostic
+
+For inspected model parameters, reproduced test metrics, real Grad-CAM, and presentation notes, see [ML/DL presentation guide](../ML_DL_PRESENTATION.md). A requested image prediction now fails explicitly if the model/service is unavailable.

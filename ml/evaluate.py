@@ -149,7 +149,7 @@ def main():
     parser = argparse.ArgumentParser(description="Evaluate a PALM checkpoint on a given split.")
     parser.add_argument("--checkpoint", type=str, required=True, help="Path to .pth checkpoint")
     parser.add_argument("--data_root", type=str,
-                        default=str(Path(__file__).parent.parent / "backend" / "DL dataset" / "PALM" / "PALM"),
+                        default=str(Path(__file__).resolve().parent.parent / "PALM" / "PALM"),
                         help="Path to PALM/PALM/ root directory")
     parser.add_argument("--split", type=str, default="Testing",
                         choices=["Training", "Validation", "Testing"])

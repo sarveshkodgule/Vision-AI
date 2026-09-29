@@ -1,6 +1,6 @@
+"""Check the actual runtime requirements without contacting external services."""
+import subprocess
 import sys
-try:
-    import google.generativeai
-    print("SUCCESS: google-generativeai is installed")
-except ImportError:
-    print("FAILURE: google-generativeai is NOT installed")
+
+if __name__ == "__main__":
+    raise SystemExit(subprocess.call([sys.executable, "-m", "pip", "check"]))

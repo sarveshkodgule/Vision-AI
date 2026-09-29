@@ -10,8 +10,7 @@ async def create_user(user: UserCreate):
         raise HTTPException(status_code=400, detail="Email already registered")
         
     # Verify OTP if provided for signup flow
-    if user.otp_code is not None:
-        await verify_otp_code(user.email, user.otp_code)
+    await verify_otp_code(user.email, user.otp_code)
     
     user_data = user.model_dump(exclude={"otp_code"})
     user_data["password"] = get_password_hash(user.password)
@@ -55,8 +54,9 @@ async def reset_password(email: str, new_password: str, otp_code: str = None):
         raise HTTPException(status_code=404, detail="Email not found")
         
     # If otp_code is provided, verify it first before resetting
-    if otp_code is not None:
-        await verify_otp_code(email, otp_code)
+    if not otp_code:
+        raise HTTPException(status_code=400, detail="Verification code required")
+    await verify_otp_code(email, otp_code)
         
     hashed_password = get_password_hash(new_password)
     await users_collection.update_one(
@@ -66,7 +66,7 @@ async def reset_password(email: str, new_password: str, otp_code: str = None):
     return True
 
 async def generate_and_save_otp(email: str, is_signup: bool = False) -> str:
-    import random
+    import secrets
     from datetime import datetime, timezone
     from database.mongodb import otp_codes_collection
     
@@ -79,7 +79,7 @@ async def generate_and_save_otp(email: str, is_signup: bool = False) -> str:
             raise HTTPException(status_code=404, detail="Email not found")
         
     # Generate 6-digit random code
-    code = f"{random.randint(100000, 999999)}"
+    code = str(secrets.randbelow(900000) + 100000)
     
     # Delete old OTPs for this email
     await otp_codes_collection.delete_many({"email": email})
@@ -93,7 +93,10 @@ async def generate_and_save_otp(email: str, is_signup: bool = False) -> str:
     
     # Send real verification code via email
     from services.email_service import send_otp_email
-    send_otp_email(email, code)
+    import asyncio
+    if not await asyncio.to_thread(send_otp_email, email, code):
+        await otp_codes_collection.delete_many({"email": email, "code": code})
+        raise HTTPException(status_code=503, detail="Unable to send verification email. Check SMTP configuration.")
     
     return code
 
@@ -118,5 +121,7 @@ async def verify_otp_code(email: str, code: str) -> bool:
         raise HTTPException(status_code=400, detail="Verification code has expired (10-minute limit)")
         
     # Delete the code once verified successfully
-    await otp_codes_collection.delete_one({"_id": otp_record["_id"]})
+    consumed = await otp_codes_collection.delete_one({"_id": otp_record["_id"]})
+    if not consumed.deleted_count:
+        raise HTTPException(status_code=400, detail="Verification code already used")
     return True

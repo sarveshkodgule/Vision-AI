@@ -79,10 +79,9 @@ async def update_profile(user_update: UserUpdate, current_user: dict = Depends(g
 
 @router.post("/request-otp", response_model=dict)
 async def request_otp_route(payload: OTPRequest):
-    code = await generate_and_save_otp(payload.email, is_signup=payload.is_signup)
+    await generate_and_save_otp(payload.email, is_signup=payload.is_signup)
     return {
         "status": "success",
-        "data": {"code": code},
         "message": "Verification code generated successfully. Valid for 10 minutes."
     }
 

@@ -6,6 +6,7 @@ Configure SMTP_EMAIL and SMTP_PASSWORD in your .env file.
 """
 import os
 import smtplib
+from html import escape
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
@@ -40,12 +41,12 @@ def send_high_risk_alert(doctor_email: str, doctor_name: str, patient_name: str,
             <p style="color:#BFDBFE; margin:4px 0 0;">VisionAssist AI Screening System</p>
           </div>
           <div style="background:#F8FAFC; padding:24px; border-radius: 0 0 12px 12px; border:1px solid #E2E8F0;">
-            <p>Dear <strong>Dr. {doctor_name}</strong>,</p>
+            <p>Dear <strong>Dr. {escape(doctor_name)}</strong>,</p>
             <p>A patient assigned to you has been flagged as <strong style="color:#DC2626;">HIGH RISK</strong> by the AI screening model.</p>
             <table style="width:100%; border-collapse:collapse; margin:16px 0;">
               <tr style="background:#EFF6FF;">
                 <td style="padding:10px; font-weight:bold; border:1px solid #BFDBFE;">Patient Name</td>
-                <td style="padding:10px; border:1px solid #BFDBFE;">{patient_name}</td>
+                <td style="padding:10px; border:1px solid #BFDBFE;">{escape(patient_name)}</td>
               </tr>
               <tr>
                 <td style="padding:10px; font-weight:bold; border:1px solid #BFDBFE;">Age</td>
@@ -57,7 +58,7 @@ def send_high_risk_alert(doctor_email: str, doctor_name: str, patient_name: str,
               </tr>
             </table>
             <p>Please log into the <strong>Doctor Portal</strong> to review this patient's full lifestyle profile and conduct a clinical evaluation.</p>
-            <a href="http://localhost:5173/doctor-dashboard" 
+            <a href="http://localhost:5173/doctor/dashboard"
                style="display:inline-block; background:#1E3A8A; color:white; padding:12px 24px; border-radius:8px; text-decoration:none; font-weight:bold; margin-top:8px;">
               Open Doctor Dashboard →
             </a>
@@ -74,7 +75,7 @@ def send_high_risk_alert(doctor_email: str, doctor_name: str, patient_name: str,
         msg["To"]      = doctor_email
         msg.attach(MIMEText(html_body, "html"))
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
             server.ehlo()
             server.starttls()
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
@@ -93,7 +94,7 @@ def send_otp_email(user_email: str, otp_code: str) -> bool:
     Sends a verification OTP code via email.
     """
     if not SMTP_EMAIL or not SMTP_PASSWORD:
-        print(f"[Email] SMTP not configured. OTP verification code is: {otp_code}")
+        print("[Email] SMTP not configured. Verification email cannot be sent.")
         return False
 
     try:
@@ -123,7 +124,7 @@ def send_otp_email(user_email: str, otp_code: str) -> bool:
         msg["To"]      = user_email
         msg.attach(MIMEText(html_body, "html"))
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
             server.ehlo()
             server.starttls()
             server.login(SMTP_EMAIL, SMTP_PASSWORD)
@@ -157,7 +158,7 @@ def send_pdf_report_email(patient_email: str, patient_name: str, pdf_path: str) 
             <h2 style="color:white; margin:0;">Vision AI Diagnostic Report</h2>
           </div>
           <div style="background:#F8FAFC; padding:24px; border-radius: 0 0 12px 12px; border:1px solid #E2E8F0;">
-            <p>Dear <strong>{patient_name}</strong>,</p>
+            <p>Dear <strong>{escape(patient_name)}</strong>,</p>
             <p>Your ophthalmologist has completed your cycloplegic deep learning assessment. Your official diagnostic PDF report has been generated and is attached to this email.</p>
             <p>You can also log in to your patient dashboard at any time to view your historical trends, lifestyle recommendations, and use the interactive myopia risk simulator.</p>
             <p style="margin-top:24px; font-size:11px; color:#94A3B8;">
@@ -189,7 +190,7 @@ def send_pdf_report_email(patient_email: str, patient_name: str, pdf_path: str) 
         else:
             print(f"[Email] Warning: PDF file not found at {pdf_path}. Sending email without attachment.")
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=15) as server:
             server.ehlo()
             server.starttls()
             server.login(SMTP_EMAIL, SMTP_PASSWORD)

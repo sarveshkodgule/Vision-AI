@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
 from pathlib import Path
 
-BASE = Path(r"C:\Users\Sarvesh Kodgule\Desktop\capstone\backend")
+BASE = Path(__file__).resolve().parent
 
 df = pd.read_csv(BASE / "balanced_dataset.csv")
 df["gender_idx"] = (df["gender"].astype(str).str.lower() == "female").astype(int)

@@ -24,4 +24,4 @@ class PatientRiskResponse(BaseModel):
     recommendation: str
     myopia_probability: float = 0.0
     myopia_detected: bool = False
-    predicted_next_spheq: float = 0.0
+    predicted_next_spheq: Optional[float] = None

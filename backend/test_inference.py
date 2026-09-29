@@ -1,6 +1,7 @@
 import os
 import sys
 import asyncio
+from pathlib import Path
 
 # Add the current directory to python path so it can import services
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -10,7 +11,7 @@ from services.ai_service import predict_fundus_palm
 async def test_single_image(image_path):
     if not os.path.exists(image_path):
         print(f"Error: File not found at '{image_path}'")
-        return
+        raise SystemExit(1)
         
     print(f"Reading image: {image_path}...")
     with open(image_path, "rb") as f:
@@ -18,6 +19,9 @@ async def test_single_image(image_path):
         
     print("Running EfficientNet-B0 inference on microservice port 8001...")
     result = await predict_fundus_palm(image_bytes)
+    if result["fundus_pm_label"] not in (0, 1):
+        print(f"Inference failed: {result['fundus_pm_prediction']}. Start the service on port 8001.")
+        raise SystemExit(1)
     
     print("\n" + "="*40)
     print("        PALM DL INFERENCE RESULT        ")
@@ -30,7 +34,7 @@ async def test_single_image(image_path):
 
 if __name__ == "__main__":
     # Pointing to one of the training images in the repo dataset
-    default_test_image = r"backend/DL dataset/PALM/PALM/Training/Images/H0001.jpg"
+    default_test_image = str(Path(__file__).resolve().parent.parent / "PALM" / "PALM" / "Training" / "Images" / "H0001.jpg")
     
     print("=== PALM EfficientNet-B0 Image Testing Tool ===")
     print("You can run: python test_inference.py <path_to_image> to test a specific image.")

@@ -13,6 +13,17 @@ from services.doctor_service import (
 
 router = APIRouter(prefix="/doctor", tags=["Doctor Dashboard"])
 
+async def require_assigned_patient(patient_id: str, doctor: dict):
+    from bson import ObjectId
+    from database.mongodb import patients_collection
+    if not ObjectId.is_valid(patient_id):
+        raise HTTPException(status_code=422, detail="Invalid patient ID")
+    patient = await patients_collection.find_one({
+        "_id": ObjectId(patient_id), "assigned_doctor_id": str(doctor["_id"])
+    })
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
 @router.post("/upload-image")
 async def upload_image(file: UploadFile = File(...), current_user: dict = Depends(get_current_doctor)):
     file_path = await handle_image_upload(file)
@@ -24,6 +35,7 @@ async def upload_image(file: UploadFile = File(...), current_user: dict = Depend
 
 @router.post("/predict")
 async def predict(data: ClinicalDataInput, current_user: dict = Depends(get_current_doctor)):
+    await require_assigned_patient(data.patient_id, current_user)
     report = await process_prediction(
         data.patient_id,
         data.image_url,
@@ -49,6 +61,9 @@ async def get_patients(current_user: dict = Depends(get_current_doctor)):
 @router.get("/report/{id}")
 async def get_report(id: str, current_user: dict = Depends(get_current_doctor)):
     report = await fetch_report(id)
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    await require_assigned_patient(report["patient_id"], current_user)
     return {
         "status": "success",
         "data": report,
@@ -59,6 +74,7 @@ async def get_report(id: str, current_user: dict = Depends(get_current_doctor)):
 async def generate_report(patient_id: str, current_user: dict = Depends(get_current_doctor)):
     """Generate a real PDF report and stream it as a download."""
     import os
+    await require_assigned_patient(patient_id, current_user)
     pdf_path = await create_pdf_report(patient_id)
     filename  = os.path.basename(pdf_path)
     return FileResponse(

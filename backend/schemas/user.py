@@ -1,12 +1,12 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional, Literal
 
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
     password: str
-    role: str  # e.g., "patient" or "doctor"
-    otp_code: Optional[str] = None
+    role: Literal["patient", "doctor"]
+    otp_code: str = Field(pattern=r"^\d{6}$")
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -19,7 +19,7 @@ class UserLogin(BaseModel):
 class PasswordReset(BaseModel):
     email: EmailStr
     new_password: str
-    otp_code: Optional[str] = None
+    otp_code: str = Field(pattern=r"^\d{6}$")
 
 class OTPRequest(BaseModel):
     email: EmailStr

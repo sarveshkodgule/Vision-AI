@@ -1,10 +1,10 @@
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 
 from routes import auth, patient, doctor, chatbot
 import os
+from pathlib import Path
 import time
 from collections import defaultdict
 
@@ -67,7 +67,6 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 # Input Sanitization: Mitigates XSS (HTML escaping) and NoSQL injection (removes query operators starting with $)
-import html
 import json
 
 def sanitize_payload(data):
@@ -82,8 +81,8 @@ def sanitize_payload(data):
     elif isinstance(data, list):
         return [sanitize_payload(item) for item in data]
     elif isinstance(data, str):
-        # Escape strings to prevent HTML script tag injections
-        return html.escape(data)
+        # Preserve passwords and user text. Escape at HTML output boundaries.
+        return data
     else:
         return data
 
@@ -99,20 +98,17 @@ async def input_sanitization_middleware(request: Request, call_next):
                     sanitized_data = sanitize_payload(data)
                     new_body = json.dumps(sanitized_data).encode("utf-8")
                     
-                    # Override receive function to return sanitized body
-                    async def receive():
-                        return {"type": "http.request", "body": new_body, "more_body": False}
-                    request._receive = receive
+                    request._body = new_body
             except Exception as e:
                 print(f"[SANITIZATION WARNING] Payload parsing failed: {e}")
                 
     response = await call_next(request)
     return response
 
-os.makedirs("uploads", exist_ok=True)
-os.makedirs("reports", exist_ok=True)
-app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
-app.mount("/reports", StaticFiles(directory="reports"), name="reports")
+BASE_DIR = Path(__file__).resolve().parent
+for directory in ("uploads", "reports"):
+    (BASE_DIR / directory).mkdir(exist_ok=True)
+# Clinical files are downloaded through authenticated report routes.
 
 # Includes routers
 app.include_router(auth.router)
@@ -140,4 +136,3 @@ def root():
         "status": "success",
         "message": "Welcome to the Myopia Screening System API"
     }
-

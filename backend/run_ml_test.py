@@ -1,9 +1,6 @@
-import os, sys
+"""Run the bundled model integration examples from any working directory."""
+from pathlib import Path
+import runpy
 
-# Switch to the hackathon project folder so relative paths work
-os.chdir(r"C:\Users\Sarvesh Kodgule\Downloads\Hackthon project\Hackthon project")
-sys.path.insert(0, os.getcwd())
-
-# Now run the test
-from test_model import main
-main()
+if __name__ == "__main__":
+    runpy.run_path(str(Path(__file__).with_name("test_integration.py")), run_name="__main__")

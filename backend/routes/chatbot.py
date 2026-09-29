@@ -4,6 +4,7 @@ from services.chatbot_service import process_chat_query, get_general_chatbot_res
 from utils.dependencies import get_current_user
 from database.mongodb import chat_history_collection
 from datetime import datetime
+import asyncio
 
 router = APIRouter(prefix="/chatbot", tags=["Chatbot"])
 
@@ -19,7 +20,7 @@ async def query_chatbot(query: ChatQuery, current_user: dict = Depends(get_curre
 @router.post("/general", response_model=dict)
 async def query_general_chatbot(query: ChatQuery):
     # Unauthenticated route for landing page
-    response_text = get_general_chatbot_response(query.message)
+    response_text = await asyncio.to_thread(get_general_chatbot_response, query.message)
     
     # Optionally store anonymous queries
     chat_record = {

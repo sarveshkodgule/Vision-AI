@@ -11,6 +11,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict
 import numpy as np
+import pandas as pd
+from fastapi import HTTPException
 import httpx
 
 MODELS_DIR = Path(__file__).parent.parent / "models"
@@ -27,15 +29,15 @@ async def predict_fundus_palm(image_bytes: bytes) -> dict:
     Call the PALM EfficientNet-B0 inference microservice and return the result.
 
     Returns a dict with keys:
-        fundus_pm_prediction : "PM" | "Non-PM" | "Service Unavailable"
+        fundus_pm_prediction : "PM" | "Non-PM" | "No Image"
         fundus_pm_confidence : float  (0.0 – 1.0)
         fundus_pm_label      : int    (1=PM, 0=Non-PM, -1=error)
     """
-    # Skip HTTP call if we only have a dummy/empty image
-    if not image_bytes or image_bytes == b"dummy":
+    # No image means no image prediction; it is not a fallback diagnosis.
+    if not image_bytes:
         return {
             "fundus_pm_prediction": "No Image",
-            "fundus_pm_confidence": 0.0,
+            "fundus_pm_confidence": None,
             "fundus_pm_label": -1,
         }
 
@@ -44,28 +46,24 @@ async def predict_fundus_palm(image_bytes: bytes) -> dict:
             response = await client.post(
                 f"{PALM_SERVICE_URL}/predict",
                 files={"file": ("fundus.jpg", image_bytes, "image/jpeg")},
+                data={"explain": "true"},
             )
             response.raise_for_status()
             body = response.json()
             data = body.get("data", body)   # handle {status, data, ...} wrapper
+            prediction = data["prediction"]
+            label = int(data["label"])
+            confidence = float(data["confidence"])
+            if label not in (0, 1) or prediction != {0: "Non-PM", 1: "PM"}[label] or not np.isfinite(confidence) or not 0 <= confidence <= 1:
+                raise ValueError("Invalid model response")
             return {
-                "fundus_pm_prediction": data.get("prediction", "Unknown"),
-                "fundus_pm_confidence": float(data.get("confidence", 0.0)),
-                "fundus_pm_label":      int(data.get("label", -1)),
+                "fundus_pm_prediction": prediction,
+                "fundus_pm_confidence": confidence,
+                "fundus_pm_label": label,
+                "gradcam": data.get("gradcam"),
             }
-    except httpx.ConnectError:
-        print("[PALM-Service] Connection refused — is the inference service running on :8001?")
-    except httpx.TimeoutException:
-        print("[PALM-Service] Request timed out after 30s.")
     except Exception as e:
-        print(f"[PALM-Service] Unexpected error: {e}")
-
-    # Graceful fallback — backend continues to work even if PALM service is down
-    return {
-        "fundus_pm_prediction": "Service Unavailable",
-        "fundus_pm_confidence": 0.0,
-        "fundus_pm_label": -1,
-    }
+        raise HTTPException(status_code=503, detail="Fundus model unavailable or inference failed") from e
 
 
 # ── Lazy loading for doctor clinical model ───────────────────────────────────
@@ -76,7 +74,7 @@ _scaler_prog: Any = None
 
 def _load_doctor_models():
     global _clf_doc, _reg_prog, _scaler_doc, _scaler_prog
-    if _clf_doc is not None:
+    if all(m is not None for m in (_clf_doc, _scaler_doc, _reg_prog, _scaler_prog)):
         return True
     try:
         import joblib
@@ -94,20 +92,15 @@ def predict_clinical_evaluation(data: Dict[str, Any]) -> Dict[str, Any]:
     Evaluates REAL-TIME clinical biometry provided by the doctor.
     Accepts both alias names: axial_length/al, refractive_error/spheq, reading_hours/reading_time.
     """
+    data = {k: v for k, v in data.items() if v is not None}
     # Support both ClinicalDataInput schema names AND direct field names
-    al    = float(data.get("axial_length") or data.get("al") or 23.5)
-    spheq = float(data.get("refractive_error") or data.get("spheq") or -1.0)
-    reading = float(data.get("reading_hours") or data.get("reading_time") or 1.5)
+    al    = float(data.get("axial_length", data.get("al", 23.5)))
+    spheq = float(data.get("refractive_error", data.get("spheq", -1.0)))
+    reading = float(data.get("reading_hours", data.get("reading_time", 1.5)))
 
     if not _load_doctor_models():
-        return {
-            "severity": "Moderate",
-            "confidence": 0.5,
-            "predicted_next_spheq": round(spheq - 0.5, 2),
-            "progression_rate": "Low",
-            "prediction": "Myopia Severity: Moderate (50.0%)"
-        }
-        
+        raise HTTPException(status_code=503, detail="Clinical models unavailable")
+
     try:
         gender_idx = 1.0 if str(data.get("gender", "")).lower() == "female" else 0.0
         
@@ -129,7 +122,7 @@ def predict_clinical_evaluation(data: Dict[str, Any]) -> Dict[str, Any]:
         ]])
         
         # Detection
-        X_doc_s = _scaler_doc.transform(X_doc)
+        X_doc_s = _scaler_doc.transform(pd.DataFrame(X_doc, columns=_scaler_doc.feature_names_in_))
         probability = float(_clf_doc.predict_proba(X_doc_s)[0][1])
         
         if probability >= 0.70: severity = "High"
@@ -146,7 +139,7 @@ def predict_clinical_evaluation(data: Dict[str, Any]) -> Dict[str, Any]:
             float(data.get("screen_time", 2)),
             float(data.get("outdoor_activity", 2))
         ]])
-        X_prog_s = _scaler_prog.transform(X_prog)
+        X_prog_s = _scaler_prog.transform(pd.DataFrame(X_prog, columns=_scaler_prog.feature_names_in_))
         next_spheq = float(_reg_prog.predict(X_prog_s)[0])
         
         # Progression rate
@@ -165,11 +158,4 @@ def predict_clinical_evaluation(data: Dict[str, Any]) -> Dict[str, Any]:
         
     except Exception as e:
         print(f"[AI-Doctor] Inference error: {e}")
-        return {
-            "severity": "Low",
-            "confidence": 0.0,
-            "predicted_next_spheq": round(spheq - 0.25, 2),
-            "progression_rate": "Low",
-            "prediction": "Error"
-        }
-
+        raise HTTPException(status_code=503, detail="Clinical inference failed") from e

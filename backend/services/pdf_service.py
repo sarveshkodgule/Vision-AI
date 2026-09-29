@@ -82,9 +82,9 @@ def generate_pdf_report(patient_data: Dict[str, Any], report_data: Dict[str, Any
         diag_data = [
             ["Parameter", "Value", "Interpretation"],
             ["Myopia Severity", severity, "Model Classification"],
-            ["AI Confidence", prob_pct, "Probability Score"],
-            ["Predicted Next SPHEQ", f"{report_data.get('predicted_next_spheq', 'N/A')} D", "Next Visit Estimate"],
-            ["Progression Rate", str(report_data.get("progression_rate", "N/A")), "Year-over-Year Change"],
+            ["Myopia probability", prob_pct, "Probability Score"],
+            ["Predicted Next SPHEQ", f"{report_data.get('predicted_next_spheq', 'N/A')} D", "Experimental model estimate"],
+            ["Progression Rate", str(report_data.get("progression_rate", "N/A")), "Model-derived category"],
             ["Doctor's Verdict", str(report_data.get("doctor_verdict", "Pending")), "Clinical Confirmation"],
         ]
         diag_table = Table(diag_data, colWidths=[6*cm, 5*cm, 7*cm])

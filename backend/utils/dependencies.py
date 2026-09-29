@@ -25,18 +25,16 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         headers={"WWW-Authenticate": "Bearer"},
     )
     
-    # Check if the token is blacklisted (revoked logout session)
-    from database.mongodb import blacklist_tokens_collection
-    blacklisted = await blacklist_tokens_collection.find_one({"token": token})
-    if blacklisted:
-        raise credentials_exception
-
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id: str = payload.get("sub")
-        if user_id is None:
+        if not isinstance(user_id, str) or not ObjectId.is_valid(user_id):
             raise credentials_exception
     except jwt.InvalidTokenError:
+        raise credentials_exception
+
+    from database.mongodb import blacklist_tokens_collection
+    if await blacklist_tokens_collection.find_one({"token": token}):
         raise credentials_exception
     
     user = await users_collection.find_one({"_id": ObjectId(user_id)})

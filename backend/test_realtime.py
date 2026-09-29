@@ -6,7 +6,7 @@ import joblib
 import numpy as np
 from pathlib import Path
 
-MODELS = Path(r"C:\Users\Sarvesh Kodgule\Desktop\capstone\backend\models")
+MODELS = Path(__file__).resolve().parent / "models"
 
 clf_pat  = joblib.load(MODELS / "detection_patient.pkl")
 sc_pat   = joblib.load(MODELS / "scaler_patient.pkl")

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from bson import ObjectId
 from fastapi.responses import FileResponse
 from schemas.patient import PatientRiskInput
 from utils.dependencies import get_current_user
@@ -41,7 +42,7 @@ async def get_patient_reports(current_user: dict = Depends(get_current_user)):
     reports = await cursor.to_list(length=100)
     
     # 3. Get all clinical data records for these screenings
-    clinical_records = await clinical_data_collection.find({"patient_id": {"$in": screening_ids}}).to_list(length=100)
+    clinical_records = await clinical_data_collection.find({"patient_id": {"$in": screening_ids}}).sort("_id", -1).to_list(length=100)
     
     # Format IDs and merge data
     for r in reports:
@@ -55,7 +56,7 @@ async def get_patient_reports(current_user: dict = Depends(get_current_user)):
         matching_c = next((c for c in clinical_records if c.get("patient_id") == r["patient_id"]), None)
         if matching_c:
             r["axial_length"] = matching_c.get("axial_length") or matching_c.get("al") or 24.0
-            r["refractive_error"] = matching_c.get("refractive_error") or matching_c.get("spheq") or -1.0
+            r["refractive_error"] = matching_c.get("refractive_error") if matching_c.get("refractive_error") is not None else matching_c.get("spheq")
             
     return {
         "status": "success",
@@ -67,6 +68,12 @@ async def get_patient_reports(current_user: dict = Depends(get_current_user)):
 async def generate_patient_report(patient_id: str, current_user: dict = Depends(get_current_user)):
     """Allows patient to download their doctor-generated clinical PDF report."""
     from services.doctor_service import create_pdf_report
+    from database.mongodb import patients_collection
+    if not ObjectId.is_valid(patient_id):
+        raise HTTPException(status_code=422, detail="Invalid patient ID")
+    patient = await patients_collection.find_one({"_id": ObjectId(patient_id), "user_id": str(current_user["_id"])})
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
     pdf_path = await create_pdf_report(patient_id)
     filename = os.path.basename(pdf_path)
     return FileResponse(
@@ -74,3 +81,11 @@ async def generate_patient_report(patient_id: str, current_user: dict = Depends(
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.post("/preview", response_model=dict)
+async def preview_risk(data: PatientRiskInput, current_user: dict = Depends(get_current_user)):
+    """Model-only what-if prediction; does not save a screening or send email."""
+    from services.patient_service import calculate_risk
+    risk, advice, probability, _ = calculate_risk(data)
+    return {"status": "success", "data": {"risk_level": risk, "myopia_probability": probability, "recommendation": advice}}

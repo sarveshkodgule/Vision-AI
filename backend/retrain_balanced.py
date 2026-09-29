@@ -8,6 +8,7 @@ Techniques used:
   5. Early stopping — prevents overfitting
 Expected accuracy: 88-93% (realistic, not fake 100%)
 """
+import os
 import pandas as pd
 import numpy as np
 import joblib
@@ -20,8 +21,10 @@ from imblearn.over_sampling import SMOTE
 from imblearn.pipeline import Pipeline as ImbPipeline
 
 np.random.seed(42)
-BASE_DIR      = Path(r"C:\Users\Sarvesh Kodgule\Desktop\capstone\backend")
-ORIGINAL_DATA = r"C:\Users\Sarvesh Kodgule\Downloads\Hackthon project\Hackthon project\data\tabular\dataset.csv"
+BASE_DIR      = Path(__file__).resolve().parent
+ORIGINAL_DATA = Path(os.environ.get("MYOPIA_TRAINING_DATA", BASE_DIR / "dataset.csv"))
+if not ORIGINAL_DATA.is_file():
+    raise SystemExit("Set MYOPIA_TRAINING_DATA to the original myopic-only CSV dataset before retraining.")
 MODELS_DIR    = BASE_DIR / "models"
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 

@@ -6,6 +6,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import Optional, Tuple, Any, Dict
 
+from fastapi import HTTPException
 from schemas.patient import PatientRiskInput
 from database.mongodb import patients_collection
 
@@ -17,7 +18,7 @@ _scaler_pat: Any = None
 
 def _load_patient_models() -> bool:
     global _clf_pat, _scaler_pat
-    if _clf_pat is not None:
+    if _clf_pat is not None and _scaler_pat is not None:
         return True
     try:
         import joblib
@@ -29,28 +30,11 @@ def _load_patient_models() -> bool:
         return False
 
 
-def _rule_based(data: PatientRiskInput) -> Tuple[str, str, float, float]:
-    score = 0
-    if data.age < 12:              score += 2
-    if data.screen_time > 4:       score += 2
-    if data.reading_time > 3:      score += 1
-    if data.work_hours > 8:        score += 1
-    if data.sleep_hours < 7:       score += 1
-    if data.outdoor_activity < 2:  score += 2
-    if data.parental_myopia == 1:  score += 2
-    elif data.parental_myopia == 2: score += 4
-    
-    if score >= 7:
-        return "High",   "High lifestyle risk detected. Consult an ophthalmologist.", 0.85, 0.0
-    elif score >= 4:
-        return "Medium", "Moderate lifestyle risk. Increase outdoor activity.", 0.55, 0.0
-    return "Low", "Low lifestyle risk. Maintain healthy vision habits.", 0.20, 0.0
-
-
-def _ml_predict(data: PatientRiskInput) -> Optional[Tuple[str, str, float, float]]:
+def _ml_predict(data: PatientRiskInput) -> Optional[Tuple[str, str, float, Optional[float]]]:
     import numpy as np
+    import pandas as pd
     if not _load_patient_models():
-        return None
+        raise HTTPException(status_code=503, detail="Patient model unavailable")
         
     try:
         # Patient Features: [age, gender_idx, reading, screen, outdoor, sleep, parental]
@@ -65,7 +49,7 @@ def _ml_predict(data: PatientRiskInput) -> Optional[Tuple[str, str, float, float
             float(data.parental_myopia)
         ]])
 
-        X_scaled = _scaler_pat.transform(X)
+        X_scaled = _scaler_pat.transform(pd.DataFrame(X, columns=_scaler_pat.feature_names_in_))
         probability = float(_clf_pat.predict_proba(X_scaled)[0][1])
 
         if probability >= 0.70:
@@ -75,17 +59,15 @@ def _ml_predict(data: PatientRiskInput) -> Optional[Tuple[str, str, float, float
         else:
             risk, rec = "Low", "Low lifestyle risk. Continue healthy habits."
 
-        return risk, rec, float(round(probability, 4)), 0.0 # Progression is handled on the doctor's side
+        return risk, rec, float(round(probability, 4)), None # No progression model is run for lifestyle-only screening
 
     except Exception as e:
         print(f"[ML-Patient] Prediction error: {e}")
-        return None
+        raise HTTPException(status_code=503, detail="Patient model inference failed") from e
 
 
-def calculate_risk(data: PatientRiskInput) -> Tuple[str, str, float, float]:
-    result = _ml_predict(data)
-    if result: return result
-    return _rule_based(data)
+def calculate_risk(data: PatientRiskInput) -> Tuple[str, str, float, Optional[float]]:
+    return _ml_predict(data)
 
 
 async def assess_patient_risk(user_id: str, data: PatientRiskInput):
@@ -93,6 +75,7 @@ async def assess_patient_risk(user_id: str, data: PatientRiskInput):
 
     patient_record = data.model_dump()
     patient_record["user_id"]              = user_id
+    patient_record["prediction_source"] = "detection_patient.pkl"
     patient_record["risk_level"]           = risk_level
     patient_record["recommendation"]       = recommendation
     patient_record["myopia_probability"]   = probability

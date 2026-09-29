@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 try:
     import torch
@@ -118,15 +119,16 @@ def train_model(train_loader, val_loader, num_epochs=10, learning_rate=0.001):
             print(f"Val Loss: {val_loss:.4f} - Val Accuracy: {val_acc:.2f}%")
             
     # Save the trained model parameters to models/fundus_cnn.pth
-    os.makedirs("models", exist_ok=True)
-    torch.save(model.state_dict(), "models/fundus_cnn.pth")
+    model_dir = Path(__file__).resolve().parent / "models"
+    model_dir.mkdir(exist_ok=True)
+    torch.save(model.state_dict(), model_dir / "fundus_cnn.pth")
     print("Model successfully trained and saved as 'models/fundus_cnn.pth'!")
 
 if __name__ == "__main__":
     print("=== Training 3-Class CNN on Kaggle PALM Dataset ===")
     
     # 1. Paths configuration
-    dataset_base = r"c:\Users\Sarvesh Kodgule\Desktop\Studdyyy\capstone\PALM\PALM\Training"
+    dataset_base = Path(__file__).resolve().parent.parent / "PALM" / "PALM" / "Training"
     excel_path = os.path.join(dataset_base, "Classification Labels.xlsx")
     images_dir = os.path.join(dataset_base, "Images")
     

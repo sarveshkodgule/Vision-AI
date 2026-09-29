@@ -18,7 +18,7 @@ from sklearn.model_selection import (
 )
 from sklearn.metrics import accuracy_score, classification_report
 
-BASE_DIR   = Path(r"C:\Users\Sarvesh Kodgule\Desktop\capstone\backend")
+BASE_DIR   = Path(__file__).resolve().parent
 MODELS_DIR = BASE_DIR / "models"
 DATA_CSV   = BASE_DIR / "balanced_dataset.csv"
 

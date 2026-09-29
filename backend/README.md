@@ -1,19 +1,19 @@
 # AI-Based Myopia Screening Backend
 
-This is the production-ready FastAPI backend for the "AI-Based Myopia Screening and Doctor Decision Support System".
+This is the FastAPI backend for the "AI-Based Myopia Screening and Doctor Decision Support System".
 
 ## Features
 
 - **Authentication Module**: Secure signup and login using JWT and bcrypt.
 - **Patient Module**: Submit screening data (age, screen time, etc.) to get risk assessments.
-- **Doctor Module**: Upload fundus images, calculate predictions with AI placeholders, fetch patient lists.
+- **Doctor Module**: Upload fundus images, run clinical XGBoost and PALM ONNX predictions, fetch patient lists.
 - **Report Generation**: Dynamically generate PDF reports using ReportLab for clinical records.
 - **Chatbot Module**: Rule-based virtual assistant to answer Myopia-related queries.
 
 ## Tech Stack
 - **Framework**: FastAPI
 - **Database**: MongoDB (motor asynchronous driver)
-- **Security**: PyJWT, passlib (bcrypt)
+- **Security**: PyJWT, bcrypt
 - **PDF Generation**: ReportLab
 - **Data Validation**: Pydantic
 
@@ -21,7 +21,7 @@ This is the production-ready FastAPI backend for the "AI-Based Myopia Screening 
 
 ### Prerequisites
 
-1.  Python 3.9+
+1.  Python 3.12 (tested)
 2.  MongoDB Server (Running locally on default port 27017, or update the `.env` file)
 
 ### Installation
@@ -73,8 +73,10 @@ You can test all endpoints, authorize using the "Authorize" button (entering the
 - `main.py`: Entrypoint and FastAPI configuration.
 - `database/`: MongoDB connection setup.
 - `routes/`: API endpoint definitions (controllers).
-- `services/`: Business logic, ML placeholders, and DB operations.
+- `services/`: Business logic, ML inference, and DB operations.
 - `schemas/`: Pydantic models for request/response validation.
 - `utils/`: JWT, security, and dependencies.
 - `uploads/`: Directory for uploaded images.
 - `reports/`: Directory for generated PDFs.
+
+See [project checks and full-stack startup](../PROJECT_CHECKS.md) for regression tests, SMTP setup, model versions, and the development launcher.

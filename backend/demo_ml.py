@@ -6,7 +6,7 @@ Progression features(6): spheq, al, reading_hours, screen_time, outdoor_activity
 from pathlib import Path
 import joblib, numpy as np
 
-MODELS_DIR = Path(r"C:\Users\Sarvesh Kodgule\Desktop\capstone\backend\models")
+MODELS_DIR = Path(__file__).resolve().parent / "models"
 clf     = joblib.load(MODELS_DIR / "detection_model.pkl")
 reg     = joblib.load(MODELS_DIR / "progression_model.pkl")
 scalers = joblib.load(MODELS_DIR / "scaler.pkl")

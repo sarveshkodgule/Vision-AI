@@ -1,5 +1,7 @@
 import os
 import shutil
+from pathlib import Path
+from uuid import uuid4
 from fastapi import UploadFile, HTTPException
 from datetime import datetime
 from database.mongodb import patients_collection, reports_collection, clinical_data_collection
@@ -7,15 +9,24 @@ from services.ai_service import predict_fundus_palm, predict_clinical_evaluation
 from typing import Optional, Any, Dict, List
 from bson import ObjectId
 
-UPLOADS_DIR = "uploads"
+BASE_DIR = Path(__file__).resolve().parent.parent
+UPLOADS_DIR = BASE_DIR / "uploads"
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 async def handle_image_upload(file: UploadFile):
-    file_location = os.path.join(UPLOADS_DIR, file.filename)
-    with open(file_location, "wb+") as file_object:
-        shutil.copyfileobj(file.file, file_object)
-    
-    return file_location
+    import cv2
+    import numpy as np
+    content = await file.read(10 * 1024 * 1024 + 1)
+    if len(content) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Image must be at most 10 MB")
+    if not content or cv2.imdecode(np.frombuffer(content, dtype=np.uint8), cv2.IMREAD_COLOR) is None:
+        raise HTTPException(status_code=422, detail="Upload a valid image")
+    suffix = Path(file.filename or "image.jpg").suffix.lower()
+    if suffix not in {".jpg", ".jpeg", ".png"}:
+        raise HTTPException(status_code=422, detail="Upload a JPEG or PNG image")
+    filename = f"{uuid4().hex}{suffix}"
+    (UPLOADS_DIR / filename).write_bytes(content)
+    return f"uploads/{filename}"
 
 async def fetch_doctor_patients(doctor_id: str = None) -> List[Dict[str, Any]]:
     """
@@ -51,21 +62,31 @@ async def fetch_report(report_id: str) -> Optional[Dict[str, Any]]:
     return None
 
 async def process_prediction(patient_id: str, image_path: str, clinical_data: dict, doctor_verdict: Optional[str] = None):
+    if not ObjectId.is_valid(patient_id):
+        raise HTTPException(status_code=422, detail="Invalid patient ID")
+    clinical_data = {k: v for k, v in clinical_data.items() if v is not None}
     # 1. Pathologic Myopia prediction via PALM EfficientNet-B0 microservice
     try:
-        with open(image_path, "rb") as f:
-            image_bytes = f.read()
+        if not image_path:
+            image_bytes = b""
+        else:
+            resolved_image = (BASE_DIR / image_path).resolve()
+            if not resolved_image.is_relative_to(UPLOADS_DIR.resolve()):
+                raise HTTPException(status_code=422, detail="Invalid image path")
+            image_bytes = resolved_image.read_bytes()
     except FileNotFoundError:
-        image_bytes = b"dummy"
+        raise HTTPException(status_code=404, detail="Uploaded image not found")
     palm_result = await predict_fundus_palm(image_bytes)
     
     # 2. Clinical Evaluation (XGBoost biometry model — unchanged)
     # Fetch the patient to get additional context (age, lifestyle) if missing in clinical_data
     patient = await patients_collection.find_one({"_id": ObjectId(patient_id) if len(patient_id) == 24 else patient_id})
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
     if patient:
         # Merge lifestyle factors into clinical_data for the ML model
         for key in ["age", "gender", "reading_time", "screen_time", "outdoor_activity", "sleep_hours", "parental_myopia"]:
-            if key not in clinical_data:
+            if key not in clinical_data and patient.get(key) is not None:
                 clinical_data[key] = patient.get(key)
     
     clinical_ai = predict_clinical_evaluation(clinical_data)
@@ -81,9 +102,13 @@ async def process_prediction(patient_id: str, image_path: str, clinical_data: di
         # PALM EfficientNet-B0 fundus prediction (binary PM / Non-PM)
         "fundus_pm_prediction":  palm_result["fundus_pm_prediction"],
         "fundus_pm_confidence":  palm_result["fundus_pm_confidence"],
+        "gradcam": palm_result.get("gradcam"),
+        "current_spheq": clinical_data.get("refractive_error", clinical_data.get("spheq")),
         # Clinical XGBoost model results (unchanged)
         "severity":              clinical_ai["severity"],
         "confidence":            clinical_ai["confidence"],
+        "prediction":            clinical_ai["prediction"],
+        "model_source":          "XGBoost clinical + progression",
         "predicted_next_spheq": clinical_ai["predicted_next_spheq"],
         "progression_rate":      clinical_ai["progression_rate"],
         "doctor_verdict":        doctor_verdict,
@@ -156,7 +181,6 @@ async def create_pdf_report(patient_id: str) -> str:
     if p_user_id:
         try:
             from database.mongodb import users_collection
-            from bson import ObjectId
             from services.email_service import send_pdf_report_email
             import asyncio
             

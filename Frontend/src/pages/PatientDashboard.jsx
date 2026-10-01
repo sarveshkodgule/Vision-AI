@@ -7,6 +7,7 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler
 } from 'chart.js';
 import { api, API_BASE_URL } from '../lib/api';
+import PatientReportDelivery from '../components/PatientReportDelivery';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -165,6 +166,9 @@ export default function PatientDashboard() {
         const newScore = Number((d.myopia_probability * 100).toFixed(1));
         
         setResult({
+          screeningId: d.screening_id,
+          reportEmail: d.report_email,
+          careGuidance: d.care_guidance,
           patientName: formData.name || profile.name || "Patient",
           patientGender: formData.gender,
           patientAge: formData.age,
@@ -284,6 +288,9 @@ export default function PatientDashboard() {
       const response = await fetch(`${API_BASE_URL}/patient/generate-report/${patientId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (!response.ok || !response.headers.get('content-type')?.includes('application/pdf')) {
+        throw new Error('Report download failed. Please try again.');
+      }
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -508,6 +515,7 @@ export default function PatientDashboard() {
                             💡 {hist.recommendation}
                           </div>
                         )}
+                        <PatientReportDelivery screeningId={hist.id} initialState={hist.report_email} registeredEmail={profile.email} />
                       </div>
                     ))}
                   </div>
@@ -823,16 +831,30 @@ export default function PatientDashboard() {
             >
               <div className="flex justify-between items-end mb-6 border-b border-slate-200 pb-4">
                 <div>
-                  <h2 className="text-3xl font-extrabold text-slate-800">Your Diagnostic Health Report</h2>
+                  <h2 className="text-3xl font-extrabold text-slate-800">Your Eye-Health Screening Report</h2>
                   <p className="text-slate-600 mt-2 font-medium flex items-center">
                     <User className="w-4 h-4 mr-1.5 text-blue-500"/> Patient: <span className="font-bold text-slate-800 mx-1">{result.patientName}</span> • {result.patientAge} Yrs • {result.patientGender}
                   </p>
                   <p className="text-slate-500 text-sm mt-1 flex items-center"><CheckCircle2 className="w-4 h-4 mr-1 text-teal-500" /> Generated on {result.date}</p>
                 </div>
-                <button onClick={() => window.print()} className="flex items-center text-sm font-semibold text-blue-600 bg-blue-50 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors shadow-sm cursor-pointer">
-                  <Download className="w-4 h-4 mr-2" /> Download PDF
-                </button>
               </div>
+              <PatientReportDelivery key={result.screeningId} screeningId={result.screeningId} initialState={result.reportEmail} registeredEmail={profile.email} />
+              {result.careGuidance && (
+                <section className="rounded-2xl bg-white border p-6 text-left space-y-4">
+                  <h3 className="text-xl font-bold text-slate-800">{result.careGuidance.title}</h3>
+                  <p className="text-slate-700">{result.careGuidance.meaning}</p>
+                  <p className="text-sm text-slate-500">{result.careGuidance.probability_note}</p>
+                  <p className="rounded-lg bg-blue-50 p-4 text-blue-900">{result.careGuidance.next_step}</p>
+                  <h4 className="font-bold text-slate-800">Daily precautions and healthy habits</h4>
+                  <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700">{result.careGuidance.habits.map(habit => <li key={habit}>{habit}</li>)}</ul>
+                  <details className="rounded-lg border p-4 text-sm text-slate-700">
+                    <summary className="cursor-pointer font-bold">Doctor discussion and appointment preparation</summary>
+                    <ul className="list-disc pl-5 mt-3 space-y-2">{[...result.careGuidance.doctor_discussion, ...result.careGuidance.appointment_checklist].map(item => <li key={item}>{item}</li>)}</ul>
+                    <p className="mt-3">Your PDF includes your assigned doctor's registered contact, when available. Contact the practice to book an appointment.</p>
+                  </details>
+                  <p className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-900"><strong>Urgent symptoms: </strong>{result.careGuidance.urgent_care}</p>
+                </section>
+              )}
 
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="md:col-span-1 bg-white rounded-2xl p-6 border shadow-sm flex flex-col items-center justify-center text-center">
@@ -864,9 +886,9 @@ export default function PatientDashboard() {
               {result.myopiaDetected !== null && (
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className={`rounded-2xl p-6 border shadow-sm text-center ${result.myopiaDetected ? 'bg-red-50 border-red-100' : 'bg-teal-50 border-teal-100'}`}>
-                    <p className="text-xs font-bold uppercase tracking-widest mb-2 text-slate-500">AI Detection Result</p>
+                    <p className="text-xs font-bold uppercase tracking-widest mb-2 text-slate-500">Model Screening Result</p>
                     <p className={`text-3xl font-black mb-1 ${result.myopiaDetected ? 'text-red-600' : 'text-teal-600'}`}>
-                      {result.myopiaDetected ? '⚠️ Myopia Detected' : '✅ No Myopia'}
+                      {result.severity} screening risk
                     </p>
                     <p className="text-sm text-slate-500 font-medium">Myopia probability: <span className="font-bold text-slate-700">{result.probability !== null ? (result.probability * 100).toFixed(1) + '%' : 'N/A'}</span></p>
                   </div>
@@ -882,7 +904,7 @@ export default function PatientDashboard() {
 
               <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-100 mt-6 shadow-sm">
                 <h3 className="text-lg font-bold text-amber-800 mb-3 flex items-center">
-                  <AlertTriangle className="w-5 h-5 mr-2" /> Clinical Recommendations
+                  <AlertTriangle className="w-5 h-5 mr-2" /> Screening Recommendations
                 </h3>
                 <ul className="space-y-3">
                   {result.recommendations.map((rec, i) => (

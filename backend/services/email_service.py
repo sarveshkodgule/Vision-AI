@@ -21,6 +21,54 @@ SMTP_PORT     = int(os.getenv("SMTP_PORT", 587))
 SMTP_EMAIL    = os.getenv("SMTP_EMAIL", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 
+
+def send_patient_screening_email(patient_email: str, patient_name: str, pdf_bytes: bytes, screening_id: str, guidance: dict):
+    """Send only to the server-resolved account email; raise on delivery failure."""
+    from email.message import EmailMessage
+    from email.utils import formataddr
+    import ssl
+
+    if not SMTP_EMAIL or not SMTP_PASSWORD:
+        raise RuntimeError("SMTP is not configured")
+    if not pdf_bytes.startswith(b"%PDF"):
+        raise ValueError("A valid PDF attachment is required")
+    message = EmailMessage()
+    message["Subject"] = "Your Vision AI eye-health screening report"
+    message["From"] = formataddr(("Vision AI | Patient Care", SMTP_EMAIL))
+    message["To"] = patient_email
+    message.set_content(
+        f"Dear {patient_name},\n\nYour screening report is attached as a PDF.\n\n"
+        f"{guidance['title']}\n{guidance['next_step']}\n\n"
+        "The PDF explains your model result, daily precautions, and how to arrange an eye examination. "
+        "This automated screening does not confirm a diagnosis or replace an eye examination.\n\n"
+        f"{guidance['urgent_care']}\n\nVision AI | Patient Care\n"
+        "For clinical advice, contact your eye-care professional. Do not use email for emergencies."
+    )
+    message.add_alternative(
+        '<html><body style="font-family:Arial,sans-serif;color:#334155;max-width:640px;margin:auto">'
+        '<div style="background:#123760;color:white;padding:28px"><h1 style="font-size:24px;margin:0">Vision AI</h1>'
+        '<p>Eye Health | Patient Screening &amp; Care Guidance</p></div>'
+        f'<div style="padding:24px;border:1px solid #e2e8f0"><p>Dear {escape(patient_name)},</p>'
+        '<p>Your personal eye-health screening report is attached. Please save it and bring it to your next eye appointment.</p>'
+        f'<h2 style="font-size:18px;color:#123760">{escape(guidance["title"])}</h2>'
+        f'<p>{escape(guidance["next_step"])}</p>'
+        '<p>The PDF explains your model result, precautions, daily eye-care habits, and doctor contact guidance.</p>'
+        '<p>This is an automated screening, not a confirmed diagnosis or a signed clinical assessment.</p>'
+        f'<p style="padding:14px;background:#fff7ed"><strong>Urgent symptoms:</strong> {escape(guidance["urgent_care"])}</p>'
+        '<p>Vision AI | Patient Care</p><p style="font-size:12px;color:#64748b">Confidential patient information. '
+        'For medical advice, contact your eye-care professional. Do not use email for emergencies.</p></div></body></html>',
+        subtype="html",
+    )
+    message.add_attachment(pdf_bytes, maintype="application", subtype="pdf", filename=f"VisionAI_Screening_{screening_id}.pdf")
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+        server.ehlo()
+        server.starttls(context=ssl.create_default_context())
+        server.ehlo()
+        server.login(SMTP_EMAIL, SMTP_PASSWORD)
+        refused = server.send_message(message)
+        if refused:
+            raise RuntimeError("Mail server rejected the recipient")
+
 def send_high_risk_alert(doctor_email: str, doctor_name: str, patient_name: str,
                          patient_age: int, risk_probability: float) -> bool:
     """

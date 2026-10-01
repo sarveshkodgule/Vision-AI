@@ -4,6 +4,7 @@ Uses ONLY lifestyle factors to provide a patient-friendly screening.
 from __future__ import annotations
 from pathlib import Path
 from datetime import datetime
+import time
 from typing import Optional, Tuple, Any, Dict
 
 from fastapi import HTTPException
@@ -84,7 +85,8 @@ async def assess_patient_risk(user_id: str, data: PatientRiskInput):
     patient_record["created_at"]           = datetime.now().isoformat()
     # assigned_doctor_id is already in data.model_dump() from the schema field
 
-    await patients_collection.insert_one(patient_record)
+    patient_record["report_email"] = {"status": "queued", "updated_at": time.time()}
+    inserted = await patients_collection.insert_one(patient_record)
 
     # ── Send high-risk email alert to assigned doctor (best-effort) ──────────
     if risk_level == "High" and data.assigned_doctor_id:
@@ -110,6 +112,8 @@ async def assess_patient_risk(user_id: str, data: PatientRiskInput):
             print(f"[Email] Alert skipped: {e}")
 
     return {
+        "screening_id": str(inserted.inserted_id),
+        "report_email": patient_record["report_email"],
         "risk_level":           risk_level,
         "recommendation":       recommendation,
         "myopia_probability":   probability,

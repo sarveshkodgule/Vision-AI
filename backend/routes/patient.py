@@ -1,16 +1,23 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from bson import ObjectId
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from schemas.patient import PatientRiskInput
 from utils.dependencies import get_current_user
 from services.patient_service import assess_patient_risk, get_patient_history
 import os
+import asyncio
+from services.patient_report_service import (
+    care_guidance, owned_screening, report_context, make_patient_pdf,
+    deliver_screening_email, queue_email, email_status,
+)
 
 router = APIRouter(prefix="/patient", tags=["Patient"])
 
 @router.post("/risk", response_model=dict)
-async def calculate_patient_risk(data: PatientRiskInput, current_user: dict = Depends(get_current_user)):
+async def calculate_patient_risk(data: PatientRiskInput, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
     result = await assess_patient_risk(str(current_user["_id"]), data)
+    result["care_guidance"] = care_guidance(result["risk_level"])
+    background_tasks.add_task(deliver_screening_email, result["screening_id"], str(current_user["_id"]))
     return {
         "status": "success",
         "data": result,
@@ -89,3 +96,28 @@ async def preview_risk(data: PatientRiskInput, current_user: dict = Depends(get_
     from services.patient_service import calculate_risk
     risk, advice, probability, _ = calculate_risk(data)
     return {"status": "success", "data": {"risk_level": risk, "myopia_probability": probability, "recommendation": advice}}
+
+
+@router.get("/screening-report/{screening_id}")
+async def download_screening_report(screening_id: str, current_user: dict = Depends(get_current_user)):
+    record = await owned_screening(screening_id, str(current_user["_id"]))
+    owner, doctor = await report_context(record)
+    pdf = await asyncio.to_thread(make_patient_pdf, record, owner, doctor)
+    return Response(pdf, media_type="application/pdf", headers={
+        "Content-Disposition": f'attachment; filename="VisionAI_Screening_{screening_id}.pdf"',
+        "Cache-Control": "no-store",
+    })
+
+
+@router.get("/screening-report/{screening_id}/status")
+async def screening_report_status(screening_id: str, current_user: dict = Depends(get_current_user)):
+    record = await owned_screening(screening_id, str(current_user["_id"]))
+    return {"status": "success", "data": email_status(record)}
+
+
+@router.post("/screening-report/{screening_id}/email")
+async def email_screening_report(screening_id: str, background_tasks: BackgroundTasks, current_user: dict = Depends(get_current_user)):
+    queued, state = await queue_email(screening_id, str(current_user["_id"]))
+    if queued:
+        background_tasks.add_task(deliver_screening_email, screening_id, str(current_user["_id"]))
+    return {"status": "success", "data": state}

@@ -1,33 +1,97 @@
 {
-  "folds": 2,
+  "folds": 5,
   "per_fold": [
     {
-      "auc": 0.9943,
-      "sensitivity": 0.9387,
-      "specificity": 0.984,
-      "f1": 0.96,
+      "auc": 0.9964,
+      "sensitivity": 0.9762,
+      "specificity": 0.9868,
+      "f1": 0.9812,
       "confusion_matrix": [
         [
-          185,
-          3
+          75,
+          1
         ],
         [
-          13,
-          199
+          2,
+          82
+        ]
+      ]
+    },
+    {
+      "auc": 0.995,
+      "sensitivity": 0.9294,
+      "specificity": 0.9867,
+      "f1": 0.9562,
+      "confusion_matrix": [
+        [
+          74,
+          1
+        ],
+        [
+          6,
+          79
+        ]
+      ]
+    },
+    {
+      "auc": 0.9961,
+      "sensitivity": 0.9647,
+      "specificity": 0.9867,
+      "f1": 0.9749,
+      "confusion_matrix": [
+        [
+          74,
+          1
+        ],
+        [
+          3,
+          82
+        ]
+      ]
+    },
+    {
+      "auc": 0.9917,
+      "sensitivity": 0.9529,
+      "specificity": 0.9467,
+      "f1": 0.9498,
+      "confusion_matrix": [
+        [
+          71,
+          4
+        ],
+        [
+          4,
+          81
+        ]
+      ]
+    },
+    {
+      "auc": 0.9969,
+      "sensitivity": 0.9529,
+      "specificity": 0.9867,
+      "f1": 0.9687,
+      "confusion_matrix": [
+        [
+          74,
+          1
+        ],
+        [
+          4,
+          81
         ]
       ]
     }
   ],
   "mean": {
-    "auc": 0.9943,
-    "sensitivity": 0.9387,
-    "specificity": 0.984,
-    "f1": 0.96
+    "auc": 0.9952,
+    "sensitivity": 0.9552,
+    "specificity": 0.9787,
+    "f1": 0.9662
   },
   "std": {
-    "auc": 0.0,
-    "sensitivity": 0.0,
-    "specificity": 0.0,
-    "f1": 0.0
+    "auc": 0.0019,
+    "sensitivity": 0.0155,
+    "specificity": 0.016,
+    "f1": 0.0116
   }
 }

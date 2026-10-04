@@ -56,11 +56,17 @@ async def predict_fundus_palm(image_bytes: bytes) -> dict:
             confidence = float(data["confidence"])
             if label not in (0, 1) or prediction != {0: "Non-PM", 1: "PM"}[label] or not np.isfinite(confidence) or not 0 <= confidence <= 1:
                 raise ValueError("Invalid model response")
+            explanation = data.get("gradcam")
+            if (not isinstance(explanation, dict) or explanation.get("method") != "Grad-CAM++"
+                    or explanation.get("target_class") != label
+                    or not str(explanation.get("overlay", "")).startswith("data:image/png;base64,")
+                    or not str(explanation.get("model_input", "")).startswith("data:image/png;base64,")):
+                raise ValueError("Validated Grad-CAM++ explanation missing or invalid")
             return {
                 "fundus_pm_prediction": prediction,
                 "fundus_pm_confidence": confidence,
                 "fundus_pm_label": label,
-                "gradcam": data.get("gradcam"),
+                "gradcam": explanation,
             }
     except Exception as e:
         raise HTTPException(status_code=503, detail="Fundus model unavailable or inference failed") from e

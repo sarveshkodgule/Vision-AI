@@ -1,81 +1,87 @@
-"""Grad-CAM on the deployed ONNX feature map with an autograd classifier head.
+"""Service adapter for the validated PALM Grad-CAM++ research engine.
 
-No separately trained weights: both features and head weights come from the
-same ONNX artifact. Verify head logits against ONNX on every explanation.
+Retains the public gradcam field used by the dashboard and reports.
 """
 import base64
-from functools import lru_cache
-import os
+import hashlib
 from pathlib import Path
+from threading import Lock
 
 import cv2
 import numpy as np
-import onnx
-from onnx import helper, numpy_helper, TensorProto
-import onnxruntime as ort
-import torch
+from xai.gradcam import GradCAMPP, load_baseline_model, preprocess_with_crop_coords, overlay_heatmap_on_image
 
-from preprocessing import preprocess_fundus
+CHECKPOINT = Path(__file__).resolve().parents[1] / 'checkpoints' / 'best_overall.pth'
+_cam = None
+_error = 'Grad-CAM++ has not been initialized.'
+_lock = Lock()
+_checkpoint_sha256 = None
 
 
-@lru_cache(maxsize=2)
-def _explainer(path, modified):
-    graph = onnx.load(path)
-    pool = [node for node in graph.graph.node if node.op_type == "GlobalAveragePool"][-1]
-    feature_name = pool.input[0]
-    head = graph.graph.node[-1]
-    if head.op_type != "Gemm":
-        raise RuntimeError("Grad-CAM requires the exported GAP/linear classifier head")
-    weights = {item.name: numpy_helper.to_array(item).copy() for item in graph.graph.initializer}
-    attrs = {attr.name: helper.get_attribute_value(attr) for attr in head.attribute}
-    graph.graph.output.append(helper.make_tensor_value_info(feature_name, TensorProto.FLOAT, [1, 1280, 7, 7]))
-    session = ort.InferenceSession(graph.SerializeToString(), providers=["CPUExecutionProvider"])
-    return session, feature_name, weights[head.input[1]], weights[head.input[2]], attrs
+def initialize():
+    """Load once per worker at application startup."""
+    global _cam, _error, _checkpoint_sha256
+    with _lock:
+        if _cam is not None:
+            return
+        try:
+            if not CHECKPOINT.is_file():
+                raise FileNotFoundError(f'Missing explanation checkpoint: {CHECKPOINT}')
+            _checkpoint_sha256 = hashlib.sha256(CHECKPOINT.read_bytes()).hexdigest()
+            _cam = GradCAMPP(load_baseline_model(str(CHECKPOINT)))
+            _error = None
+        except Exception as exc:
+            _error = f'Grad-CAM++ initialization failed: {exc}'
+            raise
+
+
+def require_ready():
+    if _cam is None:
+        raise FileNotFoundError(_error or 'Grad-CAM++ is unavailable.')
+
+
+def shutdown():
+    global _cam
+    with _lock:
+        if _cam is not None:
+            _cam.remove_hooks()
+            _cam = None
 
 
 def _png_uri(rgb):
-    ok, encoded = cv2.imencode(".png", cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
+    ok, encoded = cv2.imencode('.png', cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR))
     if not ok:
-        raise RuntimeError("Unable to encode explanation image")
-    return "data:image/png;base64," + base64.b64encode(encoded).decode("ascii")
+        raise RuntimeError('Unable to encode explanation image')
+    return 'data:image/png;base64,' + base64.b64encode(encoded).decode('ascii')
 
 
 def explain(image_bytes, target_class=None):
-    path = Path(os.getenv("PALM_ONNX_PATH", Path(__file__).resolve().parents[1] / "checkpoints/palm_efficientnet_b0.onnx")).resolve()
-    session, feature_name, weight, bias, attrs = _explainer(str(path), path.stat().st_mtime_ns)
-    chw = preprocess_fundus(image_bytes)
-    onnx_logits, features = session.run([session.get_outputs()[0].name, feature_name], {session.get_inputs()[0].name: chw[None]})
-    with torch.enable_grad():
-        activation = torch.from_numpy(features).requires_grad_(True)
-        pooled = activation.mean(dim=(2, 3))
-        matrix = torch.from_numpy(weight)
-        if attrs.get("transA", 0):
-            pooled = pooled.T
-        if attrs.get("transB", 0):
-            matrix = matrix.T
-        logits = attrs.get("alpha", 1.0) * (pooled @ matrix) + attrs.get("beta", 1.0) * torch.from_numpy(bias)
-        reconstructed = logits.detach().numpy()
-        if not np.allclose(reconstructed, onnx_logits, rtol=1e-4, atol=1e-5):
-            raise RuntimeError("Grad-CAM head does not match deployed ONNX logits")
-        target = int(onnx_logits.argmax(axis=1)[0]) if target_class is None else int(target_class)
-        if target not in (0, 1):
-            raise ValueError("Target class must be 0 or 1")
-        gradients = torch.autograd.grad(logits[0, target], activation)[0]
-        weights = gradients.mean(dim=(2, 3), keepdim=True)
-        cam = torch.relu((weights * activation).sum(dim=1))[0].detach().numpy()
-    maximum = float(cam.max())
-    cam = cam / maximum if maximum > 0 else np.zeros_like(cam)
-    heat = cv2.resize(cam, (224, 224), interpolation=cv2.INTER_LINEAR)
-    rgb = np.clip((chw.transpose(1, 2, 0) * np.array([.229, .224, .225]) + np.array([.485, .456, .406])) * 255, 0, 255).astype(np.uint8)
-    colors = cv2.cvtColor(cv2.applyColorMap((heat * 255).astype(np.uint8), cv2.COLORMAP_JET), cv2.COLOR_BGR2RGB)
-    alpha = (0.5 * heat)[..., None]
-    overlay = np.clip(rgb * (1 - alpha) + colors * alpha, 0, 255).astype(np.uint8)
+    require_ready()
+    if target_class is not None and target_class not in (0, 1):
+        raise ValueError('Target class must be 0 or 1')
+    tensor, bgr, crop = preprocess_with_crop_coords(image_bytes)
+    # Hooks and gradients are shared; serialize forward/backward passes.
+    with _lock:
+        require_ready()
+        try:
+            heat, predicted, _ = _cam.generate(tensor, target_class=target_class)
+            feature_shape = list(_cam.activations.shape)
+        finally:
+            _cam.model.zero_grad(set_to_none=True)
+            _cam.activations = None
+            _cam.gradients = None
+    if not np.isfinite(heat).all():
+        raise RuntimeError('Grad-CAM++ generated non-finite attribution')
+    target = predicted if target_class is None else target_class
     return {
-        "method": "Grad-CAM", "target_class": target,
-        "target_label": {0: "Non-PM", 1: "PM"}[target],
-        "layer": feature_name, "feature_shape": list(features.shape),
-        "logit_max_error": float(np.abs(reconstructed - onnx_logits).max()),
-        "heatmap": cam.tolist(), "has_positive_attribution": maximum > 0,
-        "overlay": _png_uri(overlay), "model_input": _png_uri(rgb),
-        "note": "Attribution on the cropped model input, not a lesion segmentation or macula detector.",
+        'method': 'Grad-CAM++', 'target_class': target,
+        'target_label': {0: 'Non-PM', 1: 'PM'}[target],
+        'layer': 'features.8', 'feature_shape': feature_shape,
+        'heatmap': heat.tolist(), 'has_positive_attribution': bool(heat.max() > 0),
+        'overlay': _png_uri(overlay_heatmap_on_image(bgr, heat, alpha=0.5)),
+        'model_input': _png_uri(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)),
+        'crop_box': list(crop),
+        'image_sha256': hashlib.sha256(image_bytes).hexdigest(),
+        'checkpoint_sha256': _checkpoint_sha256,
+        'note': 'Grad-CAM++ on the cropped, preprocessed input; not a lesion boundary.',
     }

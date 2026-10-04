@@ -738,12 +738,12 @@ export default function DoctorDashboard() {
                       ) : <p>No progression estimate available.</p>}
                     </div>
                     <div className="bg-white rounded-2xl p-6 border">
-                      <h3 className="font-bold mb-3">Grad-CAM heatmap</h3>
+                      <h3 className="font-bold mb-3">{predictionData?.gradcam?.method || 'Grad-CAM++'} heatmap</h3>
                       {predictionData?.gradcam ? <>
                         <p className="text-xs text-slate-500 mb-3">Evidence for {predictionData.gradcam.target_label} on the cropped model input. This is not a lesion boundary.</p>
                         <div className="grid grid-cols-2 gap-2">
                           <figure><img src={predictionData.gradcam.model_input} alt="Preprocessed model input" /><figcaption className="text-xs">Model input</figcaption></figure>
-                          <figure><img src={predictionData.gradcam.overlay} alt={`Grad-CAM for ${predictionData.gradcam.target_label}`} /><figcaption className="text-xs">Gradient attribution</figcaption></figure>
+                          <figure><img src={predictionData.gradcam.overlay} alt={`${predictionData.gradcam.method} for ${predictionData.gradcam.target_label}`} /><figcaption className="text-xs">{predictionData.gradcam.method} attribution</figcaption></figure>
                         </div>
                         {!predictionData.gradcam.has_positive_attribution && <p className="text-xs mt-2">No positive attribution at this layer.</p>}
                       </> : <p className="text-sm text-slate-500">Upload a fundus image to generate a model explanation.</p>}

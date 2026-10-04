@@ -17,6 +17,9 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from contextlib import asynccontextmanager
+import logging
+from starlette.concurrency import run_in_threadpool
 
 # Ensure ml/ is on the path so predictor.py can import preprocessing.py
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -26,9 +29,27 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-import predictor
+if __package__:
+    from . import predictor, gradcam
+else:
+    import predictor
+    import gradcam
+
+
+@asynccontextmanager
+async def lifespan(app):
+    try:
+        await run_in_threadpool(predictor._get_session)
+        await run_in_threadpool(gradcam.initialize)
+    except Exception:
+        logging.exception('Model initialization failed; readiness and explanation requests will fail.')
+    try:
+        yield
+    finally:
+        gradcam.shutdown()
 
 app = FastAPI(
+    lifespan=lifespan,
     title="PALM Myopia Prediction Service",
     description=(
         "EfficientNet-B0 inference service for binary Pathologic Myopia detection. "
@@ -54,7 +75,8 @@ app.add_middleware(
 async def health():
     """Liveness check — also confirms the ONNX model can be loaded."""
     try:
-        predictor._get_session()   # will raise if model file missing
+        await run_in_threadpool(predictor._get_session)
+        gradcam.require_ready()
         return {"status": "ok", "model": "palm_efficientnet_b0.onnx"}
     except FileNotFoundError as e:
         return JSONResponse(
@@ -91,10 +113,9 @@ async def predict(file: UploadFile = File(...), explain: bool = Form(False)):
         raise HTTPException(status_code=422, detail="Empty file received.")
 
     try:
-        result = predictor.predict(image_bytes)
+        result = await run_in_threadpool(predictor.predict, image_bytes)
         if explain:
-            from gradcam import explain as explain_image
-            result["gradcam"] = explain_image(image_bytes, result["label"])
+            result["gradcam"] = await run_in_threadpool(gradcam.explain, image_bytes, result["label"])
         return {
             "status": "success",
             "data": result,

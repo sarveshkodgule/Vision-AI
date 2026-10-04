@@ -1,6 +1,7 @@
 """Offline regression checks; no database writes or outbound email."""
 import asyncio
 import io
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -168,15 +169,17 @@ class ModelTests(unittest.TestCase):
         from ml.inference_service.main import app as inference_app
         from ml.inference_service.gradcam import explain
         import numpy as np
-        picture = (ROOT / "PALM/PALM/Training/Images/H0001.jpg").read_bytes()
-        normal, pm = explain(picture, 0), explain(picture, 1)
-        self.assertLess(normal["logit_max_error"], 1e-4)
-        self.assertEqual(normal["feature_shape"], [1, 1280, 7, 7])
-        self.assertTrue(normal["overlay"].startswith("data:image/png;base64,"))
-        self.assertFalse(np.allclose(normal["heatmap"], pm["heatmap"]))
-        response = TestClient(inference_app).post('/predict', files={'file': ('image.jpg', picture, 'image/jpeg')}, data={'explain': 'true'})
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["data"]["label"], response.json()["data"]["gradcam"]["target_class"])
+        dataset = Path(os.environ.get('PALM_DATA_ROOT', ROOT / 'backend/DL dataset/PALM/PALM'))
+        picture = (dataset / 'Testing/Images/T0001.jpg').read_bytes()
+        with TestClient(inference_app) as client:
+            normal, pm = explain(picture, 0), explain(picture, 1)
+            self.assertEqual(normal['method'], 'Grad-CAM++')
+            self.assertEqual(normal["feature_shape"], [1, 1280, 7, 7])
+            self.assertTrue(normal["overlay"].startswith("data:image/png;base64,"))
+            self.assertFalse(np.allclose(normal["heatmap"], pm["heatmap"]))
+            response = client.post('/predict', files={'file': ('image.jpg', picture, 'image/jpeg')}, data={'explain': 'true'})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.json()["data"]["label"], response.json()["data"]["gradcam"]["target_class"])
     def test_zero_and_null_clinical_inputs(self):
         self.assertTrue(ai_service._load_doctor_models())
         data = dict(refractive_error=0, reading_hours=0, axial_length=23, age=None, acd=None)
@@ -200,14 +203,14 @@ class ModelTests(unittest.TestCase):
 
     def test_real_onnx_and_invalid_image(self):
         from ml.inference_service.main import app as inference_app
-        client = TestClient(inference_app)
-        self.assertEqual(client.get("/health").status_code, 200)
-        response = client.post("/predict", files={"file": ("image.jpg", image_bytes(), "image/jpeg")})
-        self.assertEqual(response.status_code, 200)
-        data = response.json()["data"]
-        self.assertAlmostEqual(data["prob_pm"] + data["prob_non_pm"], 1, places=3)
-        self.assertIn(data["label"], [0, 1])
-        self.assertEqual(client.post("/predict", files={"file": ("bad.jpg", b"invalid", "image/jpeg")}).status_code, 422)
+        with TestClient(inference_app) as client:
+            self.assertEqual(client.get("/health").status_code, 200)
+            response = client.post("/predict", files={"file": ("image.jpg", image_bytes(), "image/jpeg")})
+            self.assertEqual(response.status_code, 200)
+            data = response.json()["data"]
+            self.assertAlmostEqual(data["prob_pm"] + data["prob_non_pm"], 1, places=3)
+            self.assertIn(data["label"], [0, 1])
+            self.assertEqual(client.post("/predict", files={"file": ("bad.jpg", b"invalid", "image/jpeg")}).status_code, 422)
 
     def test_missing_onnx_is_not_mocked(self):
         from ml.inference_service.main import predictor

@@ -46,7 +46,7 @@ CHECKPOINTS_DIR = Path(__file__).parent / "checkpoints"
 CHECKPOINTS_DIR.mkdir(exist_ok=True)
 
 DEFAULT_DATA_ROOT = str(
-    Path(__file__).resolve().parent.parent / "PALM" / "PALM"
+    Path(__file__).parent.parent / "backend" / "DL dataset" / "PALM" / "PALM"
 )
 
 

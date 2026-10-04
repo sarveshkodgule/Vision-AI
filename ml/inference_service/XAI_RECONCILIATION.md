@@ -53,7 +53,8 @@ ONNX mock predictions is sufficient and remains unchanged. Clinical-only assessm
 still explicitly report `No Image` with null fundus confidence.
 
 MongoDB keeps the existing `gradcam` field. No migration is needed. The dashboard
-keeps the teammate's side-by-side images and displays the method returned by the
+keeps the teammate's side-by-side images, adds a show/hide attention-overlay checkbox,
+and displays the method returned by the
 service, so historical records are not relabeled as Grad-CAM++.
 
 Install `ml/inference_service/requirements.txt` (now also including torchvision) and

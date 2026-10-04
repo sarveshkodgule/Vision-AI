@@ -88,6 +88,7 @@ export default function DoctorDashboard() {
   const [uploadedScan, setUploadedScan] = useState(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState("");
   const [predictionData, setPredictionData] = useState(null);
+  const [showOverlay, setShowOverlay] = useState(true);
   const fileInputRef = useRef(null);
 
   // Live patient list from MongoDB via API
@@ -220,6 +221,7 @@ export default function DoctorDashboard() {
       
       // API returns { status, data: { severity, confidence, ... }, message }
       const result = res?.data?.data || res?.data || {};
+      setShowOverlay(true);
       setPredictionData(result);
       setAssessmentComplete(true);
     } catch(err) {
@@ -741,9 +743,13 @@ export default function DoctorDashboard() {
                       <h3 className="font-bold mb-3">{predictionData?.gradcam?.method || 'Grad-CAM++'} heatmap</h3>
                       {predictionData?.gradcam ? <>
                         <p className="text-xs text-slate-500 mb-3">Evidence for {predictionData.gradcam.target_label} on the cropped model input. This is not a lesion boundary.</p>
+                        <label className="flex items-center gap-2 text-sm text-slate-600 mb-3">
+                          <input type="checkbox" checked={showOverlay} onChange={event => setShowOverlay(event.target.checked)} className="accent-blue-600" />
+                          Show attention overlay
+                        </label>
                         <div className="grid grid-cols-2 gap-2">
                           <figure><img src={predictionData.gradcam.model_input} alt="Preprocessed model input" /><figcaption className="text-xs">Model input</figcaption></figure>
-                          <figure><img src={predictionData.gradcam.overlay} alt={`${predictionData.gradcam.method} for ${predictionData.gradcam.target_label}`} /><figcaption className="text-xs">{predictionData.gradcam.method} attribution</figcaption></figure>
+                          <figure><img src={showOverlay ? predictionData.gradcam.overlay : predictionData.gradcam.model_input} alt={showOverlay ? `${predictionData.gradcam.method} for ${predictionData.gradcam.target_label}` : 'Model input with attention overlay hidden'} /><figcaption className="text-xs">{showOverlay ? `${predictionData.gradcam.method} attribution` : 'Overlay hidden'}</figcaption></figure>
                         </div>
                         {!predictionData.gradcam.has_positive_attribution && <p className="text-xs mt-2">No positive attribution at this layer.</p>}
                       </> : <p className="text-sm text-slate-500">Upload a fundus image to generate a model explanation.</p>}

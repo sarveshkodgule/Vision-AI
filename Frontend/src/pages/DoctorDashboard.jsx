@@ -7,6 +7,8 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement, Filler
 } from 'chart.js';
 import { api, API_BASE_URL } from '../lib/api';
+import HospitalBrand from '../components/HospitalBrand';
+import { hospital } from '../lib/hospital';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement, Filler);
 
@@ -14,6 +16,7 @@ export default function DoctorDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('patients');
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [patientSearch, setPatientSearch] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [assessmentComplete, setAssessmentComplete] = useState(false);
 
@@ -235,7 +238,7 @@ export default function DoctorDashboard() {
   const measuredPatients = patients.filter(p => Number.isFinite(p.probability));
   const trendData = {
     labels: measuredPatients.map((_, i) => `Screening ${i + 1}`),
-    datasets: [{ label: 'Model myopia probability (%)', data: measuredPatients.map(p => p.probability * 100), borderColor: '#3B82F6' }]
+    datasets: [{ label: 'Model myopia probability (%)', data: measuredPatients.map(p => p.probability * 100), borderColor: '#254e7a' }]
   };
   const distributionData = {
     labels: ['Low', 'Medium', 'High'],
@@ -255,7 +258,7 @@ export default function DoctorDashboard() {
               <div>
                 <h3 className="text-2xl font-black text-slate-800">{profile.name.startsWith('Dr.') ? profile.name : `Dr. ${profile.name}`}</h3>
                 <p className="text-blue-600 font-semibold mb-1 capitalize">{profile.role} Account</p>
-                <p className="text-slate-500 text-sm">Vision Care Central Hospital</p>
+                <p className="text-slate-500 text-sm">{hospital.name}</p>
               </div>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
@@ -373,7 +376,7 @@ export default function DoctorDashboard() {
               <h3 className="text-base font-bold text-slate-800 mb-1">Weekly Trend</h3>
               <p className="text-xs text-slate-400 mb-4">Total screenings this week vs previous days</p>
               <div className="h-[220px]">
-                <Line data={{ labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], datasets: [{ label: 'Screenings', data: [screeningStats?.week?.total||0, 0, 0, 0, 0, 0, 0], borderColor: '#3B82F6', backgroundColor: 'rgba(59,130,246,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#3B82F6' }] }}
+                <Line data={{ labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], datasets: [{ label: 'Screenings', data: [screeningStats?.week?.total||0, 0, 0, 0, 0, 0, 0], borderColor: '#254e7a', backgroundColor: 'rgba(37,78,122,0.1)', fill: true, tension: 0.4, pointBackgroundColor: '#254e7a' }] }}
                   options={{ maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, ticks: { stepSize: 1 }, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }} />
               </div>
             </div>
@@ -809,12 +812,12 @@ export default function DoctorDashboard() {
       <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {patientsLoading && <p role="status" className="p-3 text-sm text-slate-500">Loading records...</p>}
         <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-          <div className="relative w-80">
+          <div className="relative w-full max-w-sm">
             <Search className="w-5 h-5 absolute left-3.5 top-2.5 text-slate-400" />
-            <input type="text" placeholder="Search ID or Patient Name" className="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-sm font-medium" />
+            <input type="search" aria-label="Search patients" value={patientSearch} onChange={event => setPatientSearch(event.target.value)} placeholder="Search ID or patient name" className="w-full bg-white border border-slate-200 rounded-xl pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all shadow-sm font-medium" />
           </div>
         </div>
-        <table className="w-full text-sm text-left">
+        <div className="patient-table-scroll"><table className="w-full text-sm text-left">
           <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
             <tr>
               <th className="px-6 py-5 font-bold tracking-wider">Patient Details</th>
@@ -825,7 +828,8 @@ export default function DoctorDashboard() {
             </tr>
           </thead>
           <tbody>
-            {patients.map(p => (
+            {!patientsLoading && !patients.some(p => `${p.name} ${p.id}`.toLowerCase().includes(patientSearch.trim().toLowerCase())) && <tr><td colSpan={5}><div className="registry-empty"><Users size={35} strokeWidth={1.3}/><h3>{patients.length ? 'No matching patients' : 'Your patient registry starts here'}</h3><p>{patients.length ? 'Try another name or screening ID.' : 'Patients assigned to you will appear here after their screening.'}</p>{patientSearch && <button onClick={() => setPatientSearch('')}>Clear search</button>}</div></td></tr>}
+            {patients.filter(p => `${p.name} ${p.id}`.toLowerCase().includes(patientSearch.trim().toLowerCase())).map(p => (
               <tr
                 key={p.id}
                 onClick={() => setSelectedPatient(p)}
@@ -852,17 +856,16 @@ export default function DoctorDashboard() {
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </Motion.div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
+    <div className="care-workspace min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
       <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-20 sticky top-0 md:h-screen transition-all">
-        <div className="p-6 border-b border-slate-100 flex items-center space-x-2">
-          <Eye className="w-8 h-8 text-blue-600" />
-          <span className="font-black text-xl tracking-tight text-slate-800">Vision AI</span>
+        <div className="p-4 border-b border-slate-100 flex items-center space-x-2">
+          <HospitalBrand compact />
         </div>
         <div className="flex-1 py-6 px-4 space-y-2">
           <button onClick={() => { setActiveTab('patients'); setSelectedPatient(null); }} className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'patients' ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'text-slate-500 hover:bg-slate-50 hover:text-blue-600'}`}>
@@ -882,25 +885,24 @@ export default function DoctorDashboard() {
           </button>
         </div>
         <div className="p-4 border-t border-slate-100">
-          <button onClick={handleSignOut} className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors">
+          <button aria-label="Sign out" onClick={handleSignOut} className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-sm font-bold text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors">
             <LogOut className="w-5 h-5" /> <span>Sign Out</span>
           </button>
         </div>
       </aside>
       <main className="flex-1 flex flex-col min-h-screen">
-        <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex items-center justify-between px-8 sticky top-0 z-10 shadow-sm">
+        <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 min-h-16 flex items-center justify-between gap-3 px-4 md:px-8 py-3 sticky top-0 z-10 shadow-sm">
           <h1 className="font-extrabold text-slate-800 capitalize tracking-tight text-lg">{activeTab === 'patients' ? 'Patient Management' : activeTab === 'screening-reports' ? 'Screening Reports' : activeTab === 'analytics' ? 'Clinic Analytics' : activeTab === 'reports' ? 'Reports' : 'Profile Settings'}</h1>
           <div className="flex items-center space-x-5">
-            <button className="text-slate-400 hover:text-blue-600 transition-colors relative">
+            <button aria-label="View screening reports" onClick={() => { setActiveTab('screening-reports'); setSelectedPatient(null); }} className="text-slate-400 hover:text-blue-600 transition-colors relative">
               <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
             </button>
             <button onClick={() => { setActiveTab('profile'); setSelectedPatient(null); }} className={`w-10 h-10 rounded-full bg-gradient-to-tr from-blue-50 to-indigo-50 flex items-center justify-center text-blue-700 font-bold border cursor-pointer transition-all ${activeTab === 'profile' ? 'border-blue-500 ring-2 ring-blue-200' : 'border-blue-100 shadow-sm hover:shadow-md'}`}>
               Dr.
             </button>
           </div>
         </header>
-        <div className="flex-1 p-8 overflow-y-auto">
+        <div className="flex-1 p-4 md:p-8 overflow-y-auto">
           <div className="max-w-6xl mx-auto">
             <AnimatePresence mode="wait">
               {renderContent()}

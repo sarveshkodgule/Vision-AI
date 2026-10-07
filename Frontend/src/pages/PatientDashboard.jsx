@@ -8,6 +8,7 @@ import {
 } from 'chart.js';
 import { api, API_BASE_URL } from '../lib/api';
 import PatientReportDelivery from '../components/PatientReportDelivery';
+import HospitalBrand from '../components/HospitalBrand';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -216,8 +217,8 @@ export default function PatientDashboard() {
     datasets: [{
       label: 'Risk Score History',
       data: result?.trendData || [],
-      borderColor: '#3B82F6',
-      backgroundColor: 'rgba(59, 130, 246, 0.15)',
+      borderColor: '#254e7a',
+      backgroundColor: 'rgba(37, 78, 122, 0.15)',
       fill: true,
       tension: 0.4,
     }]
@@ -247,12 +248,12 @@ export default function PatientDashboard() {
       {
         label: 'Axial Length (AL - mm)',
         data: alData.length > 0 ? alData : [24],
-        borderColor: '#3B82F6',
-        backgroundColor: 'rgba(59, 130, 246, 0.05)',
+        borderColor: '#254e7a',
+        backgroundColor: 'rgba(37, 78, 122, 0.05)',
         yAxisID: 'yAl',
         tension: 0.3,
         borderWidth: 3,
-        pointBackgroundColor: '#3B82F6',
+        pointBackgroundColor: '#254e7a',
       }
     ]
   };
@@ -276,7 +277,7 @@ export default function PatientDashboard() {
       yAl: {
         type: 'linear',
         position: 'right',
-        title: { display: true, text: 'Axial Length (mm)', color: '#3B82F6', font: { weight: 'bold' } },
+        title: { display: true, text: 'Axial Length (mm)', color: '#254e7a', font: { weight: 'bold' } },
         grid: { drawOnChartArea: false },
       }
     }
@@ -307,18 +308,15 @@ export default function PatientDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50/50 to-slate-100 flex flex-col relative pb-20">
+    <div className="care-workspace min-h-screen bg-gradient-to-br from-blue-50/50 to-slate-100 flex flex-col relative pb-20">
       {historyLoading && <p role="status" className="p-3 text-sm text-slate-500">Loading records...</p>}
-      <nav className="bg-white/80 backdrop-blur-md border-b px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+      <nav className="patient-hospital-nav bg-white/95 backdrop-blur-md border-b px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm" aria-label="Patient portal navigation">
         <div className="flex items-center space-x-4">
-          <Link to="/" className="text-slate-500 hover:text-blue-600 transition-colors">
-            <ArrowLeft className="w-5 h-5" />
-          </Link>
-          <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-teal-500">
-            Patient Portal
-          </h1>
+          <HospitalBrand compact />
+          <h1 className="hidden lg:block text-sm font-semibold text-slate-500 border-l pl-4">Patient portal</h1>
+          <button className="mobile-portal-help" aria-label="Open patient assistant" onClick={() => setIsChatOpen(!isChatOpen)}><MessageSquare size={20}/></button>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="patient-tabs flex items-center space-x-4">
           <button 
             onClick={() => { setActiveTab('assessment'); setResult(null); }} 
             className={`text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${activeTab === 'assessment' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:text-slate-800'}`}
@@ -335,11 +333,12 @@ export default function PatientDashboard() {
             onClick={() => setActiveTab('simulator')} 
             className={`text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${activeTab === 'simulator' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:text-slate-800'}`}
           >
-            📊 Risk Simulator
+            Risk Simulator
           </button>
           <button 
+            aria-label="Patient profile"
             onClick={() => setActiveTab('profile')} 
-            className={`w-9 h-9 bg-gradient-to-tr from-blue-500 to-teal-400 rounded-full flex items-center justify-center text-white font-bold cursor-pointer transition-all ${activeTab === 'profile' ? 'ring-2 ring-blue-600 ring-offset-2' : 'shadow-md hover:shadow-lg'}`}
+            className={`w-9 h-9 bg-gradient-to-tr from-blue-500 to-blue-400 rounded-full flex items-center justify-center text-white font-bold cursor-pointer transition-all ${activeTab === 'profile' ? 'ring-2 ring-blue-600 ring-offset-2' : 'shadow-md hover:shadow-lg'}`}
           >
             {profile.name.charAt(0).toUpperCase()}
           </button>
@@ -352,12 +351,12 @@ export default function PatientDashboard() {
             <h2 className="text-2xl font-bold text-slate-800 mb-6">Patient Profile</h2>
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
               <div className="flex items-center space-x-6 mb-8 pb-8 border-b border-slate-100">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-100 to-teal-100 flex items-center justify-center text-blue-700 font-bold text-3xl border border-blue-200 uppercase">
+                <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 flex items-center justify-center text-blue-700 font-bold text-3xl border border-blue-200 uppercase">
                   {profile.name.charAt(0)}
                 </div>
                 <div>
                   <h3 className="text-2xl font-black text-slate-800">{profile.name}</h3>
-                  <p className="text-teal-600 font-semibold mb-1 capitalize">{profile.role} User</p>
+                  <p className="text-blue-600 font-semibold mb-1 capitalize">{profile.role} User</p>
                   <p className="text-slate-500 text-sm">Last Assessment: {result ? "Today" : "None"}</p>
                 </div>
               </div>
@@ -560,12 +559,12 @@ export default function PatientDashboard() {
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Outdoor Activity</span>
-                    <span className="text-sm font-black text-teal-600">{simOutdoor} hrs/day</span>
+                    <span className="text-sm font-black text-blue-600">{simOutdoor} hrs/day</span>
                   </div>
                   <input 
                     type="range" min="0" max="6" step="0.5"
                     value={simOutdoor} onChange={e => setSimOutdoor(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-teal-600"
+                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
                     <span>0 hrs (None)</span>
@@ -681,14 +680,15 @@ export default function PatientDashboard() {
               className="max-w-xl mx-auto"
             >
               <div className="text-center mb-8">
-                <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Diagnostic Help Tool</h2>
-                <p className="text-slate-500 mt-2">Enter your lifestyle factors for a localized diagnostic evaluation.</p>
+                <p className="screening-kicker">SHRI SARVESHWAR NETRALAYA · PATIENT CARE</p>
+                <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Your eye-health screening</h2>
+                <p className="text-slate-500 mt-2">Understand your screening risk and prepare for your eye examination.</p>
               </div>
-
+              <ol className="screening-progress" aria-label="Screening progress"><li className={formStep === 1 ? 'current-step' : 'completed-step'} aria-current={formStep === 1 ? 'step' : undefined}><span>{formStep > 1 ? '✓' : '1'}</span>Your details</li><li className={formStep === 2 ? 'current-step' : ''} aria-current={formStep === 2 ? 'step' : undefined}><span>2</span>Daily routine</li><li><span>3</span>Your report</li></ol>
               <div className="bg-white rounded-2xl shadow-xl shadow-blue-900/5 border border-slate-100 overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6 text-white flex justify-between items-center">
                   <h3 className="text-lg font-semibold flex items-center">
-                    <Activity className="w-5 h-5 mr-2 opacity-80" /> {formStep === 1 ? 'Basic Personal Identity' : 'Lifestyle & Genetic Parameters'}
+                    <Activity className="w-5 h-5 mr-2 opacity-80" /> {formStep === 1 ? 'Let’s get to know you' : 'Tell us about your routine'}
                   </h3>
                   <span className="text-sm font-bold bg-white/20 px-3 py-1 rounded-full">Step {formStep} of 2</span>
                 </div>
@@ -702,7 +702,7 @@ export default function PatientDashboard() {
                             type="text" required
                             className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
                             value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
-                            placeholder="John Doe"
+                            placeholder="Enter your full name"
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-5">
@@ -729,7 +729,7 @@ export default function PatientDashboard() {
                         </div>
                         <div>
                           <label className="block text-sm font-semibold text-slate-700 mb-1.5">
-                            🩺 Assign to Doctor <span className="text-slate-400 font-normal text-xs">(required)</span>
+                            Your doctor <span className="text-slate-400 font-normal text-xs">(required)</span>
                           </label>
                           <select
                             required
@@ -746,7 +746,7 @@ export default function PatientDashboard() {
                             <p className="text-xs text-amber-500 mt-1 font-medium">⚠ No doctors registered yet. Ask your clinic to create a doctor account first.</p>
                           )}
                         </div>
-                        <button type="submit" className="w-full rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-6 transition-all shadow-lg hover:shadow-blue-500/30">Next Step: Parameters</button>
+                        <button type="submit" className="w-full rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-6 transition-all shadow-lg hover:shadow-blue-500/30">Continue to daily routine</button>
                       </Motion.div>
                     ) : (
                       <Motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
@@ -924,14 +924,14 @@ export default function PatientDashboard() {
       </main>
 
       {/* Chatbot Floating UI */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="patient-chat-widget fixed bottom-6 right-6 z-50">
         <AnimatePresence>
           {isChatOpen && (
             <Motion.div
               initial={{ opacity: 0, y: 20, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.95 }}
-              className="absolute bottom-16 right-0 w-[350px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[450px]"
+              className="patient-chat-panel absolute bottom-16 right-0 w-[350px] bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col h-[450px]"
             >
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white flex justify-between items-center">
                 <div className="flex items-center space-x-2">
@@ -961,6 +961,7 @@ export default function PatientDashboard() {
           )}
         </AnimatePresence>
         <Motion.button
+          aria-label={isChatOpen ? 'Close patient assistant' : 'Open patient assistant'}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsChatOpen(!isChatOpen)}

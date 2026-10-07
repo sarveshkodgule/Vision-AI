@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, ArrowLeft } from 'lucide-react';
 import { motion as Motion } from 'framer-motion';
 import { api } from '../lib/api';
+import HospitalBrand from '../components/HospitalBrand';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -57,47 +58,42 @@ export default function Login() {
       </button>
 
       {/* Left Panel: High Fidelity Graphic & Insights Panel (Hidden on Mobile) */}
-      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-tr from-slate-900 via-indigo-950 to-blue-900 relative p-12 flex-col justify-between overflow-hidden">
+      <div className="hospital-login-panel hidden lg:flex lg:w-[45%] bg-gradient-to-tr from-slate-900 via-indigo-950 to-blue-900 relative p-12 pt-24 flex-col justify-between overflow-hidden">
         {/* Glowing Background Radial Blur */}
         <div className="absolute top-[-10%] right-[-10%] w-[350px] h-[350px] rounded-full bg-blue-500/20 blur-[80px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-teal-500/20 blur-[80px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-indigo-500/20 blur-[80px]" />
         
         {/* Brand Header */}
-        <Link to="/" className="flex items-center space-x-2 text-white relative z-10">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center shadow-md shadow-blue-500/30">
-            <Eye className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-extrabold text-xl tracking-tight">Vision AI</span>
-        </Link>
+        <div className="relative z-10"><HospitalBrand light /></div>
 
         {/* Feature Highlights */}
         <div className="relative z-10 max-w-md my-auto text-left">
           <h2 className="text-3xl font-black text-white leading-tight mb-4">
-            Securing Diagnostics for Better Patient Outcomes
+            Your eye care. Your reports. All in one place.
           </h2>
           <p className="text-slate-300 text-sm leading-relaxed mb-8">
-            Access your secure portal to manage diagnostics, view live clinical analytics, and analyze retinal scans with explainable AI markers.
+            Welcome to the Shri Sarveshwar Netralaya care portal. Sign in to continue your screening, view reports, or access your clinical workspace.
           </p>
 
           <div className="space-y-4">
             <div className="flex items-start space-x-3">
               <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs mt-0.5">✓</div>
-              <p className="text-slate-300 text-xs font-semibold leading-relaxed">Production-ready EfficientNet-B0 deep learning evaluation.</p>
+              <p className="text-slate-300 text-xs font-semibold leading-relaxed">Understand your screening with clear explanations.</p>
             </div>
             <div className="flex items-start space-x-3">
               <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs mt-0.5">✓</div>
-              <p className="text-slate-300 text-xs font-semibold leading-relaxed">Interactive clinical progression curves and lifestyle simulators.</p>
+              <p className="text-slate-300 text-xs font-semibold leading-relaxed">Keep your screening history and PDF reports together.</p>
             </div>
             <div className="flex items-start space-x-3">
               <div className="w-5 h-5 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs mt-0.5">✓</div>
-              <p className="text-slate-300 text-xs font-semibold leading-relaxed">Full patient registry and medical data management.</p>
+              <p className="text-slate-300 text-xs font-semibold leading-relaxed">Prepare for a more informed conversation with your doctor.</p>
             </div>
           </div>
         </div>
 
         {/* Footer Warning */}
         <p className="text-[10px] text-slate-400 relative z-10 tracking-wider">
-          VisionCare Diagnostic System &copy; {new Date().getFullYear()}
+          Shri Sarveshwar Netralaya · Vision AI &copy; {new Date().getFullYear()}
         </p>
       </div>
 
@@ -110,10 +106,7 @@ export default function Login() {
           className="max-w-md w-full"
         >
           {/* Logo showing only on mobile */}
-          <Link to="/" className="flex lg:hidden items-center justify-center mb-8 space-x-2 text-slate-800">
-            <Eye className="w-7 h-7 text-blue-600" />
-            <span className="font-extrabold text-2xl tracking-tight">Vision AI</span>
-          </Link>
+          <div className="auth-hospital-brand mobile-brand"><HospitalBrand /></div>
 
           <div className="bg-white p-8 sm:p-10 rounded-3xl shadow-xl shadow-slate-900/5 border border-slate-100/50 text-left">
             <h3 className="text-2xl font-black text-slate-800 mb-1">Welcome Back</h3>

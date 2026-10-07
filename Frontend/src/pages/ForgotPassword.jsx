@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, ShieldCheck, Lock, Key, Eye, EyeOff } from 'lucide-react';
 import { motion as Motion } from 'framer-motion';
 import { api } from '../lib/api';
+import HospitalBrand from '../components/HospitalBrand';
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -71,6 +72,7 @@ export default function ForgotPassword() {
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </button>
 
+        <div className="auth-hospital-brand"><HospitalBrand /></div>
         <div className="bg-white p-8 rounded-3xl shadow-xl shadow-blue-900/5 border border-slate-100">
           <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-blue-600">
             <ShieldCheck className="w-8 h-8" />

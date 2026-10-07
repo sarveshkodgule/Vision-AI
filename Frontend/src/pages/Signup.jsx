@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Key } from 'lucide-react';
 import { motion as Motion } from 'framer-motion';
 import { api } from '../lib/api';
+import HospitalBrand from '../components/HospitalBrand';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -81,13 +82,10 @@ export default function Signup() {
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </button>
 
-        <Link to="/" className="flex items-center justify-center mb-8 space-x-2 text-slate-800 hover:text-blue-600 transition-colors">
-          <Eye className="w-8 h-8 text-blue-600" />
-          <span className="font-extrabold text-3xl tracking-tight">Vision AI</span>
-        </Link>
+        <div className="auth-hospital-brand"><HospitalBrand /></div>
         <div className="bg-white p-8 rounded-3xl shadow-xl shadow-blue-900/5 border border-slate-100">
           <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">Create an account</h2>
-          <p className="text-slate-500 text-center mb-6 text-sm">Join Vision AI diagnostics</p>
+          <p className="text-slate-500 text-center mb-6 text-sm">Your Shri Sarveshwar Netralaya care portal</p>
 
           {error && <div className="p-3 mb-6 bg-red-50 text-red-600 rounded-lg text-sm text-center font-semibold">{error}</div>}
           {success && <div className="p-3 mb-6 bg-green-50 text-green-600 rounded-lg text-sm text-center font-semibold">{success}</div>}

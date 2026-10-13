@@ -45,39 +45,18 @@ import time
 from collections import defaultdict
 
 FAILED_LOGIN_ATTEMPTS = defaultdict(list)
-MAX_FAILED_ATTEMPTS = 5
-LOCKOUT_WINDOW_SECONDS = 900  # 15 minutes
 
 async def authenticate_user(email: str, password: str):
     clean_email = email.strip()
-    email_key = clean_email.lower()
-    now = time.time()
     
-    # Filter attempts within lockout window
-    FAILED_LOGIN_ATTEMPTS[email_key] = [
-        t for t in FAILED_LOGIN_ATTEMPTS[email_key] if now - t < LOCKOUT_WINDOW_SECONDS
-    ]
-    
-    if len(FAILED_LOGIN_ATTEMPTS[email_key]) >= MAX_FAILED_ATTEMPTS:
-        raise HTTPException(
-            status_code=429,
-            detail="Too many failed login attempts. For patient data protection, this account is temporarily locked for 15 minutes. Try again later or reset your password."
-        )
-
     db_user = await users_collection.find_one({
         "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}
     })
     if not db_user or not db_user.get("password") or not verify_password(password, db_user["password"]):
-        FAILED_LOGIN_ATTEMPTS[email_key].append(now)
-        remaining = MAX_FAILED_ATTEMPTS - len(FAILED_LOGIN_ATTEMPTS[email_key])
-        detail = "Incorrect email or password."
-        if remaining > 0:
-            detail += f" {remaining} attempt{'s' if remaining != 1 else ''} remaining before temporary lockout."
-        raise HTTPException(status_code=400, detail=detail)
+        raise HTTPException(status_code=400, detail="Incorrect email or password. Please try again.")
     
-    # Reset failed attempts upon successful login
-    if email_key in FAILED_LOGIN_ATTEMPTS:
-        del FAILED_LOGIN_ATTEMPTS[email_key]
+    if clean_email.lower() in FAILED_LOGIN_ATTEMPTS:
+        del FAILED_LOGIN_ATTEMPTS[clean_email.lower()]
 
     user_role = (db_user.get("role") or "patient").lower()
     access_token = create_access_token(subject=str(db_user["_id"]), role=user_role)
@@ -126,11 +105,13 @@ async def reset_password(email: str, new_password: str, otp_code: str = None):
         raise HTTPException(status_code=400, detail="Verification code required")
     await verify_otp_code(clean_email, otp_code)
         
-    hashed_password = get_password_hash(new_password)
+    hashed_password = get_password_hash(new_password.strip())
     await users_collection.update_one(
         {"_id": db_user["_id"]},
         {"$set": {"password": hashed_password}}
     )
+    if clean_email.lower() in FAILED_LOGIN_ATTEMPTS:
+        del FAILED_LOGIN_ATTEMPTS[clean_email.lower()]
     return True
 
 async def generate_and_save_otp(email: str, is_signup: bool = False) -> str:

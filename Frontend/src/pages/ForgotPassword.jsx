@@ -22,14 +22,14 @@ export default function ForgotPassword() {
     setLoading(true);
 
     try {
-      const res = await api.post('/auth/request-otp', { email, is_signup: false });
+      const res = await api.post('/auth/request-otp', { email: email.trim(), is_signup: false });
       if (res && res.status === 'success') {
         setStep(2);
       } else {
         setError(res.detail || res.message || "Failed to generate verification code.");
       }
     } catch (err) {
-      setError(err.response?.data?.detail || "Network error. Ensure backend is running.");
+      setError(err.message || "Network error. Ensure backend is running.");
     } finally {
       setLoading(false);
     }
@@ -38,13 +38,17 @@ export default function ForgotPassword() {
   const handleResetPassword = async (e) => {
     e.preventDefault();
     setError('');
+    if (password.trim().length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
     setLoading(true);
 
     try {
       const res = await api.post('/auth/reset-password', {
-        email,
-        new_password: password,
-        otp_code: otpCode
+        email: email.trim(),
+        new_password: password.trim(),
+        otp_code: otpCode.trim()
       });
       if (res && res.status === 'success') {
         setIsSubmitted(true);
@@ -52,7 +56,7 @@ export default function ForgotPassword() {
         setError(res.detail || res.message || "Failed to reset password.");
       }
     } catch (err) {
-      setError(err.response?.data?.detail || "Invalid or expired verification code.");
+      setError(err.message || "Invalid or expired verification code.");
     } finally {
       setLoading(false);
     }
@@ -141,7 +145,8 @@ export default function ForgotPassword() {
                            value={password}
                            onChange={(e) => setPassword(e.target.value)}
                            className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-12 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
-                           placeholder="••••••••" 
+                           placeholder="At least 6 characters"
+                           minLength={6}
                            required
                          />
                          <button

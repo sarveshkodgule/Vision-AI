@@ -9,7 +9,7 @@ class GoogleLogin(BaseModel):
 class UserCreate(BaseModel):
     name: str = Field(min_length=2, max_length=100)
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=6, max_length=128)
     role: Literal["patient", "doctor"] = "patient"
     doctor_passcode: Optional[str] = Field(default=None, max_length=256)
     otp_code: str = Field(pattern=r"^\d{6}$")
@@ -24,7 +24,7 @@ class UserLogin(BaseModel):
 
 class PasswordReset(BaseModel):
     email: EmailStr
-    new_password: str = Field(min_length=8, max_length=128)
+    new_password: str = Field(min_length=6, max_length=128)
     otp_code: str = Field(pattern=r"^\d{6}$")
 
 class OTPRequest(BaseModel):

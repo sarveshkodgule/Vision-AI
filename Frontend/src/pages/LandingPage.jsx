@@ -14,7 +14,7 @@ export default function LandingPage() {
         <h1>For every view<br/>that <em>matters.</em></h1>
         <p className="hero-description">Your child’s first book. A familiar face. The road ahead.<br className="desktop-break"/> Take the next step in caring for your vision with<br className="desktop-break"/> Shri Sarveshwar Netralaya.</p>
         <div className="button-row"><a className="hospital-button" href={hospital.phoneHref}>Call for an appointment <ArrowUpRight size={19}/></a><Link className="hospital-button button-outline" to="/login">Start eye screening <ArrowRight size={18}/></Link></div>
-        <div className="hero-doctor"><img src={hospital.doctor.photo} alt={hospital.doctor.name} className="hero-doctor-avatar" /><div><strong>{hospital.doctor.name}</strong><span>{hospital.doctor.shortQualifications} · Meet your doctor</span></div><Link to="/about#doctor" aria-label={`Read about ${hospital.doctor.name}`}><ArrowUpRight size={23}/></Link></div>
+        <div className="hero-doctor"><span className="doctor-initials small">HA</span><div><strong>{hospital.doctor.name}</strong><span>{hospital.doctor.shortQualifications} · Meet your doctor</span></div><Link to="/about#doctor" aria-label={`Read about ${hospital.doctor.name}`}><ArrowUpRight size={23}/></Link></div>
       </div>
       <div className="hero-art" aria-label="Shri Sarveshwar Netralaya eye emblem and decorative vision chart">
         <div className="art-caption"><span>श्री सर्वेश्वर नेत्रालय</span><span>CARE FOR YOUR VISION</span></div>

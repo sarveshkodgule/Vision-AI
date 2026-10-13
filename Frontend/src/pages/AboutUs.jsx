@@ -17,7 +17,7 @@ export default function AboutUs() {
       <div className="section-heading"><div><p className="eyebrow">MEET YOUR DOCTOR · KNOW YOUR DOCTOR</p><h2>The person behind your care.</h2></div></div>
       <article className="doctor-profile">
         <div className="doctor-profile-art">
-          <img src={hospital.doctor.photo} alt={hospital.doctor.name} className="doctor-portrait-photo" />
+          <span className="doctor-initials">HA</span>
           <p>OPHTHALMOLOGY & STRABISMUS</p>
           <span className="doctor-art-line"/>
         </div>
@@ -51,7 +51,6 @@ export default function AboutUs() {
             <a className="hospital-button button-outline" href={hospital.landlineHref}>Clinic Phone: {hospital.landline} <Phone size={17}/></a>
           </div>
           <div style={{ marginTop: '16px', display: 'flex', gap: '18px', flexWrap: 'wrap' }}>
-            <a className="source-link" href={hospital.doctor.framedCredential} target="_blank" rel="noreferrer">View Clinic Credential Certificate ↗</a>
             <a className="source-link" href={hospital.sources.qualifications} target="_blank" rel="noreferrer">Qualification reference · Maharashtra Medical Council ↗</a>
           </div>
         </div>

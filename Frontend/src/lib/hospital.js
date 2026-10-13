@@ -23,8 +23,6 @@ export const hospital = {
     specialization: 'Ophthalmology',
     superSpecialization: 'Paediatric Ophthalmology & Strabismus (Child eye care and cross eyes)',
     marathiSpecialization: 'बाल नेत्ररोग व तिरळेपणा तज्ञ',
-    photo: '/hospital/dr-hemant-anaspure.jpg',
-    framedCredential: '/hospital/doctor-framed.jpg',
     education: [
       { degree: 'MS (Ophthalmology)', institution: 'Seth GS Medical College & KEM Hospital, Mumbai (University of Mumbai, 2008)' },
       { degree: 'FPOS (Fellowship)', institution: 'Narayana Nethralaya, Bangalore (Paediatric Ophthalmology & Strabismus)' },

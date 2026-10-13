@@ -78,6 +78,7 @@ export default function PasswordSignIn() {
       </button>
     </div>
 
+    {role === 'doctor' && <p className="doctor-signin-note">Use your registered doctor email and your own password. The hospital registration code is only for creating a staff account. You can also continue with Google below using the same registered email.</p>}
     <label htmlFor="login-email">{role === 'doctor' ? 'Doctor email address' : 'Patient email address'}</label>
     <input id="login-email" type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} placeholder={role === 'doctor' ? 'doctor@example.com' : 'patient@example.com'} />
     <div className="password-label"><label htmlFor="login-password">Password</label><Link to="/forgot-password">Forgot password?</Link></div>

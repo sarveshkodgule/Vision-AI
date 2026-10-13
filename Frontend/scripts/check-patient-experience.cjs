@@ -115,11 +115,21 @@ function samplePdf() {
   await page.reload();
   await page.getByRole('heading', { name: 'भेटीपूर्वी थोडे मार्गदर्शन.', exact: true }).waitFor();
   await page.setViewportSize({ width: 320, height: 900 });
+  await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth);
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'Marathi visit overflow');
   await page.goto(base + '/about');
-  await page.locator('.hospital-gallery').scrollIntoViewIfNeeded();
-  await page.waitForFunction(() => [...document.querySelectorAll('.hospital-gallery img')].every(img => img.complete && img.naturalWidth > 0));
-  assert.equal(await page.locator('.hospital-gallery img').count(), 2);
+  await page.locator('.about-intro, .page-intro').first().waitFor();
+  const { hospitalPhotos } = await import('../src/lib/hospitalPhotos.js');
+  const photoCount = hospitalPhotos.length;
+  if (photoCount) {
+    await page.locator('.hospital-gallery').scrollIntoViewIfNeeded();
+    await page.waitForFunction(() => [...document.querySelectorAll('.hospital-gallery img')].every(img => img.complete && img.naturalWidth > 0));
+    assert.equal(await page.locator('.hospital-gallery img').count(), photoCount);
+  } else {
+    // Hospital-approved images will be supplied later; no empty gallery should show.
+    await page.locator('.hospital-gallery').waitFor({ state: 'detached' });
+    console.log('Hospital gallery not populated: verified the empty section stays hidden.');
+  }
   await page.evaluate(() => { localStorage.removeItem('token'); localStorage.removeItem('role'); });
   configFails = true;
   let passwordFails = true;
@@ -131,16 +141,16 @@ function samplePdf() {
   });
   await page.goto(base + '/login');
   await page.getByText('Google sign-in is not configured yet.', { exact: true }).waitFor();
-  await page.getByLabel('Email address', { exact: true }).fill('sample@example.com');
+  await page.getByLabel('Patient email address', { exact: true }).fill('sample@example.com');
   await page.getByLabel('Password', { exact: true }).fill('test-password');
   await page.getByRole('button', { name: 'Show password', exact: true }).click();
   assert.equal(await page.getByLabel('Password', { exact: true }).getAttribute('type'), 'text');
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign in as Patient', exact: true }).click();
   await page.getByText('Incorrect email or password', { exact: true }).waitFor();
   passwordFails = false;
-  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.getByRole('button', { name: 'Sign in as Patient', exact: true }).click();
   await page.waitForURL('**/patient/dashboard');
   assert.deepEqual(errors, []);
   await browser.close();
-  console.log('PASS: optional Google mocked login/retry alongside password form; account and doctor retries; screening failure preserves inputs; Low/Medium/High result guidance; PDF error/retry/preview/Escape/download; email status; Marathi persistence/checklist; 320/390/1440 result layouts; real gallery assets.');
+  console.log('PASS: optional Google mocked login/retry alongside password form; account and doctor retries; screening failure preserves inputs; Low/Medium/High result guidance; PDF error/retry/preview/Escape/download; email status; Marathi persistence/checklist; 320/390/1440 result layouts; gallery availability handling.');
 })().catch(error => { console.error(error); process.exit(1); });

@@ -11,7 +11,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     role: Literal["patient", "doctor"] = "patient"
-    doctor_passcode: Optional[str] = None
+    doctor_passcode: Optional[str] = Field(default=None, max_length=256)
     otp_code: str = Field(pattern=r"^\d{6}$")
 
 class UserUpdate(BaseModel):

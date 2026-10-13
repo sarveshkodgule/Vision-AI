@@ -1,13 +1,29 @@
 import os
+import secrets
 from fastapi import HTTPException, status
 from schemas.user import UserCreate, UserLogin
 from utils.security import get_password_hash, verify_password, create_access_token
 from database.mongodb import users_collection
 from bson import ObjectId
 
-HOSPITAL_DOCTOR_CODE = os.getenv("HOSPITAL_DOCTOR_CODE", "SARVESHWAR2026")
+def validate_doctor_registration_code(passcode: str | None):
+    """Temporary staff-registration gate, not a WebAuthn passkey or login factor."""
+    configured = os.getenv("HOSPITAL_DOCTOR_CODE", "").strip()
+    if not configured or configured == "SARVESHWAR2026":
+        raise HTTPException(
+            status_code=503,
+            detail="Doctor self-registration is not configured. Contact hospital administration to create your staff account."
+        )
+    if not passcode or not secrets.compare_digest(passcode.strip().encode(), configured.encode()):
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid hospital registration code. Check it with hospital administration; your email verification code has not been used."
+        )
 
 async def create_user(user: UserCreate):
+    # Check staff authorisation BEFORE consuming a single-use email OTP.
+    if user.role == "doctor":
+        validate_doctor_registration_code(user.doctor_passcode)
     existing_user = await users_collection.find_one({"email": user.email})
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -15,14 +31,6 @@ async def create_user(user: UserCreate):
     # Verify OTP if provided for signup flow
     await verify_otp_code(user.email, user.otp_code)
 
-    # Doctor registration requires verified hospital authorization code
-    if user.role == "doctor":
-        if not user.doctor_passcode or user.doctor_passcode.strip() != HOSPITAL_DOCTOR_CODE:
-            raise HTTPException(
-                status_code=403,
-                detail="Invalid hospital doctor security code. Please contact hospital administration."
-            )
-    
     user_data = user.model_dump(exclude={"otp_code", "doctor_passcode"})
     user_data["password"] = get_password_hash(user.password)
     

@@ -37,7 +37,7 @@ export default function Signup() {
         setError(res.detail || res.message || "Failed to generate verification code.");
       }
     } catch (err) {
-      setError(err.response?.data?.detail || "Network error or email already registered.");
+      setError(err.message || "Unable to send the email code. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -71,7 +71,7 @@ export default function Signup() {
         setError(data.detail || data.message || "Registration failed.");
       }
     } catch (err) {
-      setError(err.response?.data?.detail || "Invalid code or registration failed.");
+      setError(err.message || "Registration failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -96,7 +96,7 @@ export default function Signup() {
           <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">Create an account</h2>
           <p className="text-slate-500 text-center mb-6 text-sm">Your Shri Sarveshwar Netralaya care portal</p>
 
-          {error && <div className="p-3 mb-6 bg-red-50 text-red-600 rounded-lg text-sm text-center font-semibold">{error}</div>}
+          {error && <div role="alert" className="p-3 mb-6 bg-red-50 text-red-600 rounded-lg text-sm text-center font-semibold">{error}{step === 2 && role === 'doctor' && <button type="button" className="block underline mx-auto mt-2" onClick={() => { setStep(1); setError(''); }}>Check hospital registration code</button>}</div>}
           {success && <div className="p-3 mb-6 bg-green-50 text-green-600 rounded-lg text-sm text-center font-semibold">{success}</div>}
 
           {step === 1 ? (
@@ -121,11 +121,14 @@ export default function Signup() {
               <form onSubmit={handleRequestOTP} className="space-y-4">
                 {role === 'doctor' && (
                   <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Hospital Security Code</label>
+                    <label htmlFor="hospital-registration-code" className="block text-sm font-semibold text-slate-700 mb-1.5">Hospital registration code</label>
                     <div className="relative">
                       <Key className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
                       <input 
-                        type="password" 
+                        id="hospital-registration-code"
+                        type="password"
+                        autoComplete="off"
+                        maxLength={256}
                         value={doctorPasscode}
                         onChange={(e) => setDoctorPasscode(e.target.value)}
                         className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors font-mono" 
@@ -133,7 +136,7 @@ export default function Signup() {
                         required
                       />
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1">Authorized hospital medical staff only. Provided by clinic administration.</p>
+                    <p className="text-[11px] text-slate-500 mt-1">For staff registration only. Ask hospital administration for this code. Already registered? Sign in with your own email and password or Google.</p>
                   </div>
                 )}
 
@@ -198,7 +201,7 @@ export default function Signup() {
           ) : (
             <>
               <p className="text-slate-500 text-center mb-6 text-sm">
-                A 10-minute temporary verification code has been generated.
+                We sent a one-time code to {email}. Check your inbox and spam folder. The code expires in 10 minutes.
               </p>
               <form onSubmit={handleSignup} className="space-y-4">
                 <div>
@@ -211,6 +214,10 @@ export default function Signup() {
                       onChange={(e) => setOtpCode(e.target.value)}
                       className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
                       placeholder="Enter 6-digit code" 
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      pattern="[0-9]{6}"
+                      maxLength={6}
                       required
                     />
                   </div>

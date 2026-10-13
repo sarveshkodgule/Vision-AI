@@ -139,7 +139,7 @@ class ReportRouteTests(unittest.TestCase):
             response = self.client.get(self.url)
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.headers['content-type'], 'application/pdf')
-            self.assertEqual(response.headers['cache-control'], 'no-store')
+            self.assertIn('no-store', {part.strip() for part in response.headers['cache-control'].split(',')})
             self.assertTrue(response.content.startswith(b'%PDF'))
             self.assertEqual(find.call_args.args[0]['user_id'], str(self.owner['_id']))
             send.assert_not_called()

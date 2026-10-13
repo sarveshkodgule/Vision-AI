@@ -19,14 +19,19 @@ export default function PasswordSignIn() {
     try {
       const body = new URLSearchParams({ username: email.trim(), password });
       const response = await api.post('/auth/login', body, true);
-      const { access_token, user } = response.data;
-      if (!access_token || !['patient', 'doctor'].includes(user?.role)) throw new Error('Unable to open your portal. Please try again.');
-      if (role && user.role !== role) {
-        throw new Error(`This account is registered as a ${user.role}. Please select '${user.role === 'doctor' ? 'Doctor' : 'Patient'}' above.`);
+      const payload = response.data || response;
+      const access_token = payload.access_token || response.access_token;
+      const user = payload.user || response.user;
+      if (!access_token || !user?.role) {
+        throw new Error('Unable to open your portal. Please check your credentials and try again.');
+      }
+      const userRole = String(user.role).toLowerCase();
+      if (!['patient', 'doctor'].includes(userRole)) {
+        throw new Error('Invalid account role. Please contact hospital administration.');
       }
       localStorage.setItem('token', access_token);
-      localStorage.setItem('role', user.role);
-      navigate(user.role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard', { replace: true });
+      localStorage.setItem('role', userRole);
+      navigate(userRole === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard', { replace: true });
     } catch (err) { setError(err.message || 'Sign-in failed. Please try again.'); }
     finally { setBusy(false); }
   }

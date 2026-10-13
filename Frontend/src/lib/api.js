@@ -3,7 +3,13 @@ export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || `${window.loca
 async function request(method, endpoint, data, isForm = false) {
   const token = localStorage.getItem('token');
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  if (data !== undefined && !isForm) headers['Content-Type'] = 'application/json';
+  if (data !== undefined) {
+    if (!isForm) {
+      headers['Content-Type'] = 'application/json';
+    } else if (data instanceof URLSearchParams) {
+      headers['Content-Type'] = 'application/x-www-form-urlencoded';
+    }
+  }
   let response;
   try { response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method,

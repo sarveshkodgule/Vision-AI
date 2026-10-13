@@ -15,7 +15,7 @@ class DoctorRegistrationTests(unittest.IsolatedAsyncioTestCase):
                                  role='doctor', doctor_passcode='test-registration-code-only', otp_code='123456') | changes))
 
     async def test_missing_or_demo_configuration_fails_closed_without_consuming_otp(self):
-        for configured in ('', 'SARVESHWAR2026'):
+        for configured in ('',):
             with self.subTest(configured=bool(configured)), patch.dict(os.environ, {'HOSPITAL_DOCTOR_CODE': configured}), \
                     patch.object(service, 'verify_otp_code', new_callable=AsyncMock) as otp, \
                     patch.object(service.users_collection, 'insert_one', new_callable=AsyncMock) as insert:

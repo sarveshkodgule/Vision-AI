@@ -41,11 +41,16 @@ export default function GoogleSignIn() {
           try {
             const signed = await api.post('/auth/google', { credential, challenge });
             if (!active) return;
-            const { access_token, user } = signed.data;
-            if (!access_token || !['patient', 'doctor'].includes(user?.role)) throw new Error('Unable to open your portal. Please try again.');
+            const payload = signed.data || signed;
+            const access_token = payload.access_token || signed.access_token;
+            const user = payload.user || signed.user;
+            if (!access_token || !['patient', 'doctor'].includes(user?.role?.toLowerCase())) {
+              throw new Error('Unable to open your portal. Please try again.');
+            }
+            const userRole = String(user.role).toLowerCase();
             localStorage.setItem('token', access_token);
-            localStorage.setItem('role', user.role);
-            navigate(user.role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard', { replace: true });
+            localStorage.setItem('role', userRole);
+            navigate(userRole === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard', { replace: true });
           } catch (err) { if (active) { setError(err.message); setPhase('error'); } }
         } });
         button.replaceChildren();

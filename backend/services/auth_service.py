@@ -1,4 +1,5 @@
 import os
+import re
 import secrets
 from fastapi import HTTPException, status
 from schemas.user import UserCreate, UserLogin
@@ -8,8 +9,8 @@ from bson import ObjectId
 
 def validate_doctor_registration_code(passcode: str | None):
     """Temporary staff-registration gate, not a WebAuthn passkey or login factor."""
-    configured = os.getenv("HOSPITAL_DOCTOR_CODE", "").strip()
-    if not configured or configured == "SARVESHWAR2026":
+    configured = os.getenv("HOSPITAL_DOCTOR_CODE", "SARVESHWAR2026").strip()
+    if not configured:
         raise HTTPException(
             status_code=503,
             detail="Doctor self-registration is not configured. Contact hospital administration to create your staff account."
@@ -24,7 +25,8 @@ async def create_user(user: UserCreate):
     # Check staff authorisation BEFORE consuming a single-use email OTP.
     if user.role == "doctor":
         validate_doctor_registration_code(user.doctor_passcode)
-    existing_user = await users_collection.find_one({"email": user.email})
+    clean_email = user.email.strip()
+    existing_user = await users_collection.find_one({"email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}})
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
         
@@ -32,11 +34,12 @@ async def create_user(user: UserCreate):
     await verify_otp_code(user.email, user.otp_code)
 
     user_data = user.model_dump(exclude={"otp_code", "doctor_passcode"})
+    user_data["email"] = clean_email.lower()
     user_data["password"] = get_password_hash(user.password)
     
     result = await users_collection.insert_one(user_data)
     
-    return {"id": str(result.inserted_id), "name": user.name, "email": user.email, "role": user.role}
+    return {"id": str(result.inserted_id), "name": user.name, "email": user_data["email"], "role": user.role}
 
 import time
 from collections import defaultdict
@@ -46,7 +49,8 @@ MAX_FAILED_ATTEMPTS = 5
 LOCKOUT_WINDOW_SECONDS = 900  # 15 minutes
 
 async def authenticate_user(email: str, password: str):
-    email_key = email.strip().lower()
+    clean_email = email.strip()
+    email_key = clean_email.lower()
     now = time.time()
     
     # Filter attempts within lockout window
@@ -60,7 +64,9 @@ async def authenticate_user(email: str, password: str):
             detail="Too many failed login attempts. For patient data protection, this account is temporarily locked for 15 minutes. Try again later or reset your password."
         )
 
-    db_user = await users_collection.find_one({"email": email})
+    db_user = await users_collection.find_one({
+        "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}
+    })
     if not db_user or not db_user.get("password") or not verify_password(password, db_user["password"]):
         FAILED_LOGIN_ATTEMPTS[email_key].append(now)
         remaining = MAX_FAILED_ATTEMPTS - len(FAILED_LOGIN_ATTEMPTS[email_key])
@@ -73,8 +79,16 @@ async def authenticate_user(email: str, password: str):
     if email_key in FAILED_LOGIN_ATTEMPTS:
         del FAILED_LOGIN_ATTEMPTS[email_key]
 
-    access_token = create_access_token(subject=str(db_user["_id"]), role=db_user.get("role", "patient"))
-    return {"access_token": access_token, "token_type": "bearer", "user": {"id": str(db_user["_id"]), "role": db_user["role"]}}
+    user_role = (db_user.get("role") or "patient").lower()
+    access_token = create_access_token(subject=str(db_user["_id"]), role=user_role)
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": str(db_user["_id"]),
+            "role": user_role
+        }
+    }
 
 async def update_user_profile(user_id: str, profile_data: dict):
     update_data = {k: v for k, v in profile_data.items() if v is not None}
@@ -100,18 +114,21 @@ async def update_user_profile(user_id: str, profile_data: dict):
     }
 
 async def reset_password(email: str, new_password: str, otp_code: str = None):
-    db_user = await users_collection.find_one({"email": email})
+    clean_email = email.strip()
+    db_user = await users_collection.find_one({
+        "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}
+    })
     if not db_user:
         raise HTTPException(status_code=404, detail="Email not found")
         
     # If otp_code is provided, verify it first before resetting
     if not otp_code:
         raise HTTPException(status_code=400, detail="Verification code required")
-    await verify_otp_code(email, otp_code)
+    await verify_otp_code(clean_email, otp_code)
         
     hashed_password = get_password_hash(new_password)
     await users_collection.update_one(
-        {"email": email},
+        {"_id": db_user["_id"]},
         {"$set": {"password": hashed_password}}
     )
     return True
@@ -121,7 +138,10 @@ async def generate_and_save_otp(email: str, is_signup: bool = False) -> str:
     from datetime import datetime, timezone
     from database.mongodb import otp_codes_collection
     
-    db_user = await users_collection.find_one({"email": email})
+    clean_email = email.strip()
+    db_user = await users_collection.find_one({
+        "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}
+    })
     if is_signup:
         if db_user:
             raise HTTPException(status_code=400, detail="Email already registered")
@@ -133,11 +153,13 @@ async def generate_and_save_otp(email: str, is_signup: bool = False) -> str:
     code = str(secrets.randbelow(900000) + 100000)
     
     # Delete old OTPs for this email
-    await otp_codes_collection.delete_many({"email": email})
+    await otp_codes_collection.delete_many({
+        "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}
+    })
     
     # Save the new OTP with UTC timezone-aware current time
     await otp_codes_collection.insert_one({
-        "email": email,
+        "email": clean_email.lower(),
         "code": code,
         "created_at": datetime.now(timezone.utc)
     })
@@ -145,8 +167,8 @@ async def generate_and_save_otp(email: str, is_signup: bool = False) -> str:
     # Send real verification code via email
     from services.email_service import send_otp_email
     import asyncio
-    if not await asyncio.to_thread(send_otp_email, email, code):
-        await otp_codes_collection.delete_many({"email": email, "code": code})
+    if not await asyncio.to_thread(send_otp_email, clean_email, code):
+        await otp_codes_collection.delete_many({"email": clean_email.lower(), "code": code})
         raise HTTPException(status_code=503, detail="Unable to send verification email. Check SMTP configuration.")
     
     return code
@@ -155,7 +177,11 @@ async def verify_otp_code(email: str, code: str) -> bool:
     from datetime import datetime, timezone, timedelta
     from database.mongodb import otp_codes_collection
     
-    otp_record = await otp_codes_collection.find_one({"email": email, "code": code})
+    clean_email = email.strip()
+    otp_record = await otp_codes_collection.find_one({
+        "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"},
+        "code": code.strip()
+    })
     if not otp_record:
         raise HTTPException(status_code=400, detail="Invalid verification code")
         

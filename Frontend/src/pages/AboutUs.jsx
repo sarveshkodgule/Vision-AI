@@ -14,8 +14,48 @@ export default function AboutUs() {
     </section>
     <HospitalGallery />
     <section id="doctor" className="hospital-section hospital-container">
-      <div className="section-heading"><div><p className="eyebrow">MEET YOUR DOCTOR</p><h2>The person behind your care.</h2></div></div>
-      <article className="doctor-profile"><div className="doctor-profile-art"><span className="doctor-initials">HA</span><p>OPHTHALMOLOGY</p><span className="doctor-art-line"/></div><div className="doctor-profile-copy"><p className="eyebrow">{hospital.doctor.role}</p><h3>{hospital.doctor.name}</h3><p className="doctor-qualifications"><GraduationCap size={20}/>{hospital.doctor.qualifications}</p><p>Dr. Hemant Anaspure is listed as an ophthalmologist at Sri Sarveshwar Netralaya, Jalna Road. His qualifications in medicine and ophthalmology are recorded in the Maharashtra Medical Council’s 2025 Aurangabad electoral roll.</p><p>An in-person consultation is the time to discuss symptoms, previous prescriptions, examination findings and a care plan suited to you.</p><div className="button-row"><a className="hospital-button" href={hospital.phoneHref}>Enquire about a consultation <ArrowUpRight size={18}/></a></div><a className="source-link" href={hospital.sources.qualifications} target="_blank" rel="noreferrer">Qualification reference · Maharashtra Medical Council ↗</a></div></article>
+      <div className="section-heading"><div><p className="eyebrow">MEET YOUR DOCTOR · KNOW YOUR DOCTOR</p><h2>The person behind your care.</h2></div></div>
+      <article className="doctor-profile">
+        <div className="doctor-profile-art">
+          <img src={hospital.doctor.photo} alt={hospital.doctor.name} className="doctor-portrait-photo" />
+          <p>OPHTHALMOLOGY & STRABISMUS</p>
+          <span className="doctor-art-line"/>
+        </div>
+        <div className="doctor-profile-copy">
+          <p className="eyebrow">{hospital.doctor.role} · {hospital.doctor.marathiName}</p>
+          <h3>{hospital.doctor.name}</h3>
+          <div className="doctor-specialty-callout">
+            <strong>Super Specialization:</strong> {hospital.doctor.superSpecialization} ({hospital.doctor.marathiSpecialization})
+          </div>
+          <p className="doctor-qualifications"><GraduationCap size={20}/><strong>{hospital.doctor.qualifications}</strong></p>
+          <p>Dr. Hemant D. Anaspure is a senior ophthalmologist and eye surgeon specializing in comprehensive ophthalmology, paediatric eye care, and squint (strabismus) treatment at Shri Sarveshwar Netralaya, Jalna Road, Chhatrapati Sambhajinagar.</p>
+          
+          <div className="doctor-pedigree">
+            <div>
+              <h4>Academic & Medical Training</h4>
+              <ul>
+                {hospital.doctor.education.map(item => <li key={item.degree}><strong>{item.degree}</strong>{item.institution}</li>)}
+              </ul>
+            </div>
+            <div>
+              <h4>Past Hospital Associations</h4>
+              <ul>
+                {hospital.doctor.pastAssociations.map(item => <li key={item.name}><strong>{item.name}</strong>{item.location}</li>)}
+              </ul>
+            </div>
+          </div>
+
+          <p>An in-person consultation is the time to discuss symptoms, childhood squint or vision issues, previous prescriptions, and a care plan suited to you.</p>
+          <div className="button-row">
+            <a className="hospital-button" href={hospital.phoneHref}>Call Mobile: {hospital.phone} <ArrowUpRight size={18}/></a>
+            <a className="hospital-button button-outline" href={hospital.landlineHref}>Clinic Phone: {hospital.landline} <Phone size={17}/></a>
+          </div>
+          <div style={{ marginTop: '16px', display: 'flex', gap: '18px', flexWrap: 'wrap' }}>
+            <a className="source-link" href={hospital.doctor.framedCredential} target="_blank" rel="noreferrer">View Clinic Credential Certificate ↗</a>
+            <a className="source-link" href={hospital.sources.qualifications} target="_blank" rel="noreferrer">Qualification reference · Maharashtra Medical Council ↗</a>
+          </div>
+        </div>
+      </article>
     </section>
     <section className="values-section"><div className="hospital-container"><p className="eyebrow">DESIGNED AROUND THE PATIENT</p><h2>A simpler way to stay involved in your care.</h2><div className="values-grid">{[[HeartHandshake,'Understand your next step','Read clear explanations of your screening result and questions to discuss with your doctor.'],[FileCheck2,'Keep your report with you','Access saved screening history and download your personal report from the patient portal.'],[Eye,'Put the examination first','Screening offers guidance. Your clinician confirms a diagnosis and recommends appropriate treatment.']].map(([Icon,title,text])=><article key={title}>{createElement(Icon, { size: 28 })}<h3>{title}</h3><p>{text}</p></article>)}</div></div></section>
     <section className="hospital-section hospital-container visit-banner"><div><p className="eyebrow">WE’LL HELP YOU FIND YOUR NEXT STEP</p><h2>Let’s start with a conversation.</h2><p>Call to confirm timings, doctor availability and consultation fees.</p></div><Link to="/contact" className="hospital-button">Plan your visit <ArrowUpRight size={19}/></Link></section>

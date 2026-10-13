@@ -229,6 +229,14 @@ button, a, input, select, textarea { -webkit-tap-highlight-color:transparent; }
 .doctor-profile-copy h3 { font:34px Georgia,serif; letter-spacing:-.03em; }
 .doctor-profile-copy > p:not(.eyebrow) { font-size:13px; color:var(--hospital-muted); margin-block:16px; }
 .doctor-qualifications { display:flex; align-items:center; gap:10px; color:#17365d!important; }
+.doctor-portrait-photo { width:170px; height:185px; object-fit:cover; border-radius:12px; box-shadow:0 10px 25px -8px #142a4545; border:3px solid #ffffff; }
+.hero-doctor-avatar { width:44px; height:44px; border-radius:50%; object-fit:cover; border:2px solid #ffffff; box-shadow:0 4px 10px #142a4520; }
+.doctor-specialty-callout { display:inline-block; background:#e3ebf5; color:#17365d; font-size:12px; font-weight:600; padding:6px 12px; border-radius:6px; border:1px solid #c8d8ea; margin-bottom:12px; }
+.doctor-pedigree { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-block:20px; padding:18px 20px; background:#edf2f8; border-radius:9px; border:1px solid #d5e0ed; }
+.doctor-pedigree h4 { font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#17365d; margin-bottom:10px; }
+.doctor-pedigree ul { list-style:none; padding:0; margin:0; display:grid; gap:8px; }
+.doctor-pedigree li { font-size:12px; line-height:1.5; color:#53657b; }
+.doctor-pedigree li strong { color:#1a2e45; display:block; }
 .source-link { display:inline-block; font-size:10px; text-decoration:underline!important; color:var(--hospital-muted); margin-top:22px; }
 .values-section { background:#edf2f8; padding-block:60px; }
 .values-section h2 { max-width:620px; }
@@ -376,6 +384,7 @@ button, a, input, select, textarea { -webkit-tap-highlight-color:transparent; }
   .doctor-profile-copy { padding:26px; }
   .doctor-profile-copy h3 { font-size:29px; }
   .doctor-qualifications { align-items:start; font-size:12px!important; }
+  .doctor-pedigree { grid-template-columns:1fr; gap:14px; padding:14px; }
   .values-grid { gap:30px; }
   .values-grid h3 { margin-top:13px; }
   .visit-banner { flex-direction:column; align-items:start; gap:24px; }

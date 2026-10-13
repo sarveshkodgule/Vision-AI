@@ -15,4 +15,5 @@ pandas
 pymongo>=4.0.0
 dnspython>=2.0.0
 httpx
+google-auth[requests]>=2.38,<3
 xgboost==3.2.0

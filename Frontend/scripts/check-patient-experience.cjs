@@ -1,0 +1,146 @@
+/* Synthetic identities and PDFs only. Google, API and email requests are mocked. */
+const { createRequire } = require('node:module');
+const { chromium } = createRequire(__filename)(process.env.PLAYWRIGHT_PACKAGE || 'playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const base = process.env.PREVIEW_URL || 'http://127.0.0.1:5173';
+const output = path.resolve(__dirname, '../../reports/ui-preview');
+
+function samplePdf() {
+  const parts = ['<< /Type /Catalog /Pages 2 0 R >>', '<< /Type /Pages /Kids [3 0 R] /Count 1 >>', '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>'];
+  let content = '%PDF-1.4\n';
+  const offsets = [0];
+  parts.forEach((part, i) => { offsets.push(Buffer.byteLength(content)); content += `${i + 1} 0 obj\n${part}\nendobj\n`; });
+  const xref = Buffer.byteLength(content);
+  content += 'xref\n0 4\n0000000000 65535 f \n' + offsets.slice(1).map(offset => `${String(offset).padStart(10, '0')} 00000 n \n`).join('');
+  return Buffer.from(content + `trailer\n<< /Size 4 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+}
+
+(async () => {
+  fs.mkdirSync(output, { recursive: true });
+  const browser = await chromium.launch({ headless: true });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: 'reduce' });
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  let configFails = true, loginFails = true, doctorFails = true, historyFails = true, riskFails = true, pdfFails = true;
+  let emailCount = 0;
+  let risk = 'High';
+  const loginCalls = [];
+  const pdf = samplePdf();
+  await page.route('https://accounts.google.com/gsi/client', route => route.fulfill({ contentType: 'text/javascript', body: `window.google={accounts:{id:{initialize(config){window.testGoogleConfig=config},renderButton(element){const b=document.createElement('button');b.textContent='Continue with Google';b.onclick=()=>window.testGoogleConfig.callback({credential:'synthetic-google-credential-for-ui-test'});element.appendChild(b)}}}};` }));
+  await page.route('**/auth/google/config', route => configFails ? route.fulfill({ status: 503, json: { detail: 'Google sign-in is not configured yet.' } }) : route.fulfill({ json: { data: { client_id: 'ui-test.apps.googleusercontent.com', nonce: 'ui-test', challenge: 'synthetic-google-challenge-for-ui-test' } } }));
+  await page.route('**/auth/google', route => {
+    loginCalls.push(route.request().postDataJSON());
+    return loginFails ? route.fulfill({ status: 401, json: { detail: 'Google sign-in expired. Please try again.' } }) : route.fulfill({ json: { data: { access_token: 'ui-test-only', user: { role: 'patient' } } } });
+  });
+  await page.route('**/auth/profile', route => route.fulfill({ json: { data: { name: 'Sample Patient', email: 'sample@gmail.com', role: 'patient' } } }));
+  await page.route('**/auth/doctors', route => doctorFails ? route.fulfill({ status: 503, json: { detail: 'Temporary error' } }) : route.fulfill({ json: { data: [{ id: 'doctor-1', name: 'Sample Doctor', email: 'doctor@example.com' }] } }));
+  await page.route('**/patient/history', route => historyFails ? route.fulfill({ status: 503, json: { detail: 'Temporary error' } }) : route.fulfill({ json: { data: [] } }));
+  await page.route('**/patient/reports', route => route.fulfill({ json: { data: [] } }));
+  await page.route('**/patient/risk', route => riskFails ? route.fulfill({ status: 503, json: { detail: 'Model unavailable. Please try again.' } }) : route.fulfill({ json: { data: { screening_id: 'ui-screening', risk_level: risk, myopia_probability: risk === 'High' ? .84 : risk === 'Medium' ? .52 : .18, report_email: { status: 'not_sent' }, myopia_detected: risk !== 'Low' } } }));
+  await page.route('**/patient/screening-report/ui-screening', route => pdfFails ? route.fulfill({ status: 503, json: { detail: 'PDF temporarily unavailable.' } }) : route.fulfill({ contentType: 'application/pdf', body: pdf }));
+  await page.route('**/patient/screening-report/ui-screening/status', route => route.fulfill({ json: { data: { status: emailCount ? 'sent' : 'not_sent' } } }));
+  await page.route('**/patient/screening-report/ui-screening/email', route => { emailCount++; return route.fulfill({ json: { data: { status: 'queued' } } }); });
+
+  await page.goto(base + '/login');
+  await page.getByText('Google sign-in is not configured yet.', { exact: true }).waitFor();
+  assert.equal(await page.locator('input[type=password]').count(), 1);
+  configFails = false;
+  await page.getByRole('button', { name: 'Retry Google sign-in' }).click();
+  await page.getByRole('button', { name: 'Continue with Google' }).click();
+  await page.getByText('Google sign-in expired. Please try again.', { exact: true }).waitFor();
+  loginFails = false;
+  await page.getByRole('button', { name: 'Retry Google sign-in' }).click();
+  await page.getByRole('button', { name: 'Continue with Google' }).click();
+  await page.waitForURL('**/patient/dashboard');
+  assert.ok(loginCalls.every(body => !('role' in body) && body.challenge));
+  await page.getByRole('button', { name: 'Retry doctor list' }).waitFor();
+  await page.getByRole('button', { name: 'Retry records' }).waitFor();
+  doctorFails = false;
+  historyFails = false;
+  await page.getByRole('button', { name: 'Retry doctor list' }).click();
+  await page.getByRole('button', { name: 'Retry records' }).click();
+  await page.getByLabel('Full Name', { exact: true }).fill('Sample Patient');
+  await page.getByLabel('Age', { exact: true }).fill('15');
+  await page.getByLabel('Your doctor').selectOption('doctor-1');
+  await page.getByRole('button', { name: 'Continue to daily routine' }).click();
+  for (const [label, value] of [['Screen Time (hrs)', '4'], ['Reading Time (hrs)', '2'], ['Work/Study (hrs)', '2'], ['Sleep Time (hrs)', '8'], ['Outdoor Time (hrs)', '1']]) await page.getByLabel(label, { exact: true }).fill(value);
+  await page.getByRole('button', { name: 'Generate Report', exact: true }).click();
+  await page.getByText('Model unavailable. Please try again.', { exact: true }).waitFor();
+  assert.equal(await page.getByLabel('Screen Time (hrs)').inputValue(), '4');
+  riskFails = false;
+  await page.getByRole('button', { name: 'Generate Report', exact: true }).click();
+  await page.getByRole('heading', { name: 'High screening risk', exact: true }).waitFor();
+  assert.equal(await page.locator('.summary-probability strong').textContent(), '84.0%');
+  await page.getByRole('button', { name: 'View PDF', exact: true }).click();
+  await page.getByText('PDF temporarily unavailable.', { exact: true }).waitFor();
+  pdfFails = false;
+  await page.getByRole('button', { name: 'View PDF', exact: true }).click();
+  await page.getByRole('dialog').waitFor();
+  assert.ok((await page.locator('.pdf-preview iframe').getAttribute('src')).startsWith('blob:'));
+  await page.keyboard.press('Escape');
+  await page.getByRole('dialog').waitFor({ state: 'detached' });
+  const downloadEvent = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download', exact: true }).click();
+  assert.equal((await downloadEvent).suggestedFilename(), 'VisionAI_Screening_ui-screening.pdf');
+  await page.getByRole('button', { name: 'Email report', exact: true }).click();
+  await page.getByRole('button', { name: 'Email sent', exact: true }).waitFor();
+  assert.equal(emailCount, 1);
+  assert.equal(await page.getByRole('button', { name: 'Email sent', exact: true }).isDisabled(), true);
+  await page.getByRole('button', { name: 'मराठी', exact: true }).click();
+  await page.getByRole('heading', { name: 'तपासणीतील जास्त जोखीम', exact: true }).waitFor();
+  assert.equal(await page.locator('.summary-probability strong').textContent(), '84.0%');
+  for (const width of [320, 390, 1440]) {
+    await page.setViewportSize({ width, height: 900 });
+    await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth);
+    await page.screenshot({ path: path.join(output, `result-marathi-${width}.png`), fullPage: true });
+    const overflow = await page.evaluate(() => [...document.querySelectorAll('main *')].filter(el => el.getBoundingClientRect().right > innerWidth + 1).slice(0, 8).map(el => `${el.tagName}.${el.className}`));
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Result overflow at ${width}: ${overflow.join(', ')}`);
+  }
+  await page.getByRole('button', { name: 'English', exact: true }).click();
+  for (const band of ['Medium', 'Low']) {
+    risk = band;
+    await page.getByRole('button', { name: 'New Assessment', exact: true }).click();
+    await page.getByRole('button', { name: 'Generate Report', exact: true }).click();
+    await page.locator(`.screening-summary.risk-${band.toLowerCase()}`).waitFor();
+  }
+  await page.goto(base + '/contact');
+  await page.getByRole('button', { name: 'मराठी', exact: true }).click();
+  await page.getByRole('heading', { name: 'भेटीपूर्वी थोडे मार्गदर्शन.', exact: true }).waitFor();
+  await page.locator('.packing-checklist input').first().check();
+  await page.getByRole('button', { name: 'English', exact: true }).click();
+  assert.equal(await page.locator('.packing-checklist input').first().isChecked(), true);
+  await page.getByRole('button', { name: 'मराठी', exact: true }).click();
+  await page.reload();
+  await page.getByRole('heading', { name: 'भेटीपूर्वी थोडे मार्गदर्शन.', exact: true }).waitFor();
+  await page.setViewportSize({ width: 320, height: 900 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'Marathi visit overflow');
+  await page.goto(base + '/about');
+  await page.locator('.hospital-gallery').scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => [...document.querySelectorAll('.hospital-gallery img')].every(img => img.complete && img.naturalWidth > 0));
+  assert.equal(await page.locator('.hospital-gallery img').count(), 2);
+  await page.evaluate(() => { localStorage.removeItem('token'); localStorage.removeItem('role'); });
+  configFails = true;
+  let passwordFails = true;
+  await page.route('**/auth/login', route => {
+    const body = new URLSearchParams(route.request().postData());
+    assert.equal(body.get('username'), 'sample@example.com');
+    assert.equal(body.get('password'), 'test-password');
+    return passwordFails ? route.fulfill({ status: 400, json: { detail: 'Incorrect email or password' } }) : route.fulfill({ json: { data: { access_token: 'ui-test-only', user: { role: 'patient' } } } });
+  });
+  await page.goto(base + '/login');
+  await page.getByText('Google sign-in is not configured yet.', { exact: true }).waitFor();
+  await page.getByLabel('Email address', { exact: true }).fill('sample@example.com');
+  await page.getByLabel('Password', { exact: true }).fill('test-password');
+  await page.getByRole('button', { name: 'Show password', exact: true }).click();
+  assert.equal(await page.getByLabel('Password', { exact: true }).getAttribute('type'), 'text');
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.getByText('Incorrect email or password', { exact: true }).waitFor();
+  passwordFails = false;
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await page.waitForURL('**/patient/dashboard');
+  assert.deepEqual(errors, []);
+  await browser.close();
+  console.log('PASS: optional Google mocked login/retry alongside password form; account and doctor retries; screening failure preserves inputs; Low/Medium/High result guidance; PDF error/retry/preview/Escape/download; email status; Marathi persistence/checklist; 320/390/1440 result layouts; real gallery assets.');
+})().catch(error => { console.error(error); process.exit(1); });

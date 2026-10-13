@@ -9,11 +9,24 @@ import {
 import { api, API_BASE_URL } from '../lib/api';
 import PatientReportDelivery from '../components/PatientReportDelivery';
 import HospitalBrand from '../components/HospitalBrand';
+import PatientLanguageSwitch from '../components/PatientLanguageSwitch';
+import ScreeningSummary from '../components/ScreeningSummary';
+import { usePatientLanguage } from '../lib/patientLanguage';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 export default function PatientDashboard() {
   const navigate = useNavigate();
+  const { language, t } = usePatientLanguage();
+  const [submitError, setSubmitError] = useState('');
+  const [historyError, setHistoryError] = useState('');
+  const [profileError, setProfileError] = useState('');
+  const [doctorsError, setDoctorsError] = useState('');
+  const [doctorsLoading, setDoctorsLoading] = useState(true);
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [downloadError, setDownloadError] = useState('');
+  const [downloadingId, setDownloadingId] = useState('');
+  const [simRetry, setSimRetry] = useState(0);
   const [activeTab, setActiveTab] = useState('assessment');
   const [formStep, setFormStep] = useState(1);
   const [formData, setFormData] = useState({ 
@@ -66,62 +79,58 @@ export default function PatientDashboard() {
       }
     }, 400);
     return () => { current = false; clearTimeout(timer); };
-  }, [activeTab, simulationAge, simulationGender, simScreen, simReading, simOutdoor, simSleep, simParental]);
+  }, [activeTab, simulationAge, simulationGender, simScreen, simReading, simOutdoor, simSleep, simParental, simRetry]);
 
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
   
   const fetchPatientData = async () => {
     setHistoryLoading(true);
+    setHistoryError('');
     try {
-      const histRes = await api.get('/patient/history');
-      if (histRes && histRes.data) setHistory(histRes.data);
-      
-      const repRes = await api.get('/patient/reports');
-      if (repRes && repRes.data) setReports(repRes.data);
-    } catch (err) {
-      console.error("Failed to fetch patient records", err);
-    } finally {
-      setHistoryLoading(false);
-    }
+      const [histRes, repRes] = await Promise.all([api.get('/patient/history'), api.get('/patient/reports')]);
+      if (!Array.isArray(histRes.data) || !Array.isArray(repRes.data)) throw new Error('Invalid records response');
+      setHistory(histRes.data);
+      setReports(repRes.data);
+    } catch {
+      setHistoryError('Your records could not be loaded. Please check your connection and retry.');
+    } finally { setHistoryLoading(false); }
   };
-  
+
+  const fetchProfile = async () => {
+    setProfileError('');
+    try {
+      const res = await api.get('/auth/profile');
+      if (!res.data?.email) throw new Error('Profile unavailable');
+      setProfile(res.data);
+      setEditForm({ name: res.data.name, email: res.data.email });
+    } catch { setProfileError('Your account details could not be loaded. Retry, or sign in again if your session expired.'); }
+  };
+
+  const fetchDoctors = async () => {
+    setDoctorsLoading(true);
+    setDoctorsError('');
+    try {
+      const res = await api.get('/auth/doctors');
+      if (!Array.isArray(res.data)) throw new Error('Doctors unavailable');
+      setDoctors(res.data);
+    } catch { setDoctorsError('The doctor list could not be loaded. Please retry.'); }
+    finally { setDoctorsLoading(false); }
+  };
+
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await api.get('/auth/profile');
-        if (res && res.data) {
-          setProfile(res.data);
-          setEditForm({ name: res.data.name, email: res.data.email });
-        }
-      } catch (err) {
-        console.error("Failed to fetch profile", err);
-      }
-    };
     fetchProfile();
     fetchPatientData();
-  }, []);
-
-  // Fetch available doctors for patient assignment
-  useEffect(() => {
-    const fetchDoctors = async () => {
-      try {
-        const res = await api.get('/auth/doctors');
-        if (res && res.data) setDoctors(Array.isArray(res.data) ? res.data : []);
-      } catch (err) {
-        console.error('Could not load doctors list', err);
-      }
-    };
     fetchDoctors();
   }, []);
 
   const handleProfileSave = async () => {
+    setProfileBusy(true);
+    setProfileError('');
     try {
-      const res = await api.put('/auth/profile', editForm);
-      if (res && res.data) {
-        setProfile(res.data);
-        setIsEditingProfile(false);
-      }
-    } catch (err) { console.error("Update failed", err); }
+      const res = await api.put('/auth/profile', { name: editForm.name });
+      if (res?.data) { setProfile(res.data); setIsEditingProfile(false); }
+    } catch { setProfileError('Your changes were not saved. Please try Save Details again.'); }
+    finally { setProfileBusy(false); }
   };
 
   const handleSignOut = async () => {
@@ -143,6 +152,7 @@ export default function PatientDashboard() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSubmitError('');
     
     try {
       const response = await api.post('/patient/risk', {
@@ -158,7 +168,7 @@ export default function PatientDashboard() {
         assigned_doctor_id: selectedDoctorId || null,
       });
 
-      if (response && response.data && response.data.risk_level) {
+      if (response?.data && ['Low', 'Medium', 'Moderate', 'High'].includes(response.data.risk_level) && Number.isFinite(response.data.myopia_probability) && response.data.myopia_probability >= 0 && response.data.myopia_probability <= 1) {
         const d = response.data;
         
         // Construct dynamic historical trend line
@@ -179,7 +189,7 @@ export default function PatientDashboard() {
           riskScore: newScore,
           trendData: [...baseTrend, newScore],
           trendLabels: [...prior.map(item => new Date(item.created_at).toLocaleDateString()), "Current"],
-          recommendations: d.recommendation ? [d.recommendation] : ["Maintain a healthy eye routine."],
+          recommendations: d.recommendation ? [d.recommendation] : [],
           myopiaDetected:   d.myopia_detected   ?? null,
           probability:      d.myopia_probability ?? null,
           nextSpheq:        d.predicted_next_spheq ?? null,
@@ -187,9 +197,9 @@ export default function PatientDashboard() {
         
         // Refresh patient's history list
         fetchPatientData();
-      }
+      } else { throw new Error('The server did not return a valid model result. Please try again.'); }
     } catch (err) {
-      console.error(err);
+      setSubmitError(err.message || 'We could not generate your screening. Your entries are still here; please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -284,6 +294,8 @@ export default function PatientDashboard() {
   };
 
   const downloadReportPdf = async (patientId) => {
+    setDownloadError('');
+    setDownloadingId(patientId);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/patient/generate-report/${patientId}`, {
@@ -300,16 +312,16 @@ export default function PatientDashboard() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-                        URL.revokeObjectURL(url);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (err) {
       console.error("Failed to download PDF", err);
-      alert("Error exporting report as PDF.");
-    }
+      setDownloadError("The clinical report could not be downloaded. Please try Download PDF Report again.");
+    } finally { setDownloadingId(''); }
   };
 
   return (
     <div className="care-workspace min-h-screen bg-gradient-to-br from-blue-50/50 to-slate-100 flex flex-col relative pb-20">
-      {historyLoading && <p role="status" className="p-3 text-sm text-slate-500">Loading records...</p>}
+
       <nav className="patient-hospital-nav bg-white/95 backdrop-blur-md border-b px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm" aria-label="Patient portal navigation">
         <div className="flex items-center space-x-4">
           <HospitalBrand compact />
@@ -346,6 +358,11 @@ export default function PatientDashboard() {
       </nav>
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+        <PatientLanguageSwitch />
+        {profileError && <div role="alert" className="patient-feedback"><p>{profileError}</p><button onClick={fetchProfile}>Retry account details</button><button onClick={handleSignOut}>Sign in again</button></div>}
+        {historyError && <div role="alert" className="patient-feedback"><p>{historyError}</p><button onClick={fetchPatientData}>Retry records</button></div>}
+        {downloadError && <p role="alert" className="patient-feedback">{downloadError}</p>}
+        {activeTab === 'assessment' && !result && <p className="patient-language-note" lang={language}>{t('Enter your details, then your daily routine. Your report includes a model estimate and guidance for your next visit.', 'प्रथम तुमची माहिती आणि नंतर दैनंदिन सवयी भरा. अहवालात मॉडेलचा अंदाज आणि पुढील भेटीसाठी मार्गदर्शन मिळेल.')}</p>}
         {activeTab === 'profile' ? (
           <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto mt-4">
             <h2 className="text-2xl font-bold text-slate-800 mb-6">Patient Profile</h2>
@@ -385,7 +402,7 @@ export default function PatientDashboard() {
                   <>
                     <div>
                       <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Email Address</span>
-                      <input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                      <input type="email" value={editForm.email} readOnly aria-label="Email linked to your sign-in account" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                     </div>
                     <div>
                       <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Full Name</span>
@@ -401,7 +418,7 @@ export default function PatientDashboard() {
                   {isEditingProfile ? (
                     <>
                       <button onClick={() => setIsEditingProfile(false)} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">Cancel</button>
-                      <button onClick={handleProfileSave} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20">Save Details</button>
+                      <button onClick={handleProfileSave} disabled={profileBusy} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20">{profileBusy ? 'Saving…' : 'Save Details'}</button>
                     </>
                   ) : (
                     <button onClick={() => setIsEditingProfile(true)} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">Edit Profile</button>
@@ -424,6 +441,7 @@ export default function PatientDashboard() {
               </div>
             </div>
 
+            {historyLoading ? <div className="patient-loading" role="status"><Loader2 className="animate-spin" size={22}/>Loading your screening history and doctor reports…</div> : historyError ? null : <>
             {/* Progression Curve Mapping */}
             {reports.length > 0 ? (
               <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
@@ -473,10 +491,10 @@ export default function PatientDashboard() {
                           )}
                         </div>
                         <button 
-                          onClick={() => downloadReportPdf(rep.patient_id)} 
+                          onClick={() => downloadReportPdf(rep.patient_id)} disabled={!!downloadingId} 
                           className="mt-2 inline-flex items-center justify-center text-xs font-bold text-blue-600 bg-blue-50 py-1.5 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
                         >
-                          <Download className="w-3.5 h-3.5 mr-1" /> Download PDF Report
+                          <Download className="w-3.5 h-3.5 mr-1" /> {downloadingId === rep.patient_id ? 'Preparing PDF…' : 'Download PDF Report'}
                         </button>
                       </div>
                     ))}
@@ -521,6 +539,7 @@ export default function PatientDashboard() {
                 )}
               </div>
             </div>
+            </>}
           </Motion.div>
         ) : activeTab === 'simulator' ? (
           <Motion.div
@@ -624,7 +643,8 @@ export default function PatientDashboard() {
               <div className="md:col-span-5 flex flex-col space-y-6">
                 {/* Score gauge card */}
                 {(() => {
-                  if (!simResult || simError) return <p role="status" className="p-6 text-slate-600">{simError || 'Requesting model prediction...'}</p>;
+                  if (simError) return <div role="alert" className="patient-feedback"><p>{simError}</p><button onClick={() => setSimRetry(value => value + 1)}>Retry model preview</button></div>;
+                  if (!simResult) return <p role="status" className="patient-loading"><Loader2 size={18} className="animate-spin"/>Requesting model prediction…</p>;
                   const finalScore = Number((simResult.myopia_probability * 100).toFixed(1));
                   const isHigh = simResult.risk_level === 'High';
                   const isMed = simResult.risk_level === 'Medium';
@@ -693,12 +713,14 @@ export default function PatientDashboard() {
                   <span className="text-sm font-bold bg-white/20 px-3 py-1 rounded-full">Step {formStep} of 2</span>
                 </div>
                 <div className="p-6 md:p-8">
-                  <form onSubmit={formStep === 1 ? (e) => { e.preventDefault(); setFormStep(2); } : handleSubmit} className="space-y-5">
+                  <form aria-busy={isSubmitting} onSubmit={formStep === 1 ? (e) => { e.preventDefault(); setFormStep(2); } : handleSubmit} className="space-y-5">
+                    {submitError && <div role="alert" className="patient-feedback"><p>{submitError}</p><p>Your entries are saved on this page. Use Generate Report to retry.</p></div>}
+                    {isSubmitting && <p role="status" className="patient-loading"><Loader2 size={18} className="animate-spin"/> Running your screening model. Please keep this page open…</p>}
                     {formStep === 1 ? (
                       <Motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
                         <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
-                          <input 
+                          <label htmlFor="patient-name" className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
+                            <input id="patient-name" 
                             type="text" required
                             className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
                             value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
@@ -707,8 +729,8 @@ export default function PatientDashboard() {
                         </div>
                         <div className="grid grid-cols-2 gap-5">
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Age</label>
-                            <input 
+                            <label htmlFor="patient-age" className="block text-sm font-semibold text-slate-700 mb-1.5">Age</label>
+                            <input id="patient-age" 
                               type="number" required min="1" max="120"
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
                               value={formData.age} onChange={e => setFormData({...formData, age: e.target.value})}
@@ -716,8 +738,8 @@ export default function PatientDashboard() {
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Gender</label>
-                            <select 
+                            <label htmlFor="patient-gender" className="block text-sm font-semibold text-slate-700 mb-1.5">Gender</label>
+                            <select id="patient-gender" 
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                               value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}
                             >
@@ -728,13 +750,14 @@ export default function PatientDashboard() {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+                          <label htmlFor="assigned-doctor" className="block text-sm font-semibold text-slate-700 mb-1.5">
                             Your doctor <span className="text-slate-400 font-normal text-xs">(required)</span>
                           </label>
                           <select
                             required
                             className="w-full rounded-lg border-blue-200 bg-blue-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors font-medium"
-                            value={selectedDoctorId}
+                            id="assigned-doctor" value={selectedDoctorId}
+                            disabled={doctorsLoading || !!doctorsError}
                             onChange={e => setSelectedDoctorId(e.target.value)}
                           >
                             <option value="">-- Select your assigned doctor --</option>
@@ -742,8 +765,10 @@ export default function PatientDashboard() {
                               <option key={d.id} value={d.id}>Dr. {d.name} ({d.email})</option>
                             ))}
                           </select>
-                          {doctors.length === 0 && (
-                            <p className="text-xs text-amber-500 mt-1 font-medium">⚠ No doctors registered yet. Ask your clinic to create a doctor account first.</p>
+                          {doctorsLoading && <p role="status" className="text-sm text-slate-600 mt-2">Loading available doctors…</p>}
+                          {doctorsError && <div role="alert" className="patient-feedback"><p>{doctorsError}</p><button type="button" onClick={fetchDoctors}>Retry doctor list</button></div>}
+                          {!doctorsLoading && !doctorsError && doctors.length === 0 && (
+                            <p className="text-xs text-amber-500 mt-1 font-medium">No doctors are available for assignment yet. Contact the hospital for help.</p>
                           )}
                         </div>
                         <button type="submit" className="w-full rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-6 transition-all shadow-lg hover:shadow-blue-500/30">Continue to daily routine</button>
@@ -752,16 +777,16 @@ export default function PatientDashboard() {
                       <Motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
                         <div className="grid grid-cols-2 gap-5">
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Screen Time (hrs)</label>
-                            <input 
+                            <label htmlFor="screen-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">Screen Time (hrs)</label>
+                            <input id="screen-hours" 
                               type="number" required min="0" max="24" step="0.5"
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
                               value={formData.screenTime} onChange={e => setFormData({...formData, screenTime: e.target.value})}
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Reading Time (hrs)</label>
-                            <input 
+                            <label htmlFor="reading-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">Reading Time (hrs)</label>
+                            <input id="reading-hours" 
                               type="number" required min="0" max="24" step="0.5"
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
                               value={formData.readingTime} onChange={e => setFormData({...formData, readingTime: e.target.value})}
@@ -770,16 +795,16 @@ export default function PatientDashboard() {
                         </div>
                         <div className="grid grid-cols-2 gap-5">
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Work/Study (hrs)</label>
-                            <input 
+                            <label htmlFor="work-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">Work/Study (hrs)</label>
+                            <input id="work-hours"
                               type="number" required min="0" max="24" step="0.5"
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
                               value={formData.workHours} onChange={e => setFormData({...formData, workHours: e.target.value})}
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Sleep Time (hrs)</label>
-                            <input 
+                            <label htmlFor="sleep-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">Sleep Time (hrs)</label>
+                            <input id="sleep-hours"
                               type="number" required min="0" max="24" step="0.5"
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
                               value={formData.sleepHours} onChange={e => setFormData({...formData, sleepHours: e.target.value})}
@@ -788,16 +813,16 @@ export default function PatientDashboard() {
                         </div>
                         <div className="grid grid-cols-2 gap-5">
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Outdoor Time (hrs)</label>
-                            <input 
+                            <label htmlFor="outdoor-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">Outdoor Time (hrs)</label>
+                            <input id="outdoor-hours" 
                               type="number" required min="0" max="24" step="0.5"
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
                               value={formData.outdoorActivity} onChange={e => setFormData({...formData, outdoorActivity: e.target.value})}
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Parental Myopia</label>
-                            <select 
+                            <label htmlFor="parental-myopia" className="block text-sm font-semibold text-slate-700 mb-1.5">Parental Myopia</label>
+                            <select id="parental-myopia" 
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                               value={formData.parentalMyopia} onChange={e => setFormData({...formData, parentalMyopia: e.target.value})}
                             >
@@ -838,25 +863,27 @@ export default function PatientDashboard() {
                   <p className="text-slate-500 text-sm mt-1 flex items-center"><CheckCircle2 className="w-4 h-4 mr-1 text-teal-500" /> Generated on {result.date}</p>
                 </div>
               </div>
+              <ScreeningSummary result={result} />
               <PatientReportDelivery key={result.screeningId} screeningId={result.screeningId} initialState={result.reportEmail} registeredEmail={profile.email} />
               {result.careGuidance && (
                 <section className="rounded-2xl bg-white border p-6 text-left space-y-4">
+                  <p className="text-xs text-slate-500">Detailed care guidance · English</p>
                   <h3 className="text-xl font-bold text-slate-800">{result.careGuidance.title}</h3>
                   <p className="text-slate-700">{result.careGuidance.meaning}</p>
                   <p className="text-sm text-slate-500">{result.careGuidance.probability_note}</p>
                   <p className="rounded-lg bg-blue-50 p-4 text-blue-900">{result.careGuidance.next_step}</p>
                   <h4 className="font-bold text-slate-800">Daily precautions and healthy habits</h4>
-                  <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700">{result.careGuidance.habits.map(habit => <li key={habit}>{habit}</li>)}</ul>
+                  <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700">{(result.careGuidance.habits || []).map(habit => <li key={habit}>{habit}</li>)}</ul>
                   <details className="rounded-lg border p-4 text-sm text-slate-700">
                     <summary className="cursor-pointer font-bold">Doctor discussion and appointment preparation</summary>
-                    <ul className="list-disc pl-5 mt-3 space-y-2">{[...result.careGuidance.doctor_discussion, ...result.careGuidance.appointment_checklist].map(item => <li key={item}>{item}</li>)}</ul>
+                    <ul className="list-disc pl-5 mt-3 space-y-2">{[...(result.careGuidance.doctor_discussion || []), ...(result.careGuidance.appointment_checklist || [])].map(item => <li key={item}>{item}</li>)}</ul>
                     <p className="mt-3">Your PDF includes your assigned doctor's registered contact, when available. Contact the practice to book an appointment.</p>
                   </details>
                   <p className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-900"><strong>Urgent symptoms: </strong>{result.careGuidance.urgent_care}</p>
                 </section>
               )}
 
-              <div className="grid md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="md:col-span-1 bg-white rounded-2xl p-6 border shadow-sm flex flex-col items-center justify-center text-center">
                   <div className="relative mb-4">
                     <svg className="w-32 h-32 transform -rotate-90">
@@ -864,15 +891,15 @@ export default function PatientDashboard() {
                       <circle cx="64" cy="64" r="56" stroke="currentColor" strokeWidth="12" strokeDasharray="351.8" strokeDashoffset={351.8 - (351.8 * result.riskScore) / 100} className={`fill-none ${result.riskScore >= 70 ? 'text-red-500' : result.riskScore >= 40 ? 'text-amber-500' : 'text-teal-500'} transition-all duration-1000 ease-out`} strokeLinecap="round" />
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
-                      <span className="text-3xl font-black text-slate-800">{result.riskScore}</span>
-                      <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">Score</span>
+                      <span className="text-3xl font-black text-slate-800">{result.riskScore}%</span>
+                      <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">Model estimate</span>
                     </div>
                   </div>
                   <h3 className="text-xl font-bold mb-1">{result.severity} Risk</h3>
                   <p className="text-sm text-slate-500">{result.detection}</p>
                 </div>
 
-                <div className="md:col-span-2 bg-white rounded-2xl p-6 border shadow-sm">
+                <div className="md:col-span-2 min-w-0 bg-white rounded-2xl p-6 border shadow-sm">
                   <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
                     <Activity className="w-5 h-5 mr-2 text-blue-500" /> Recorded Screening Probabilities
                   </h3>
@@ -882,27 +909,15 @@ export default function PatientDashboard() {
                 </div>
               </div>
 
-              {/* ML Model Output Cards */}
-              {result.myopiaDetected !== null && (
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className={`rounded-2xl p-6 border shadow-sm text-center ${result.myopiaDetected ? 'bg-red-50 border-red-100' : 'bg-teal-50 border-teal-100'}`}>
-                    <p className="text-xs font-bold uppercase tracking-widest mb-2 text-slate-500">Model Screening Result</p>
-                    <p className={`text-3xl font-black mb-1 ${result.myopiaDetected ? 'text-red-600' : 'text-teal-600'}`}>
-                      {result.severity} screening risk
-                    </p>
-                    <p className="text-sm text-slate-500 font-medium">Myopia probability: <span className="font-bold text-slate-700">{result.probability !== null ? (result.probability * 100).toFixed(1) + '%' : 'N/A'}</span></p>
-                  </div>
-                  {result.nextSpheq !== null && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 border shadow-sm text-center">
-                      <p className="text-xs font-bold uppercase tracking-widest mb-2 text-slate-500">Predicted Next SPHEQ</p>
-                      <p className="text-4xl font-black text-blue-700 mb-1">{result.nextSpheq.toFixed(2)} D</p>
-                      <p className="text-sm text-slate-500 font-medium">Estimated refractive value at next visit</p>
-                    </div>
-                  )}
+              {result.nextSpheq !== null && Number.isFinite(result.nextSpheq) && (
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 text-center">
+                  <p className="text-xs font-bold uppercase tracking-widest mb-2 text-slate-500">Predicted Next SPHEQ</p>
+                  <p className="text-3xl font-bold text-blue-700">{result.nextSpheq.toFixed(2)} D</p>
+                  <p className="text-sm text-slate-500">Model-estimated refractive value at next visit</p>
                 </div>
               )}
 
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-100 mt-6 shadow-sm">
+              {result.recommendations.length > 0 && <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-100 mt-6 shadow-sm">
                 <h3 className="text-lg font-bold text-amber-800 mb-3 flex items-center">
                   <AlertTriangle className="w-5 h-5 mr-2" /> Screening Recommendations
                 </h3>
@@ -916,7 +931,7 @@ export default function PatientDashboard() {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </div>}
             </Motion.div>
           )}
         </AnimatePresence>

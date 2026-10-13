@@ -1,11 +1,16 @@
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, Literal
 
+class GoogleLogin(BaseModel):
+    credential: str = Field(min_length=20, max_length=10000)
+    challenge: str = Field(min_length=20, max_length=2000)
+    model_config = {"extra": "forbid"}
+
 class UserCreate(BaseModel):
     name: str
     email: EmailStr
     password: str
-    role: Literal["patient", "doctor"]
+    role: Literal["patient"] = "patient"
     otp_code: str = Field(pattern=r"^\d{6}$")
 
 class UserUpdate(BaseModel):

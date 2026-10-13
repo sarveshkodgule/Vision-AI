@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 from typing import Optional
 from database.mongodb import users_collection
@@ -16,7 +16,12 @@ SECRET_KEY = os.getenv("JWT_SECRET_KEY", "supersecretkey_please_change_in_produc
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
 # Setting auto_error=False to handle missing tokens gracefully in some contexts if needed
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+bearer_scheme = HTTPBearer(auto_error=False)
+
+async def oauth2_scheme(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="Sign in with Google to access your portal.", headers={"WWW-Authenticate": "Bearer"})
+    return credentials.credentials
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(

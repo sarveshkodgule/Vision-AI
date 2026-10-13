@@ -285,7 +285,7 @@ export default function DoctorDashboard() {
                 <>
                   <div>
                     <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Email Address</span>
-                    <input type="email" value={editForm.email} onChange={e => setEditForm({...editForm, email: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                    <input type="email" value={editForm.email} readOnly aria-label="Email linked to your sign-in account" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                   </div>
                   <div>
                     <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Full Name</span>

@@ -4,16 +4,17 @@ async function request(method, endpoint, data, isForm = false) {
   const token = localStorage.getItem('token');
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
   if (data !== undefined && !isForm) headers['Content-Type'] = 'application/json';
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  let response;
+  try { response = await fetch(`${API_BASE_URL}${endpoint}`, {
     method,
     headers,
     ...(data !== undefined ? { body: isForm ? data : JSON.stringify(data) } : {}),
-  });
-  const body = await response.json();
+  }); } catch { throw new Error('Unable to reach the hospital service. Check your connection and try again.'); }
+  const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const detail = Array.isArray(body.detail)
       ? body.detail.map(item => item.msg).join('; ')
-      : body.detail || body.message || `Request failed (${response.status})`;
+      : typeof body.detail === 'string' ? body.detail : body.message || (response.status === 401 ? 'Your session has expired. Please sign in again.' : 'The hospital service could not complete your request. Please try again.');
     const error = new Error(detail);
     error.response = { status: response.status, data: { ...body, detail } };
     throw error;

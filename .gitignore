@@ -5,6 +5,9 @@ PALM.zip
 *.bmp
 *.jpg
 *.png
+!Frontend/public/sarveshwar-eye.png
+!Frontend/public/hospital/*.jpg
+!Frontend/public/hospital/*.png
 
 # Virtual environments
 venv/
@@ -21,6 +24,7 @@ Frontend/node_modules/
 .vscode/
 .idea/
 .DS_Store
+.dev-services.json
 
 # Temporary outputs & logs
 reports/

@@ -24,7 +24,7 @@ async def authenticate_user(email: str, password: str):
     if not db_user:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     
-    if not verify_password(password, db_user["password"]):
+    if not db_user.get("password") or not verify_password(password, db_user["password"]):
         raise HTTPException(status_code=400, detail="Incorrect email or password")
     
     access_token = create_access_token(subject=str(db_user["_id"]), role=db_user.get("role", "patient"))
@@ -32,6 +32,11 @@ async def authenticate_user(email: str, password: str):
 
 async def update_user_profile(user_id: str, profile_data: dict):
     update_data = {k: v for k, v in profile_data.items() if v is not None}
+    if "email" in update_data:
+        existing = await users_collection.find_one({"_id": ObjectId(user_id)})
+        if not existing or update_data["email"].lower() != existing.get("email", "").lower():
+            raise HTTPException(400, "Your email is linked to your sign-in account. Contact the hospital to change it.")
+        update_data.pop("email")
     if not update_data:
         return None
     

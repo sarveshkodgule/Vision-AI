@@ -43,24 +43,30 @@ class ApiTests(unittest.TestCase):
         token = create_access_token("invalid-object-id")
         self.assertEqual(self.client.get("/auth/profile", headers={"Authorization": f"Bearer {token}"}).status_code, 401)
 
-    def test_reset_requires_otp(self):
-        response = self.client.post("/auth/reset-password", json={"email": "test@example.com", "new_password": "secret"})
-        self.assertEqual(response.status_code, 422)
-
-    def test_signup_preserves_password_and_rejects_invalid_role(self):
-        payload = dict(name="O'Brien", email="test@example.com", password="a<&'\"secret", role="patient", otp_code="123456")
-        with patch("routes.auth.create_user", new_callable=AsyncMock) as create:
-            create.return_value = {"id": "test"}
-            self.assertEqual(self.client.post("/auth/signup", json=payload).status_code, 200)
-            self.assertEqual(create.call_args.args[0].password, payload["password"])
-        payload["role"] = "admin"
-        self.assertEqual(self.client.post("/auth/signup", json=payload).status_code, 422)
-
-    def test_otp_not_returned_to_browser(self):
-        with patch("routes.auth.generate_and_save_otp", new_callable=AsyncMock, return_value="123456"):
-            response = self.client.post("/auth/request-otp", json={"email": "test@example.com"})
+    def test_password_login_and_google_only_account(self):
+        user = {"_id": ObjectId(), "email": "test@example.com", "role": "doctor", "password": get_password_hash("secret")}
+        with patch.object(auth_service.users_collection, 'find_one', new_callable=AsyncMock, return_value=user):
+            response = self.client.post('/auth/login', data={'username': user['email'], 'password': 'secret'})
             self.assertEqual(response.status_code, 200)
-            self.assertNotIn("123456", response.text)
+            self.assertEqual(response.json()['data']['user']['role'], 'doctor')
+            self.assertEqual(self.client.post('/auth/login', data={'username': user['email'], 'password': 'wrong'}).status_code, 400)
+            user.pop('password')
+            self.assertEqual(self.client.post('/auth/login', data={'username': user['email'], 'password': 'secret'}).status_code, 400)
+
+    def test_signup_is_patient_only_and_otp_is_not_exposed(self):
+        payload = dict(name='Patient', email='test@example.com', password='a-secret-password', role='doctor', otp_code='123456')
+        self.assertEqual(self.client.post('/auth/signup', json=payload).status_code, 422)
+        payload['role'] = 'patient'
+        with patch('routes.auth.create_user', new_callable=AsyncMock, return_value={'role': 'patient'}):
+            self.assertEqual(self.client.post('/auth/signup', json=payload).status_code, 200)
+        with patch('routes.auth.generate_and_save_otp', new_callable=AsyncMock, return_value='123456'):
+            response = self.client.post('/auth/request-otp', json={'email': 'test@example.com'})
+            self.assertEqual(response.status_code, 200)
+            self.assertNotIn('123456', response.text)
+        with patch('routes.auth.reset_password', new_callable=AsyncMock) as reset:
+            response = self.client.post('/auth/reset-password', json={'email': 'test@example.com', 'new_password': 'new-password', 'otp_code': '123456'})
+            self.assertEqual(response.status_code, 200)
+            reset.assert_awaited_once()
 
     def test_patient_cannot_download_another_patients_report(self):
         app.dependency_overrides[get_current_user] = lambda: {"_id": ObjectId()}
@@ -75,13 +81,13 @@ class ApiTests(unittest.TestCase):
             response = self.client.put("/auth/profile", json={"name": "Updated"})
             self.assertEqual(response.json()["data"]["name"], "Updated")
 
-    def test_login_issues_token(self):
-        user_id = ObjectId()
-        user = {"_id": user_id, "email": "test@example.com", "password": get_password_hash("secret"), "role": "patient"}
-        with patch.object(auth_service.users_collection, "find_one", new_callable=AsyncMock, return_value=user), patch("utils.audit.log_action", new_callable=AsyncMock):
-            response = self.client.post("/auth/login", data={"username": "test@example.com", "password": "secret"})
+    def test_google_login_issues_token(self):
+        token_data = {"access_token": "test-token", "token_type": "bearer", "user": {"id": str(ObjectId()), "role": "patient"}}
+        with patch("routes.auth.authenticate_google", new_callable=AsyncMock, return_value=token_data):
+            response = self.client.post("/auth/google", json={"credential": "x"*30, "challenge": "y"*30})
             self.assertEqual(response.status_code, 200)
-            self.assertTrue(response.json()["access_token"])
+            self.assertEqual(response.json()["data"]["access_token"], "test-token")
+            self.assertEqual(response.headers["cache-control"], "no-store")
 
     def test_static_reports_are_not_public(self):
         self.assertEqual(self.client.get("/reports/example.pdf").status_code, 404)

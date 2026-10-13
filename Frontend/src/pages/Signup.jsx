@@ -8,7 +8,7 @@ import HospitalBrand from '../components/HospitalBrand';
 export default function Signup() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1 = Enter Details, 2 = Verify OTP & Register
-  const [role, setRole] = useState('patient');
+  const role = 'patient';
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -92,23 +92,7 @@ export default function Signup() {
 
           {step === 1 ? (
             <>
-              <div className="flex p-1.5 mb-8 space-x-1 bg-slate-100 rounded-xl">
-                <button
-                  type="button"
-                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'patient' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-                  onClick={() => setRole('patient')}
-                >
-                  Patient
-                </button>
-                <button
-                  type="button"
-                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'doctor' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
-                  onClick={() => setRole('doctor')}
-                >
-                  Doctor
-                </button>
-              </div>
-
+              <p className="text-xs text-slate-500 mb-5">Patient registration. Doctor accounts are arranged by the hospital.</p>
               <form onSubmit={handleRequestOTP} className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>

@@ -2,6 +2,7 @@ import { createElement } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, HeartHandshake, MapPin, FileCheck2, Eye, Phone, GraduationCap } from 'lucide-react';
 import HospitalLayout from '../components/HospitalLayout';
+import HospitalGallery from '../components/HospitalGallery';
 import { hospital } from '../lib/hospital';
 
 export default function AboutUs() {
@@ -11,6 +12,7 @@ export default function AboutUs() {
       <div className="hospital-address-art"><span className="eyebrow">श्री सर्वेश्वर नेत्रालय</span><img className="about-hospital-emblem" src="/sarveshwar-eye.png" width="2172" height="724" alt="" /><h2>Rooted in<br/>our community.</h2><span><MapPin size={16}/> Mitra Nagar · Jalna Road</span></div>
       <div><p className="eyebrow">EYE CARE, CLOSER TO HOME</p><h2>A familiar place.<br/>An important conversation.</h2><p>Located near Gurudwara on Jalna Road, the hospital is listed locally as Sri Sarveshwar Netralaya. Dr. Hemant Anaspure is its publicly listed ophthalmologist.</p><p>This digital care portal is being developed for the hospital to help patients understand their screening results, keep their reports together, and prepare for an eye examination.</p><p>For consultation availability, examinations and treatment options, please speak directly with the hospital.</p><a href={hospital.phoneHref} className="text-link">Talk to the hospital <Phone size={17}/></a></div>
     </section>
+    <HospitalGallery />
     <section id="doctor" className="hospital-section hospital-container">
       <div className="section-heading"><div><p className="eyebrow">MEET YOUR DOCTOR</p><h2>The person behind your care.</h2></div></div>
       <article className="doctor-profile"><div className="doctor-profile-art"><span className="doctor-initials">HA</span><p>OPHTHALMOLOGY</p><span className="doctor-art-line"/></div><div className="doctor-profile-copy"><p className="eyebrow">{hospital.doctor.role}</p><h3>{hospital.doctor.name}</h3><p className="doctor-qualifications"><GraduationCap size={20}/>{hospital.doctor.qualifications}</p><p>Dr. Hemant Anaspure is listed as an ophthalmologist at Sri Sarveshwar Netralaya, Jalna Road. His qualifications in medicine and ophthalmology are recorded in the Maharashtra Medical Council’s 2025 Aurangabad electoral roll.</p><p>An in-person consultation is the time to discuss symptoms, previous prescriptions, examination findings and a care plan suited to you.</p><div className="button-row"><a className="hospital-button" href={hospital.phoneHref}>Enquire about a consultation <ArrowUpRight size={18}/></a></div><a className="source-link" href={hospital.sources.qualifications} target="_blank" rel="noreferrer">Qualification reference · Maharashtra Medical Council ↗</a></div></article>

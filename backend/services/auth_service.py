@@ -1,8 +1,11 @@
+import os
 from fastapi import HTTPException, status
 from schemas.user import UserCreate, UserLogin
 from utils.security import get_password_hash, verify_password, create_access_token
 from database.mongodb import users_collection
 from bson import ObjectId
+
+HOSPITAL_DOCTOR_CODE = os.getenv("HOSPITAL_DOCTOR_CODE", "SARVESHWAR2026")
 
 async def create_user(user: UserCreate):
     existing_user = await users_collection.find_one({"email": user.email})
@@ -11,22 +14,57 @@ async def create_user(user: UserCreate):
         
     # Verify OTP if provided for signup flow
     await verify_otp_code(user.email, user.otp_code)
+
+    # Doctor registration requires verified hospital authorization code
+    if user.role == "doctor":
+        if not user.doctor_passcode or user.doctor_passcode.strip() != HOSPITAL_DOCTOR_CODE:
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid hospital doctor security code. Please contact hospital administration."
+            )
     
-    user_data = user.model_dump(exclude={"otp_code"})
+    user_data = user.model_dump(exclude={"otp_code", "doctor_passcode"})
     user_data["password"] = get_password_hash(user.password)
     
     result = await users_collection.insert_one(user_data)
     
     return {"id": str(result.inserted_id), "name": user.name, "email": user.email, "role": user.role}
 
+import time
+from collections import defaultdict
+
+FAILED_LOGIN_ATTEMPTS = defaultdict(list)
+MAX_FAILED_ATTEMPTS = 5
+LOCKOUT_WINDOW_SECONDS = 900  # 15 minutes
+
 async def authenticate_user(email: str, password: str):
+    email_key = email.strip().lower()
+    now = time.time()
+    
+    # Filter attempts within lockout window
+    FAILED_LOGIN_ATTEMPTS[email_key] = [
+        t for t in FAILED_LOGIN_ATTEMPTS[email_key] if now - t < LOCKOUT_WINDOW_SECONDS
+    ]
+    
+    if len(FAILED_LOGIN_ATTEMPTS[email_key]) >= MAX_FAILED_ATTEMPTS:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many failed login attempts. For patient data protection, this account is temporarily locked for 15 minutes. Try again later or reset your password."
+        )
+
     db_user = await users_collection.find_one({"email": email})
-    if not db_user:
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
+    if not db_user or not db_user.get("password") or not verify_password(password, db_user["password"]):
+        FAILED_LOGIN_ATTEMPTS[email_key].append(now)
+        remaining = MAX_FAILED_ATTEMPTS - len(FAILED_LOGIN_ATTEMPTS[email_key])
+        detail = "Incorrect email or password."
+        if remaining > 0:
+            detail += f" {remaining} attempt{'s' if remaining != 1 else ''} remaining before temporary lockout."
+        raise HTTPException(status_code=400, detail=detail)
     
-    if not db_user.get("password") or not verify_password(password, db_user["password"]):
-        raise HTTPException(status_code=400, detail="Incorrect email or password")
-    
+    # Reset failed attempts upon successful login
+    if email_key in FAILED_LOGIN_ATTEMPTS:
+        del FAILED_LOGIN_ATTEMPTS[email_key]
+
     access_token = create_access_token(subject=str(db_user["_id"]), role=db_user.get("role", "patient"))
     return {"access_token": access_token, "token_type": "bearer", "user": {"id": str(db_user["_id"]), "role": db_user["role"]}}
 

@@ -14,13 +14,24 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS Configuration
+# CORS Configuration: restrict to trusted web origins for clinical data safety
+ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+custom_origins = os.getenv("ALLOWED_ORIGINS", "")
+if custom_origins:
+    ALLOWED_ORIGINS.extend([o.strip() for o in custom_origins.split(",") if o.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 # In-memory Rate Limiting: Limits requests to 150 requests per 15 minutes per IP
@@ -60,10 +71,24 @@ async def rate_limiting_middleware(request: Request, call_next):
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
-    response.headers["X-Frame-Options"] = "DENY"  # Prevents Clickjacking
-    response.headers["X-Content-Type-Options"] = "nosniff"  # Prevents MIME-sniffing
-    response.headers["X-XSS-Protection"] = "1; mode=block"  # Mitigates Cross-Site Scripting (XSS)
+    # Defense against clickjacking, MIME sniffing, and XSS
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    # Healthcare data privacy: Protect against browser hardware & location probing
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=()"
+    
+    # Process isolation while supporting Google OAuth popup workflows
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
+
+    # Patient record cache prevention: Disallow browser/proxy caching on clinical data
+    path = request.url.path
+    if path.startswith(("/patient", "/doctor")):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, private"
+        response.headers["Pragma"] = "no-cache"
+
     return response
 
 # Input Sanitization: Mitigates XSS (HTML escaping) and NoSQL injection (removes query operators starting with $)

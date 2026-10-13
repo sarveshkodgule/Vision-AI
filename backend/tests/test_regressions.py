@@ -54,10 +54,14 @@ class ApiTests(unittest.TestCase):
             self.assertEqual(self.client.post('/auth/login', data={'username': user['email'], 'password': 'secret'}).status_code, 400)
 
     def test_signup_is_patient_only_and_otp_is_not_exposed(self):
-        payload = dict(name='Patient', email='test@example.com', password='a-secret-password', role='doctor', otp_code='123456')
+        payload = dict(name='User', email='test@example.com', password='a-secret-password', role='invalid_role', otp_code='123456')
         self.assertEqual(self.client.post('/auth/signup', json=payload).status_code, 422)
         payload['role'] = 'patient'
         with patch('routes.auth.create_user', new_callable=AsyncMock, return_value={'role': 'patient'}):
+            self.assertEqual(self.client.post('/auth/signup', json=payload).status_code, 200)
+        payload['role'] = 'doctor'
+        payload['doctor_passcode'] = 'SARVESHWAR2026'
+        with patch('routes.auth.create_user', new_callable=AsyncMock, return_value={'role': 'doctor'}):
             self.assertEqual(self.client.post('/auth/signup', json=payload).status_code, 200)
         with patch('routes.auth.generate_and_save_otp', new_callable=AsyncMock, return_value='123456'):
             response = self.client.post('/auth/request-otp', json={'email': 'test@example.com'})

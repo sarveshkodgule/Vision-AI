@@ -12,6 +12,13 @@ async function request(method, endpoint, data, isForm = false) {
   }); } catch { throw new Error('Unable to reach the hospital service. Check your connection and try again.'); }
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
+    if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/google')) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('role');
+      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
     const detail = Array.isArray(body.detail)
       ? body.detail.map(item => item.msg).join('; ')
       : typeof body.detail === 'string' ? body.detail : body.message || (response.status === 401 ? 'Your session has expired. Please sign in again.' : 'The hospital service could not complete your request. Please try again.');

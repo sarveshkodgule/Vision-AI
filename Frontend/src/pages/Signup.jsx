@@ -8,7 +8,8 @@ import HospitalBrand from '../components/HospitalBrand';
 export default function Signup() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1 = Enter Details, 2 = Verify OTP & Register
-  const role = 'patient';
+  const [role, setRole] = useState('patient');
+  const [doctorPasscode, setDoctorPasscode] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,6 +21,10 @@ export default function Signup() {
 
   const handleRequestOTP = async (e) => {
     e.preventDefault();
+    if (role === 'doctor' && !doctorPasscode.trim()) {
+      setError('Hospital doctor security code is required.');
+      return;
+    }
     setLoading(true);
     setError('');
     setSuccess('');
@@ -45,16 +50,20 @@ export default function Signup() {
     setSuccess('');
     
     try {
-      const data = await api.post('/auth/signup', {
+      const payload = {
         name,
         email,
         password,
         role,
         otp_code: otpCode
-      });
+      };
+      if (role === 'doctor') {
+        payload.doctor_passcode = doctorPasscode.trim();
+      }
+      const data = await api.post('/auth/signup', payload);
       
       if (data.status === 'success') {
-        setSuccess("Account Successfully created! Redirecting to Login...");
+        setSuccess(`${role === 'doctor' ? 'Doctor' : 'Patient'} account successfully created! Redirecting to Login...`);
         setTimeout(() => {
             navigate('/login');
         }, 1500);
@@ -62,7 +71,7 @@ export default function Signup() {
         setError(data.detail || data.message || "Registration failed.");
       }
     } catch (err) {
-      setError(err.response?.data?.detail || "Invalid or expired verification code.");
+      setError(err.response?.data?.detail || "Invalid code or registration failed.");
     } finally {
       setLoading(false);
     }
@@ -92,8 +101,42 @@ export default function Signup() {
 
           {step === 1 ? (
             <>
-              <p className="text-xs text-slate-500 mb-5">Patient registration. Doctor accounts are arranged by the hospital.</p>
+              <div className="flex p-1.5 mb-5 space-x-1 bg-slate-100 rounded-xl" role="tablist">
+                <button
+                  type="button"
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'patient' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                  onClick={() => { setRole('patient'); setError(''); }}
+                >
+                  Patient
+                </button>
+                <button
+                  type="button"
+                  className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'doctor' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
+                  onClick={() => { setRole('doctor'); setError(''); }}
+                >
+                  Doctor (Staff)
+                </button>
+              </div>
+
               <form onSubmit={handleRequestOTP} className="space-y-4">
+                {role === 'doctor' && (
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Hospital Security Code</label>
+                    <div className="relative">
+                      <Key className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
+                      <input 
+                        type="password" 
+                        value={doctorPasscode}
+                        onChange={(e) => setDoctorPasscode(e.target.value)}
+                        className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors font-mono" 
+                        placeholder="Enter hospital authorization passcode" 
+                        required
+                      />
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1">Authorized hospital medical staff only. Provided by clinic administration.</p>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
                   <div className="relative">

@@ -1,11 +1,14 @@
+import { usePatientLanguage } from '../lib/patientLanguage';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Mail, ShieldCheck, Lock, Key, Eye, EyeOff } from 'lucide-react';
 import { motion as Motion } from 'framer-motion';
 import { api } from '../lib/api';
 import HospitalBrand from '../components/HospitalBrand';
+import ResendOtp from '../components/ResendOtp';
 
 export default function ForgotPassword() {
+  const { t } = usePatientLanguage();
   const navigate = useNavigate();
   const [step, setStep] = useState(1); // 1 = Request OTP, 2 = Verify OTP & Reset
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -73,27 +76,24 @@ export default function ForgotPassword() {
           onClick={() => navigate(-1)} 
           className="flex items-center text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors mb-6"
         >
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back
-        </button>
+          <ArrowLeft className="w-4 h-4 mr-1" /> {t("Back")} </button>
 
         <div className="auth-hospital-brand"><HospitalBrand /></div>
         <div className="bg-white p-8 rounded-3xl shadow-xl shadow-blue-900/5 border border-slate-100">
           <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-blue-600">
             <ShieldCheck className="w-8 h-8" />
           </div>
-          <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">Reset Password</h2>
+          <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">{t("Reset Password")}</h2>
           
           {!isSubmitted ? (
             <>
               {step === 1 ? (
                 <>
-                  <p className="text-slate-500 text-center mb-6 text-sm">
-                    Enter your registered email address to request a secure 10-minute verification code.
-                  </p>
-                  {error && <div className="p-3 mb-6 bg-red-50 text-red-600 rounded-lg text-sm text-center font-semibold">{error}</div>}
+                  <p className="text-slate-500 text-center mb-6 text-sm"> {t("Enter your registered email address to request a secure 10-minute verification code.")} </p>
+                  {error && <div className="p-3 mb-6 bg-red-50 text-red-600 rounded-lg text-sm text-center font-semibold">{t(error)}</div>}
                   <form onSubmit={handleRequestOTP} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email Address</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Email Address")}</label>
                       <div className="relative">
                         <Mail className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
                         <input 
@@ -111,19 +111,17 @@ export default function ForgotPassword() {
                       disabled={loading}
                       className={`w-full inline-flex items-center justify-center rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-2 transition-all shadow-lg hover:shadow-blue-500/30 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
-                      {loading ? 'Processing...' : 'Request Code'}
+                      {loading ? t("Processing...") : t("Request Code")}
                     </button>
                   </form>
                 </>
               ) : (
                 <>
-                  <p className="text-slate-500 text-center mb-6 text-sm">
-                    Enter the code sent to your email and your new password.
-                  </p>
-                  {error && <div className="p-3 mb-6 bg-red-50 text-red-600 rounded-lg text-sm text-center font-semibold">{error}</div>}
+                  <p className="text-slate-500 text-center mb-6 text-sm"> {t("Enter the code sent to your email and your new password.")} </p>
+                  {error && <div className="p-3 mb-6 bg-red-50 text-red-600 rounded-lg text-sm text-center font-semibold">{t(error)}</div>}
                   <form onSubmit={handleResetPassword} className="space-y-4">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Verification Code (OTP)</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Verification Code (OTP)")}</label>
                       <div className="relative">
                         <Key className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
                         <input 
@@ -131,13 +129,13 @@ export default function ForgotPassword() {
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value)}
                           className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
-                          placeholder="Enter 6-digit code" 
+                          placeholder={t("Enter 6-digit code")} 
                           required
                         />
                       </div>
                     </div>
                      <div>
-                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">New Password</label>
+                       <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t("New Password")}</label>
                        <div className="relative">
                          <Lock className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
                          <input 
@@ -145,7 +143,7 @@ export default function ForgotPassword() {
                            value={password}
                            onChange={(e) => setPassword(e.target.value)}
                            className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-12 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
-                           placeholder="At least 6 characters"
+                           placeholder={t("At least 6 characters")}
                            minLength={6}
                            required
                          />
@@ -169,21 +167,16 @@ export default function ForgotPassword() {
                       type="button"
                       onClick={() => setStep(1)}
                       className="w-full text-center text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors mt-2"
-                    >
-                      Change Email Address
-                    </button>
+                    > {t("Change Email Address")} </button>
                   </form>
+                <ResendOtp email={email} isSignup={false} disabled={loading} onSent={() => { setOtpCode(''); setError(''); }} />
                 </>
               )}
             </>
           ) : (
              <div className="text-center">
-               <div className="bg-green-50 text-green-700 p-4 rounded-xl mb-6 text-sm font-medium border border-green-100">
-                 Your password has been successfully reset. You can now log in securely.
-               </div>
-               <Link to="/login" className="text-blue-600 font-bold hover:underline">
-                 Return to Login
-               </Link>
+               <div className="bg-green-50 text-green-700 p-4 rounded-xl mb-6 text-sm font-medium border border-green-100"> {t("Your password has been successfully reset. You can now log in securely.")} </div>
+               <Link to="/login" className="text-blue-600 font-bold hover:underline"> {t("Return to Login")} </Link>
              </div>
           )}
         </div>

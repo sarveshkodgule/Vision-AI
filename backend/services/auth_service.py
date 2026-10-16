@@ -103,7 +103,7 @@ async def reset_password(email: str, new_password: str, otp_code: str = None):
     # If otp_code is provided, verify it first before resetting
     if not otp_code:
         raise HTTPException(status_code=400, detail="Verification code required")
-    await verify_otp_code(clean_email, otp_code)
+    await verify_otp_code(clean_email, otp_code, purpose="reset")
         
     hashed_password = get_password_hash(new_password.strip())
     await users_collection.update_one(
@@ -114,72 +114,66 @@ async def reset_password(email: str, new_password: str, otp_code: str = None):
         del FAILED_LOGIN_ATTEMPTS[clean_email.lower()]
     return True
 
+def _otp_digest(email, code):
+    import hashlib
+    import hmac
+    from utils.security import SECRET_KEY
+    return hmac.new(SECRET_KEY.encode(), f"{email}:{code}".encode(), hashlib.sha256).hexdigest()
+
+
 async def generate_and_save_otp(email: str, is_signup: bool = False) -> str:
-    import secrets
+    import asyncio
     from datetime import datetime, timezone
     from database.mongodb import otp_codes_collection
-    
-    clean_email = email.strip()
-    db_user = await users_collection.find_one({
-        "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}
-    })
-    if is_signup:
-        if db_user:
-            raise HTTPException(status_code=400, detail="Email already registered")
-    else:
-        if not db_user:
-            raise HTTPException(status_code=404, detail="Email not found")
-        
-    # Generate 6-digit random code
-    code = str(secrets.randbelow(900000) + 100000)
-    
-    # Delete old OTPs for this email
-    await otp_codes_collection.delete_many({
-        "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}
-    })
-    
-    # Save the new OTP with UTC timezone-aware current time
-    await otp_codes_collection.insert_one({
-        "email": clean_email.lower(),
-        "code": code,
-        "created_at": datetime.now(timezone.utc)
-    })
-    
-    # Send real verification code via email
     from services.email_service import send_otp_email
-    import asyncio
+
+    clean_email = email.strip().lower()
+    purpose = "signup" if is_signup else "reset"
+    db_user = await users_collection.find_one({"email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}})
+    if is_signup and db_user:
+        raise HTTPException(400, "Email already registered")
+    if not is_signup and not db_user:
+        raise HTTPException(404, "Email not found")
+    now = datetime.now(timezone.utc)
+    previous = await otp_codes_collection.find_one({"email": clean_email})
+    if previous:
+        created = previous["created_at"].replace(tzinfo=timezone.utc)
+        if (now - created).total_seconds() < 60:
+            raise HTTPException(429, "Please wait 60 seconds before requesting another code.")
+    code = str(secrets.randbelow(900000) + 100000)
+    digest = _otp_digest(clean_email, code)
+    await otp_codes_collection.delete_many({"email": clean_email})
+    await otp_codes_collection.insert_one({
+        "email": clean_email, "code_hash": digest, "purpose": purpose,
+        "attempts": 0, "created_at": now,
+    })
     if not await asyncio.to_thread(send_otp_email, clean_email, code):
-        await otp_codes_collection.delete_many({"email": clean_email.lower(), "code": code})
-        raise HTTPException(status_code=503, detail="Unable to send verification email. Check SMTP configuration.")
-    
+        await otp_codes_collection.delete_many({"email": clean_email, "code_hash": digest})
+        raise HTTPException(503, "Unable to send verification email. Please try again later or contact the hospital.")
     return code
 
-async def verify_otp_code(email: str, code: str) -> bool:
+
+async def verify_otp_code(email: str, code: str, *, purpose="signup", consume=True) -> bool:
     from datetime import datetime, timezone, timedelta
+    from pymongo import ReturnDocument
     from database.mongodb import otp_codes_collection
-    
-    clean_email = email.strip()
-    otp_record = await otp_codes_collection.find_one({
-        "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"},
-        "code": code.strip()
-    })
-    if not otp_record:
-        raise HTTPException(status_code=400, detail="Invalid verification code")
-        
-    # Temporal Expiry Check: strict 10-minute constraint
-    created_at = otp_record["created_at"]
-    # Ensure created_at has timezone info
-    if created_at.tzinfo is None:
-        created_at = created_at.replace(tzinfo=timezone.utc)
-        
-    now = datetime.now(timezone.utc)
-    if now - created_at > timedelta(minutes=10):
-        # Purge expired code from database
-        await otp_codes_collection.delete_one({"_id": otp_record["_id"]})
-        raise HTTPException(status_code=400, detail="Verification code has expired (10-minute limit)")
-        
-    # Delete the code once verified successfully
-    consumed = await otp_codes_collection.delete_one({"_id": otp_record["_id"]})
-    if not consumed.deleted_count:
-        raise HTTPException(status_code=400, detail="Verification code already used")
+
+    clean_email = email.strip().lower()
+    # Increment atomically before checking: concurrent guesses share the same limit.
+    record = await otp_codes_collection.find_one_and_update(
+        {"email": clean_email, "purpose": purpose, "attempts": {"$lt": 5}},
+        {"$inc": {"attempts": 1}}, return_document=ReturnDocument.AFTER,
+    )
+    if not record:
+        raise HTTPException(400, "Invalid code or attempt limit reached. Request a new code.")
+    created = record["created_at"].replace(tzinfo=timezone.utc)
+    if datetime.now(timezone.utc) - created >= timedelta(minutes=10):
+        await otp_codes_collection.delete_one({"_id": record["_id"]})
+        raise HTTPException(400, "Verification code has expired. Request a new code.")
+    if not secrets.compare_digest(record["code_hash"], _otp_digest(clean_email, code.strip())):
+        raise HTTPException(400, "Invalid verification code")
+    if consume:
+        consumed = await otp_codes_collection.delete_one({"_id": record["_id"]})
+        if not consumed.deleted_count:
+            raise HTTPException(400, "Verification code already used")
     return True

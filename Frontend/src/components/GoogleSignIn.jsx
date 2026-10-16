@@ -1,3 +1,4 @@
+import { usePatientLanguage } from '../lib/patientLanguage';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -20,6 +21,7 @@ function loadGoogle() {
 }
 
 export default function GoogleSignIn() {
+  const { language, t } = usePatientLanguage();
   const target = useRef(null);
   const navigate = useNavigate();
   const [attempt, setAttempt] = useState(0);
@@ -54,16 +56,16 @@ export default function GoogleSignIn() {
           } catch (err) { if (active) { setError(err.message); setPhase('error'); } }
         } });
         button.replaceChildren();
-        window.google.accounts.id.renderButton(button, { theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', width: Math.min(360, button.clientWidth) });
+        window.google.accounts.id.renderButton(button, { locale: language, theme: 'outline', size: 'large', shape: 'pill', text: 'continue_with', width: Math.min(360, button.clientWidth) });
         setPhase('ready');
       } catch (err) { if (active) { setError(err.message); setPhase('error'); } }
     }
     setup();
     return () => { active = false; button?.replaceChildren(); };
-  }, [attempt, navigate]);
+  }, [attempt, navigate, language]);
   return <div className="google-signin" aria-busy={phase === 'loading' || phase === 'verifying'}>
     <div ref={target} className={phase === 'ready' ? 'google-button' : 'google-button google-button-hidden'} />
-    {(phase === 'loading' || phase === 'verifying') && <p role="status">{phase === 'loading' ? 'Preparing secure Google sign-in…' : 'Verifying your account and opening your portal…'}</p>}
-    {error && <div className="patient-feedback" role="alert"><p>{error}</p><button type="button" onClick={() => { setError(''); setPhase('loading'); setAttempt(value => value + 1); }}>Retry Google sign-in</button></div>}
+    {(phase === 'loading' || phase === 'verifying') && <p role="status">{phase === 'loading' ? t("Preparing secure Google sign-in…") : t("Verifying your account and opening your portal…")}</p>}
+    {error && <div className="patient-feedback" role="alert"><p>{t(error)}</p><button type="button" onClick={() => { setError(''); setPhase('loading'); setAttempt(value => value + 1); }}>{t("Retry Google sign-in")}</button></div>}
   </div>;
 }

@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react';
+import { uiMarathi } from './uiMarathi';
 
 const key = 'visionai-guidance-language';
 const eventName = 'visionai-language-change';
@@ -19,5 +20,5 @@ export function usePatientLanguage() {
     try { localStorage.setItem(key, fallback); } catch { /* Continue in memory when storage is unavailable. */ }
     window.dispatchEvent(new Event(eventName));
   };
-  return { language, setLanguage, t: (english, marathi) => language === 'mr' ? marathi : english };
+  return { language, setLanguage, t: (english, marathi) => language === 'mr' ? (marathi ?? uiMarathi[english] ?? english) : english };
 }

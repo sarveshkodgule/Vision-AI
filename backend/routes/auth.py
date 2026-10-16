@@ -42,7 +42,7 @@ async def request_otp(payload: OTPRequest):
 
 @router.post("/verify-otp")
 async def verify_otp(payload: OTPVerify):
-    await verify_otp_code(payload.email, payload.code)
+    await verify_otp_code(payload.email, payload.code, purpose="signup" if payload.is_signup else "reset", consume=False)
     return {"status": "success", "message": "Verification code is valid."}
 
 

@@ -33,7 +33,8 @@ class OTPRequest(BaseModel):
 
 class OTPVerify(BaseModel):
     email: EmailStr
-    code: str
+    code: str = Field(pattern=r"^\d{6}$")
+    is_signup: bool = True
 
 class UserResponse(BaseModel):
     id: str

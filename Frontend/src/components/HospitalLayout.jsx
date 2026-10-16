@@ -1,3 +1,4 @@
+import HospitalChat from './HospitalChat';
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { Phone, MapPin, ArrowUpRight, Menu, X } from 'lucide-react';
@@ -36,16 +37,17 @@ export default function HospitalLayout({ children }) {
         </nav>
       </div>
     </header>
-    {pathname === '/' && <div className="hospital-container landing-utility"><span>{t('A little guidance. A clear next step.', 'तुमची शंका विचारा. पुढचं पाऊल समजून घ्या.')}</span><PatientLanguageSwitch compact /></div>}
-    <main id="main-content" lang={pathname === '/' ? language : 'en'}>{children}</main>
+    {<div className="hospital-container landing-utility"><span>{t('A little guidance. A clear next step.', 'तुमची शंका विचारा. पुढचं पाऊल समजून घ्या.')}</span><PatientLanguageSwitch compact /></div>}
+    <main id="main-content" lang={language}>{children}</main>
     <footer className="hospital-footer">
       <div className="hospital-container footer-grid">
         <div><HospitalBrand light /><p>{t('Eye care, closer to home.', 'घराच्या जवळ, डोळ्यांची काळजी.')}<br />{t('A clearer path from screening to consultation.', 'प्राथमिक तपासणीपासून डॉक्टरांच्या सल्ल्यापर्यंत.')}</p><span className="footer-caption">{t('Vision AI · Digital screening & care portal', 'Vision AI · ऑनलाइन प्राथमिक तपासणी आणि रिपोर्ट')}</span></div>
         <div><h3>{t('Explore', 'अधिक माहिती')}</h3><Link to="/about">{t('About the hospital', 'रुग्णालयाबद्दल')}</Link><Link to="/about#doctor">{t('Meet your doctor', 'डॉक्टरांची ओळख')}</Link><Link to="/contact">{t('Contact & directions', 'संपर्क आणि पत्ता')}</Link><Link to={portal}>{t('Open your portal', 'तुमचं खाते उघडा')}</Link></div>
-        <div><h3>{t('Visit us', 'इथे भेट द्या')}</h3><p>{t(hospital.address, hospital.marathiAddress)}</p><a href={hospital.phoneHref}>{hospital.phone} <ArrowUpRight size={15}/></a><p className="footer-caption">{t('Please call to confirm timings before you travel.', 'निघण्यापूर्वी फोन करून वेळ नक्की करा.')}</p></div>
+        <div><h3>{t('Visit us', 'इथे भेट द्या')}</h3><p>{t(hospital.address, hospital.marathiAddress)}</p><a href={hospital.phoneHref}>{hospital.phone} <ArrowUpRight size={15}/></a><p className="clinic-hours-footer">{t(hospital.hours, hospital.marathiHours)}<br/>{t(hospital.closed, hospital.marathiClosed)}</p><p className="footer-caption">{t('Please call to confirm timings before you travel.', 'निघण्यापूर्वी फोन करून वेळ नक्की करा.')}</p></div>
       </div>
       <div className="hospital-container footer-bottom"><span>© {new Date().getFullYear()} {t(hospital.name, hospital.marathiName)} · Vision AI</span><span>{t('Screening supports an eye examination; it does not replace one.', 'ऑनलाइन अंदाज मिळाला तरी प्रत्यक्ष डोळ्यांची तपासणी गरजेची आहे.')}</span></div>
     </footer>
+    <HospitalChat />
     <nav className="mobile-care-bar" aria-label={t('Quick patient actions', 'लगेच मदत घ्या')}><a href={hospital.phoneHref}><Phone size={17}/>{t('Call hospital', 'फोन करा')}</a><Link to={portal}>{t('Open your portal', 'तुमचं खाते उघडा')} <ArrowUpRight size={17}/></Link></nav>
   </div>;
 }

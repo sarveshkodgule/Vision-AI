@@ -152,7 +152,7 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(result["fundus_pm_prediction"], "No Image")
 
     async def test_email_failure_is_not_reported_as_success(self):
-        with patch.object(auth_service.users_collection, "find_one", new_callable=AsyncMock, return_value=None), patch("database.mongodb.otp_codes_collection.delete_many", new_callable=AsyncMock), patch("database.mongodb.otp_codes_collection.insert_one", new_callable=AsyncMock), patch("services.email_service.send_otp_email", return_value=False):
+        with patch.object(auth_service.users_collection, "find_one", new_callable=AsyncMock, return_value=None), patch("database.mongodb.otp_codes_collection.find_one", new_callable=AsyncMock, return_value=None), patch("database.mongodb.otp_codes_collection.delete_many", new_callable=AsyncMock), patch("database.mongodb.otp_codes_collection.insert_one", new_callable=AsyncMock), patch("services.email_service.send_otp_email", return_value=False):
             with self.assertRaises(HTTPException) as error:
                 await auth_service.generate_and_save_otp("test@example.com", is_signup=True)
             self.assertEqual(error.exception.status_code, 503)

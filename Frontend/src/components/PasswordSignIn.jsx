@@ -1,11 +1,12 @@
+import { usePatientLanguage } from '../lib/patientLanguage';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { api } from '../lib/api';
 
-export default function PasswordSignIn() {
+export default function PasswordSignIn({ role, onRoleChange }) {
+  const { t } = usePatientLanguage();
   const navigate = useNavigate();
-  const [role, setRole] = useState('patient');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [visible, setVisible] = useState(false);
@@ -55,10 +56,8 @@ export default function PasswordSignIn() {
           boxShadow: role === 'patient' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
           transition: 'all 0.15s ease'
         }}
-        onClick={() => { setRole('patient'); setError(''); }}
-      >
-        Patient
-      </button>
+        onClick={() => { onRoleChange('patient'); setError(''); }}
+      > {t("Patient")} </button>
       <button
         type="button"
         role="tab"
@@ -77,18 +76,16 @@ export default function PasswordSignIn() {
           boxShadow: role === 'doctor' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
           transition: 'all 0.15s ease'
         }}
-        onClick={() => { setRole('doctor'); setError(''); }}
-      >
-        Doctor
-      </button>
+        onClick={() => { onRoleChange('doctor'); setError(''); }}
+      > {t("Doctor")} </button>
     </div>
 
-    {role === 'doctor' && <p className="doctor-signin-note">Use your registered doctor email and your own password. The hospital registration code is only for creating a staff account. You can also continue with Google below using the same registered email.</p>}
-    <label htmlFor="login-email">{role === 'doctor' ? 'Doctor email address' : 'Patient email address'}</label>
+    {role === 'doctor' && <p className="doctor-signin-note">{t("Use your registered doctor email and your own password. The hospital registration code is only for creating a staff account. You can also continue with Google below using the same registered email.")}</p>}
+    <label htmlFor="login-email">{role === 'doctor' ? t("Doctor email address") : t("Patient email address")}</label>
     <input id="login-email" type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} placeholder={role === 'doctor' ? 'doctor@example.com' : 'patient@example.com'} />
-    <div className="password-label"><label htmlFor="login-password">Password</label><Link to="/forgot-password">Forgot password?</Link></div>
-    <div className="password-input"><input id="login-password" type={visible ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)}/><button type="button" aria-label={visible ? 'Hide password' : 'Show password'} aria-pressed={visible} onClick={() => setVisible(value => !value)}>{visible ? <EyeOff size={18}/> : <Eye size={18}/>}</button></div>
-    {error && <p className="patient-feedback" role="alert">{error}</p>}
-    <button type="submit" className="password-submit" disabled={busy}>{busy && <Loader2 size={18} className="animate-spin"/>}{busy ? 'Signing in…' : `Sign in as ${role === 'doctor' ? 'Doctor' : 'Patient'}`}</button>
+    <div className="password-label"><label htmlFor="login-password">{t("Password")}</label><Link to="/forgot-password">{t("Forgot password?")}</Link></div>
+    <div className="password-input"><input id="login-password" type={visible ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)}/><button type="button" aria-label={visible ? t("Hide password") : t("Show password")} aria-pressed={visible} onClick={() => setVisible(value => !value)}>{visible ? <EyeOff size={18}/> : <Eye size={18}/>}</button></div>
+    {error && <p className="patient-feedback" role="alert">{t(error)}</p>}
+    <button type="submit" className="password-submit" disabled={busy}>{busy && <Loader2 size={18} className="animate-spin"/>}{busy ? t("Signing in…") : t(`Sign in as ${role === 'doctor' ? 'Doctor' : 'Patient'}`, `${role === 'doctor' ? 'डॉक्टर' : 'रुग्ण'} म्हणून लॉग इन करा`)}</button>
   </form>;
 }

@@ -1,14 +1,18 @@
+import { usePatientLanguage } from '../lib/patientLanguage';
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft, Key } from 'lucide-react';
 import { motion as Motion } from 'framer-motion';
 import { api } from '../lib/api';
 import HospitalBrand from '../components/HospitalBrand';
+import ResendOtp from '../components/ResendOtp';
 
 export default function Signup() {
+  const { t } = usePatientLanguage();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1); // 1 = Enter Details, 2 = Verify OTP & Register
-  const [role, setRole] = useState('patient');
+  const [role, setRole] = useState(searchParams.get('role') === 'doctor' ? 'doctor' : 'patient');
   const [doctorPasscode, setDoctorPasscode] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -88,16 +92,15 @@ export default function Signup() {
           onClick={() => navigate(-1)} 
           className="absolute -top-12 left-0 flex items-center text-sm font-semibold text-slate-500 hover:text-blue-600 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back
-        </button>
+          <ArrowLeft className="w-4 h-4 mr-1" /> {t("Back")} </button>
 
         <div className="auth-hospital-brand"><HospitalBrand /></div>
         <div className="bg-white p-8 rounded-3xl shadow-xl shadow-blue-900/5 border border-slate-100">
-          <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">Create an account</h2>
-          <p className="text-slate-500 text-center mb-6 text-sm">Your Shri Sarveshwar Netralaya care portal</p>
+          <h2 className="text-2xl font-bold text-center text-slate-800 mb-2">{t("Create an account")}</h2>
+          <p className="text-slate-500 text-center mb-6 text-sm">{t("Your Shri Sarveshwar Netralaya care portal")}</p>
 
-          {error && <div role="alert" className="p-3 mb-6 bg-red-50 text-red-600 rounded-lg text-sm text-center font-semibold">{error}{step === 2 && role === 'doctor' && <button type="button" className="block underline mx-auto mt-2" onClick={() => { setStep(1); setError(''); }}>Check hospital registration code</button>}</div>}
-          {success && <div className="p-3 mb-6 bg-green-50 text-green-600 rounded-lg text-sm text-center font-semibold">{success}</div>}
+          {error && <div role="alert" className="p-3 mb-6 bg-red-50 text-red-600 rounded-lg text-sm text-center font-semibold">{t(error)}{step === 2 && role === 'doctor' && <button type="button" className="block underline mx-auto mt-2" onClick={() => { setStep(1); setError(''); }}>{t("Check hospital registration code")}</button>}</div>}
+          {success && <div className="p-3 mb-6 bg-green-50 text-green-600 rounded-lg text-sm text-center font-semibold">{t(success)}</div>}
 
           {step === 1 ? (
             <>
@@ -106,22 +109,18 @@ export default function Signup() {
                   type="button"
                   className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'patient' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
                   onClick={() => { setRole('patient'); setError(''); }}
-                >
-                  Patient
-                </button>
+                > {t("Patient")} </button>
                 <button
                   type="button"
                   className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${role === 'doctor' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-700'}`}
                   onClick={() => { setRole('doctor'); setError(''); }}
-                >
-                  Doctor (Staff)
-                </button>
+                > {t("Doctor (Staff)")} </button>
               </div>
 
               <form onSubmit={handleRequestOTP} className="space-y-4">
                 {role === 'doctor' && (
                   <div>
-                    <label htmlFor="hospital-registration-code" className="block text-sm font-semibold text-slate-700 mb-1.5">Hospital registration code</label>
+                    <label htmlFor="hospital-registration-code" className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Hospital registration code")}</label>
                     <div className="relative">
                       <Key className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
                       <input 
@@ -132,16 +131,16 @@ export default function Signup() {
                         value={doctorPasscode}
                         onChange={(e) => setDoctorPasscode(e.target.value)}
                         className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors font-mono" 
-                        placeholder="Enter hospital authorization passcode" 
+                        placeholder={t("Enter hospital authorization passcode")} 
                         required
                       />
                     </div>
-                    <p className="text-[11px] text-slate-500 mt-1">For staff registration only. Ask hospital administration for this code. Already registered? Sign in with your own email and password or Google.</p>
+                    <p className="text-[11px] text-slate-500 mt-1">{t("For staff registration only. Ask hospital administration for this code. Already registered? Sign in with your own email and password or Google.")}</p>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Full Name")}</label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
                     <input 
@@ -155,7 +154,7 @@ export default function Signup() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Email")}</label>
                   <div className="relative">
                     <Mail className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
                     <input 
@@ -169,10 +168,12 @@ export default function Signup() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Password")}</label>
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
                     <input 
+                      minLength={6}
+                      maxLength={128}
                       type={showPassword ? "text" : "password"} 
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -194,18 +195,16 @@ export default function Signup() {
                   disabled={loading}
                   className={`w-full inline-flex items-center justify-center rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-4 transition-all shadow-lg hover:shadow-blue-500/30 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  {loading ? 'Sending OTP...' : 'Register'}
+                  {loading ? t("Sending OTP...") : t("Register")}
                 </button>
               </form>
             </>
           ) : (
             <>
-              <p className="text-slate-500 text-center mb-6 text-sm">
-                We sent a one-time code to {email}. Check your inbox and spam folder. The code expires in 10 minutes.
-              </p>
+              <p className="text-slate-500 text-center mb-6 text-sm"> {t("We sent a one-time code to")} {email}{t(". Check your inbox and spam folder. The code expires in 10 minutes.")} </p>
               <form onSubmit={handleSignup} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">Verification Code (OTP)</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Verification Code (OTP)")}</label>
                   <div className="relative">
                     <Key className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
                     <input 
@@ -213,7 +212,7 @@ export default function Signup() {
                       value={otpCode}
                       onChange={(e) => setOtpCode(e.target.value)}
                       className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
-                      placeholder="Enter 6-digit code" 
+                      placeholder={t("Enter 6-digit code")} 
                       inputMode="numeric"
                       autoComplete="one-time-code"
                       pattern="[0-9]{6}"
@@ -227,21 +226,19 @@ export default function Signup() {
                   disabled={loading}
                   className={`w-full inline-flex items-center justify-center rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-4 transition-all shadow-lg hover:shadow-blue-500/30 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
-                  {loading ? 'Verifying...' : 'Verify & Create Account'}
+                  {loading ? t("Verifying...") : t("Verify & Create Account")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setStep(1)}
                   className="w-full text-center text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors mt-2"
-                >
-                  Go Back & Change Details
-                </button>
+                > {t("Go Back & Change Details")} </button>
               </form>
+                <ResendOtp email={email} isSignup={true} disabled={loading} onSent={() => { setOtpCode(''); setError(''); }} />
             </>
           )}
 
-          <p className="text-center text-sm text-slate-500 mt-8 font-medium">
-            Already have an account? <Link to="/login" className="text-blue-600 font-bold hover:underline">Log in</Link>
+          <p className="text-center text-sm text-slate-500 mt-8 font-medium"> {t("Already have an account?")} <Link to="/login" className="text-blue-600 font-bold hover:underline">{t("Log in")}</Link>
           </p>
         </div>
       </Motion.div>

@@ -1,5 +1,7 @@
-import React, { lazy, Suspense } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import PatientLanguageSwitch from './components/PatientLanguageSwitch';
+import { usePatientLanguage } from './lib/patientLanguage';
+import React, { lazy, Suspense, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
@@ -40,9 +42,18 @@ function PublicRoute({ children }) {
   return children;
 }
 
+function LanguageSettings() {
+  const { language } = usePatientLanguage();
+  const { pathname } = useLocation();
+  useEffect(() => { document.documentElement.lang = language; }, [language]);
+  if (['/', '/about', '/contact', '/patient/dashboard'].includes(pathname)) return null;
+  return <div className="portal-language-bar"><PatientLanguageSwitch compact /></div>;
+}
+
 function App() {
   return (
     <BrowserRouter>
+      <LanguageSettings />
       <Suspense fallback={<p role="status" className="p-6">Loading...</p>}>
       <Routes>
         <Route path="/" element={<LandingPage />} />

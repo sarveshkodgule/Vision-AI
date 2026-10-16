@@ -212,7 +212,7 @@ export default function PatientDashboard() {
     setChatMessage("");
 
     try {
-      const res = await api.post('/chatbot/query', { message: msg });
+      const res = await api.post('/chatbot/query', { message: msg, language });
       if (res && res.data && res.data.response) {
         setMessages(prev => [...prev, { text: res.data.response, isBot: true }]);
       }
@@ -322,33 +322,27 @@ export default function PatientDashboard() {
   return (
     <div className="care-workspace min-h-screen bg-gradient-to-br from-blue-50/50 to-slate-100 flex flex-col relative pb-20">
 
-      <nav className="patient-hospital-nav bg-white/95 backdrop-blur-md border-b px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm" aria-label="Patient portal navigation">
+      <nav className="patient-hospital-nav bg-white/95 backdrop-blur-md border-b px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-sm" aria-label={t("Patient portal navigation")}>
         <div className="flex items-center space-x-4">
           <HospitalBrand compact />
-          <h1 className="hidden lg:block text-sm font-semibold text-slate-500 border-l pl-4">Patient portal</h1>
-          <button className="mobile-portal-help" aria-label="Open patient assistant" onClick={() => setIsChatOpen(!isChatOpen)}><MessageSquare size={20}/></button>
+          <h1 className="hidden lg:block text-sm font-semibold text-slate-500 border-l pl-4">{t("Patient portal")}</h1>
+          <button className="mobile-portal-help" aria-label={t("Open patient assistant")} onClick={() => setIsChatOpen(!isChatOpen)}><MessageSquare size={20}/></button>
         </div>
         <div className="patient-tabs flex items-center space-x-4">
           <button 
             onClick={() => { setActiveTab('assessment'); setResult(null); }} 
             className={`text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${activeTab === 'assessment' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:text-slate-800'}`}
-          >
-            New Assessment
-          </button>
+          > {t("New Assessment")} </button>
           <button 
             onClick={() => setActiveTab('history')} 
             className={`text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${activeTab === 'history' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:text-slate-800'}`}
-          >
-            Screening History
-          </button>
+          > {t("Screening History")} </button>
           <button 
             onClick={() => setActiveTab('simulator')} 
             className={`text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${activeTab === 'simulator' ? 'bg-blue-50 text-blue-600' : 'text-slate-600 hover:text-slate-800'}`}
-          >
-            Risk Simulator
-          </button>
+          > {t("Risk Simulator")} </button>
           <button 
-            aria-label="Patient profile"
+            aria-label={t("Patient profile")}
             onClick={() => setActiveTab('profile')} 
             className={`w-9 h-9 bg-gradient-to-tr from-blue-500 to-blue-400 rounded-full flex items-center justify-center text-white font-bold cursor-pointer transition-all ${activeTab === 'profile' ? 'ring-2 ring-blue-600 ring-offset-2' : 'shadow-md hover:shadow-lg'}`}
           >
@@ -359,13 +353,13 @@ export default function PatientDashboard() {
 
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
         <PatientLanguageSwitch />
-        {profileError && <div role="alert" className="patient-feedback"><p>{profileError}</p><button onClick={fetchProfile}>Retry account details</button><button onClick={handleSignOut}>Sign in again</button></div>}
-        {historyError && <div role="alert" className="patient-feedback"><p>{historyError}</p><button onClick={fetchPatientData}>Retry records</button></div>}
+        {profileError && <div role="alert" className="patient-feedback"><p>{profileError}</p><button onClick={fetchProfile}>{t("Retry account details")}</button><button onClick={handleSignOut}>{t("Sign in again")}</button></div>}
+        {historyError && <div role="alert" className="patient-feedback"><p>{historyError}</p><button onClick={fetchPatientData}>{t("Retry records")}</button></div>}
         {downloadError && <p role="alert" className="patient-feedback">{downloadError}</p>}
         {activeTab === 'assessment' && !result && <p className="patient-language-note" lang={language}>{t('Enter your details, then your daily routine. Your report includes a model estimate and guidance for your next visit.', 'प्रथम तुमची माहिती आणि नंतर दैनंदिन सवयी भरा. अहवालात मॉडेलचा अंदाज आणि पुढील भेटीसाठी मार्गदर्शन मिळेल.')}</p>}
         {activeTab === 'profile' ? (
           <Motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="max-w-3xl mx-auto mt-4">
-            <h2 className="text-2xl font-bold text-slate-800 mb-6">Patient Profile</h2>
+            <h2 className="text-2xl font-bold text-slate-800 mb-6">{t("Patient Profile")}</h2>
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm">
               <div className="flex items-center space-x-6 mb-8 pb-8 border-b border-slate-100">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 flex items-center justify-center text-blue-700 font-bold text-3xl border border-blue-200 uppercase">
@@ -373,39 +367,39 @@ export default function PatientDashboard() {
                 </div>
                 <div>
                   <h3 className="text-2xl font-black text-slate-800">{profile.name}</h3>
-                  <p className="text-blue-600 font-semibold mb-1 capitalize">{profile.role} User</p>
-                  <p className="text-slate-500 text-sm">Last Assessment: {result ? "Today" : "None"}</p>
+                  <p className="text-blue-600 font-semibold mb-1 capitalize">{t(profile.role)} {t("User")}</p>
+                  <p className="text-slate-500 text-sm">{t("Last Assessment:")} {result ? t("Today") : "None"}</p>
                 </div>
               </div>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">System ID</span>
+                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{t("System ID")}</span>
                   <span className="text-slate-800 font-semibold">{profile.id || 'N/A'}</span>
                 </div>
                 <div>
-                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Account Role</span>
-                  <span className="text-slate-800 font-semibold flex items-center capitalize">{profile.role} <CheckCircle2 className="w-4 h-4 ml-1 text-teal-500"/></span>
+                  <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{t("Account Role")}</span>
+                  <span className="text-slate-800 font-semibold flex items-center capitalize">{t(profile.role)} <CheckCircle2 className="w-4 h-4 ml-1 text-teal-500"/></span>
                 </div>
                 
                 {!isEditingProfile ? (
                   <>
                     <div>
-                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Email Address</span>
+                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{t("Email Address")}</span>
                       <span className="text-slate-800 font-semibold">{profile.email}</span>
                     </div>
                     <div>
-                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Full Name</span>
+                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{t("Full Name")}</span>
                       <span className="text-slate-800 font-semibold">{profile.name}</span>
                     </div>
                   </>
                 ) : (
                   <>
                     <div>
-                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Email Address</span>
-                      <input type="email" value={editForm.email} readOnly aria-label="Email linked to your sign-in account" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{t("Email Address")}</span>
+                      <input type="email" value={editForm.email} readOnly aria-label={t("Email linked to your sign-in account")} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                     </div>
                     <div>
-                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Full Name</span>
+                      <span className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{t("Full Name")}</span>
                       <input type="text" value={editForm.name} onChange={e => setEditForm({...editForm, name: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
                     </div>
                   </>
@@ -413,15 +407,15 @@ export default function PatientDashboard() {
 
               </div>
               <div className="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center">
-                <button onClick={handleSignOut} className="text-red-500 font-bold text-sm hover:text-red-600 transition-colors">Sign Out</button>
+                <button onClick={handleSignOut} className="text-red-500 font-bold text-sm hover:text-red-600 transition-colors">{t("Sign Out")}</button>
                 <div className="space-x-3">
                   {isEditingProfile ? (
                     <>
-                      <button onClick={() => setIsEditingProfile(false)} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">Cancel</button>
-                      <button onClick={handleProfileSave} disabled={profileBusy} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20">{profileBusy ? 'Saving…' : 'Save Details'}</button>
+                      <button onClick={() => setIsEditingProfile(false)} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">{t("Cancel")}</button>
+                      <button onClick={handleProfileSave} disabled={profileBusy} className="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20">{profileBusy ? 'Saving…' : t("Save Details")}</button>
                     </>
                   ) : (
-                    <button onClick={() => setIsEditingProfile(true)} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">Edit Profile</button>
+                    <button onClick={() => setIsEditingProfile(true)} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">{t("Edit Profile")}</button>
                   )}
                 </div>
               </div>
@@ -436,26 +430,25 @@ export default function PatientDashboard() {
           >
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-slate-800">Your Screening & Diagnostic History</h2>
-                <p className="text-slate-500 text-sm mt-1">Track your lifestyle screenings and doctor evaluations.</p>
+                <h2 className="text-2xl font-bold text-slate-800">{t("Your Screening & Diagnostic History")}</h2>
+                <p className="text-slate-500 text-sm mt-1">{t("Track your lifestyle screenings and doctor evaluations.")}</p>
               </div>
             </div>
 
-            {historyLoading ? <div className="patient-loading" role="status"><Loader2 className="animate-spin" size={22}/>Loading your screening history and doctor reports…</div> : historyError ? null : <>
+            {historyLoading ? <div className="patient-loading" role="status"><Loader2 className="animate-spin" size={22}/>{t("Loading your screening history and doctor reports…")}</div> : historyError ? null : <>
             {/* Progression Curve Mapping */}
             {reports.length > 0 ? (
               <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
                 <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
-                  <Activity className="w-5 h-5 mr-2 text-red-500 animate-pulse" /> Myopia Progression Curve (Axial Length vs SPHEQ)
-                </h3>
+                  <Activity className="w-5 h-5 mr-2 text-red-500 animate-pulse" /> {t("Myopia Progression Curve (Axial Length vs SPHEQ)")} </h3>
                 <div className="h-[280px] w-full">
                   <Line data={biometryChartData} options={biometryChartOptions} />
                 </div>
               </div>
             ) : (
               <div className="bg-blue-50/50 rounded-2xl p-6 border border-blue-100 text-center">
-                <h3 className="text-md font-bold text-blue-800 mb-1">No Clinical Evaluation Curve Yet</h3>
-                <p className="text-sm text-slate-600">Once your doctor completes a fundus image scan and clinical biometry assessment, your progression curve will map here automatically.</p>
+                <h3 className="text-md font-bold text-blue-800 mb-1">{t("No Clinical Evaluation Curve Yet")}</h3>
+                <p className="text-sm text-slate-600">{t("Once your doctor completes a fundus image scan and clinical biometry assessment, your progression curve will map here automatically.")}</p>
               </div>
             )}
 
@@ -463,11 +456,10 @@ export default function PatientDashboard() {
             <div className="grid md:grid-cols-2 gap-6">
               {/* Doctor Clinical Reports */}
               <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col">
-                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center border-b pb-3">
-                  📋 Doctor Clinical Reports ({reports.length})
+                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center border-b pb-3"> {t("📋 Doctor Clinical Reports (")}{reports.length})
                 </h3>
                 {reports.length === 0 ? (
-                  <p className="text-sm text-slate-500 py-6 text-center">No clinical reports generated by doctors yet.</p>
+                  <p className="text-sm text-slate-500 py-6 text-center">{t("No clinical reports generated by doctors yet.")}</p>
                 ) : (
                   <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
                     {reports.map((rep) => (
@@ -475,18 +467,16 @@ export default function PatientDashboard() {
                         <div className="flex justify-between items-start">
                           <div>
                             <span className="text-xs font-bold text-slate-400">{new Date(rep.created_at).toLocaleDateString()}</span>
-                            <div className="text-sm font-semibold text-slate-800 mt-0.5">Prediction: <span className="font-extrabold text-blue-600">{rep.prediction}</span></div>
+                            <div className="text-sm font-semibold text-slate-800 mt-0.5">{t("Prediction:")} <span className="font-extrabold text-blue-600">{rep.prediction}</span></div>
                           </div>
                           <span className={`text-xs font-bold px-2 py-1 rounded-full ${rep.severity === 'High' ? 'bg-red-100 text-red-700' : rep.severity === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'}`}>
-                            {rep.severity} Risk
-                          </span>
+                            {rep.severity} {t("Risk")} </span>
                         </div>
                         <div className="text-xs text-slate-500">
-                          {rep.axial_length && <span>Axial Length: <strong>{rep.axial_length} mm</strong></span>}
-                          {rep.refractive_error && <span className="ml-3">Refraction: <strong>{rep.refractive_error} D</strong></span>}
+                          {rep.axial_length && <span>{t("Axial Length:")} <strong>{rep.axial_length} mm</strong></span>}
+                          {rep.refractive_error && <span className="ml-3">{t("Refraction:")} <strong>{rep.refractive_error} D</strong></span>}
                           {rep.doctor_verdict && (
-                            <div className="mt-1 text-slate-600 font-medium">
-                              🩺 Doctor Verdict: <span className="font-semibold text-indigo-700">{rep.doctor_verdict}</span>
+                            <div className="mt-1 text-slate-600 font-medium"> {t("🩺 Doctor Verdict:")} <span className="font-semibold text-indigo-700">{rep.doctor_verdict}</span>
                             </div>
                           )}
                         </div>
@@ -494,7 +484,7 @@ export default function PatientDashboard() {
                           onClick={() => downloadReportPdf(rep.patient_id)} disabled={!!downloadingId} 
                           className="mt-2 inline-flex items-center justify-center text-xs font-bold text-blue-600 bg-blue-50 py-1.5 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
                         >
-                          <Download className="w-3.5 h-3.5 mr-1" /> {downloadingId === rep.patient_id ? 'Preparing PDF…' : 'Download PDF Report'}
+                          <Download className="w-3.5 h-3.5 mr-1" /> {downloadingId === rep.patient_id ? 'Preparing PDF…' : t("Download PDF Report")}
                         </button>
                       </div>
                     ))}
@@ -504,11 +494,10 @@ export default function PatientDashboard() {
 
               {/* Patient Self Lifestyle Screenings */}
               <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col">
-                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center border-b pb-3">
-                  🏠 Lifestyle Screenings ({history.length})
+                <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center border-b pb-3"> {t("🏠 Lifestyle Screenings (")}{history.length})
                 </h3>
                 {history.length === 0 ? (
-                  <p className="text-sm text-slate-500 py-6 text-center">No self-assessments generated yet.</p>
+                  <p className="text-sm text-slate-500 py-6 text-center">{t("No self-assessments generated yet.")}</p>
                 ) : (
                   <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
                     {history.map((hist) => (
@@ -516,16 +505,15 @@ export default function PatientDashboard() {
                         <div className="flex justify-between items-start">
                           <div>
                             <span className="text-xs font-bold text-slate-400">{new Date(hist.created_at).toLocaleDateString()}</span>
-                            <div className="text-sm font-semibold text-slate-800 mt-0.5">Lifestyle Screening</div>
+                            <div className="text-sm font-semibold text-slate-800 mt-0.5">{t("Lifestyle Screening")}</div>
                           </div>
                           <span className={`text-xs font-bold px-2 py-1 rounded-full ${hist.risk_level === 'High' ? 'bg-red-100 text-red-700' : hist.risk_level === 'Medium' ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'}`}>
-                            {hist.risk_level} Risk
-                          </span>
+                            {hist.risk_level} {t("Risk")} </span>
                         </div>
                         <div className="text-xs text-slate-500 grid grid-cols-3 gap-2 mt-1">
-                          <div>📱 Screen: <strong>{hist.screen_time}h</strong></div>
-                          <div>📖 Reading: <strong>{hist.reading_time}h</strong></div>
-                          <div>🌳 Outdoor: <strong>{hist.outdoor_activity}h</strong></div>
+                          <div>{t("📱 Screen:")} <strong>{hist.screen_time}h</strong></div>
+                          <div>{t("📖 Reading:")} <strong>{hist.reading_time}h</strong></div>
+                          <div>{t("🌳 Outdoor:")} <strong>{hist.outdoor_activity}h</strong></div>
                         </div>
                         {hist.recommendation && (
                           <div className="text-xs text-amber-800 bg-amber-50 p-2 rounded-lg mt-1 border border-amber-100/50">
@@ -548,20 +536,20 @@ export default function PatientDashboard() {
             className="max-w-4xl mx-auto mt-4 space-y-8 pb-10"
           >
             <div className="text-left mb-6">
-              <h2 className="text-2xl font-bold text-slate-800">What-If Myopia Risk Simulator</h2>
-              <p className="text-slate-500 text-sm mt-1">Adjust lifestyle factor sliders below to simulate and preview your myopia risk score dynamically in real-time.</p>
+              <h2 className="text-2xl font-bold text-slate-800">{t("What-If Myopia Risk Simulator")}</h2>
+              <p className="text-slate-500 text-sm mt-1">{t("Adjust lifestyle factor sliders below to simulate and preview your myopia risk score dynamically in real-time.")}</p>
             </div>
 
             <div className="grid md:grid-cols-12 gap-8">
               {/* Left Column: Sliders */}
               <div className="md:col-span-7 bg-white rounded-3xl p-6 border border-slate-100 shadow-sm space-y-6 text-left">
-                <h3 className="font-bold text-slate-800 text-md border-b pb-3 mb-4">Simulate Lifestyle Factors</h3>
+                <h3 className="font-bold text-slate-800 text-md border-b pb-3 mb-4">{t("Simulate Lifestyle Factors")}</h3>
 
                 {/* Slider 1: Screen Time */}
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Daily Screen Time</span>
-                    <span className="text-sm font-black text-blue-600">{simScreen} hrs/day</span>
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">{t("Daily Screen Time")}</span>
+                    <span className="text-sm font-black text-blue-600">{simScreen} {t("hrs/day")}</span>
                   </div>
                   <input 
                     type="range" min="0" max="16" step="0.5"
@@ -569,16 +557,16 @@ export default function PatientDashboard() {
                     className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
-                    <span>0 hrs (Ideal)</span>
-                    <span>16 hrs (Heavy)</span>
+                    <span>{t("0 hrs (Ideal)")}</span>
+                    <span>{t("16 hrs (Heavy)")}</span>
                   </div>
                 </div>
 
                 {/* Slider 2: Outdoor Activity */}
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Outdoor Activity</span>
-                    <span className="text-sm font-black text-blue-600">{simOutdoor} hrs/day</span>
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">{t("Outdoor Activity")}</span>
+                    <span className="text-sm font-black text-blue-600">{simOutdoor} {t("hrs/day")}</span>
                   </div>
                   <input 
                     type="range" min="0" max="6" step="0.5"
@@ -586,16 +574,16 @@ export default function PatientDashboard() {
                     className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-blue-600"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
-                    <span>0 hrs (None)</span>
-                    <span>6 hrs (Protective Factor)</span>
+                    <span>{t("0 hrs (None)")}</span>
+                    <span>{t("6 hrs (Protective Factor)")}</span>
                   </div>
                 </div>
 
                 {/* Slider 3: Near-Work Reading Time */}
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Continuous Near Work / Reading</span>
-                    <span className="text-sm font-black text-indigo-600">{simReading} hrs/day</span>
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">{t("Continuous Near Work / Reading")}</span>
+                    <span className="text-sm font-black text-indigo-600">{simReading} {t("hrs/day")}</span>
                   </div>
                   <input 
                     type="range" min="0" max="12" step="0.5"
@@ -603,16 +591,16 @@ export default function PatientDashboard() {
                     className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-indigo-600"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
-                    <span>0 hrs</span>
-                    <span>12 hrs</span>
+                    <span>{t("0 hrs")}</span>
+                    <span>{t("12 hrs")}</span>
                   </div>
                 </div>
 
                 {/* Slider 4: Sleep Time */}
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Sleep Hours</span>
-                    <span className="text-sm font-black text-purple-600">{simSleep} hrs/day</span>
+                    <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">{t("Sleep Hours")}</span>
+                    <span className="text-sm font-black text-purple-600">{simSleep} {t("hrs/day")}</span>
                   </div>
                   <input 
                     type="range" min="4" max="12" step="0.5"
@@ -620,21 +608,21 @@ export default function PatientDashboard() {
                     className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-purple-600"
                   />
                   <div className="flex justify-between text-[10px] text-slate-400 font-medium mt-1">
-                    <span>4 hrs</span>
-                    <span>12 hrs (Healthy)</span>
+                    <span>{t("4 hrs")}</span>
+                    <span>{t("12 hrs (Healthy)")}</span>
                   </div>
                 </div>
 
                 {/* Dropdown 5: Parental Myopia */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">Myopia in Parents</label>
+                  <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">{t("Myopia in Parents")}</label>
                   <select 
                     value={simParental} onChange={e => setSimParental(parseInt(e.target.value))}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors cursor-pointer outline-none"
                   >
-                    <option value="0">Neither Parent has Myopia (0)</option>
-                    <option value="1">One Parent has Myopia (1)</option>
-                    <option value="2">Both Parents have Myopia (2)</option>
+                    <option value="0">{t("Neither Parent has Myopia (0)")}</option>
+                    <option value="1">{t("One Parent has Myopia (1)")}</option>
+                    <option value="2">{t("Both Parents have Myopia (2)")}</option>
                   </select>
                 </div>
               </div>
@@ -643,8 +631,8 @@ export default function PatientDashboard() {
               <div className="md:col-span-5 flex flex-col space-y-6">
                 {/* Score gauge card */}
                 {(() => {
-                  if (simError) return <div role="alert" className="patient-feedback"><p>{simError}</p><button onClick={() => setSimRetry(value => value + 1)}>Retry model preview</button></div>;
-                  if (!simResult) return <p role="status" className="patient-loading"><Loader2 size={18} className="animate-spin"/>Requesting model prediction…</p>;
+                  if (simError) return <div role="alert" className="patient-feedback"><p>{simError}</p><button onClick={() => setSimRetry(value => value + 1)}>{t("Retry model preview")}</button></div>;
+                  if (!simResult) return <p role="status" className="patient-loading"><Loader2 size={18} className="animate-spin"/>{t("Requesting model prediction…")}</p>;
                   const finalScore = Number((simResult.myopia_probability * 100).toFixed(1));
                   const isHigh = simResult.risk_level === 'High';
                   const isMed = simResult.risk_level === 'Medium';
@@ -654,7 +642,7 @@ export default function PatientDashboard() {
                   return (
                     <>
                       <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
-                        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-6">Model-predicted Myopia Risk</h4>
+                        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-6">{t("Model-predicted Myopia Risk")}</h4>
                         <div className="relative mb-6">
                           <svg className="w-36 h-36 transform -rotate-90">
                             <circle cx="72" cy="72" r="64" stroke="currentColor" strokeWidth="12" className="text-slate-100 fill-none" />
@@ -667,18 +655,16 @@ export default function PatientDashboard() {
                           </svg>
                           <div className="absolute inset-0 flex flex-col items-center justify-center">
                             <span className="text-4xl font-black text-slate-800">{finalScore}%</span>
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Risk Score</span>
+                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{t("Risk Score")}</span>
                           </div>
                         </div>
                         <h3 className="text-lg font-extrabold text-slate-800 mb-1">{isHigh ? 'High Risk' : isMed ? 'Moderate Risk' : 'Low Risk'}</h3>
-                        <p className="text-xs text-slate-500 font-medium px-4">Based on current simulated parameters</p>
+                        <p className="text-xs text-slate-500 font-medium px-4">{t("Based on current simulated parameters")}</p>
                       </div>
 
                       {/* Clinical Recommendations box */}
                       <div className={`rounded-3xl p-6 border shadow-sm text-left ${colorClass}`}>
-                        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                          📢 AI Clinical Recommendation
-                        </h4>
+                        <h4 className="font-bold text-slate-800 text-xs uppercase tracking-wider mb-3 flex items-center gap-1.5"> {t("📢 AI Clinical Recommendation")} </h4>
                         <p className="text-xs font-semibold text-slate-600 leading-relaxed">
                           {simResult.recommendation}
                         </p>
@@ -700,36 +686,36 @@ export default function PatientDashboard() {
               className="max-w-xl mx-auto"
             >
               <div className="text-center mb-8">
-                <p className="screening-kicker">SHRI SARVESHWAR NETRALAYA · PATIENT CARE</p>
-                <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Your eye-health screening</h2>
-                <p className="text-slate-500 mt-2">Understand your screening risk and prepare for your eye examination.</p>
+                <p className="screening-kicker">{t("SHRI SARVESHWAR NETRALAYA · PATIENT CARE")}</p>
+                <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">{t("Your eye-health screening")}</h2>
+                <p className="text-slate-500 mt-2">{t("Understand your screening risk and prepare for your eye examination.")}</p>
               </div>
-              <ol className="screening-progress" aria-label="Screening progress"><li className={formStep === 1 ? 'current-step' : 'completed-step'} aria-current={formStep === 1 ? 'step' : undefined}><span>{formStep > 1 ? '✓' : '1'}</span>Your details</li><li className={formStep === 2 ? 'current-step' : ''} aria-current={formStep === 2 ? 'step' : undefined}><span>2</span>Daily routine</li><li><span>3</span>Your report</li></ol>
+              <ol className="screening-progress" aria-label={t("Screening progress")}><li className={formStep === 1 ? 'current-step' : 'completed-step'} aria-current={formStep === 1 ? 'step' : undefined}><span>{formStep > 1 ? '✓' : '1'}</span>{t("Your details")}</li><li className={formStep === 2 ? 'current-step' : ''} aria-current={formStep === 2 ? 'step' : undefined}><span>2</span>{t("Daily routine")}</li><li><span>3</span>{t("Your report")}</li></ol>
               <div className="bg-white rounded-2xl shadow-xl shadow-blue-900/5 border border-slate-100 overflow-hidden">
                 <div className="bg-gradient-to-r from-blue-600 to-blue-500 p-6 text-white flex justify-between items-center">
                   <h3 className="text-lg font-semibold flex items-center">
                     <Activity className="w-5 h-5 mr-2 opacity-80" /> {formStep === 1 ? 'Let’s get to know you' : 'Tell us about your routine'}
                   </h3>
-                  <span className="text-sm font-bold bg-white/20 px-3 py-1 rounded-full">Step {formStep} of 2</span>
+                  <span className="text-sm font-bold bg-white/20 px-3 py-1 rounded-full">{t("Step")} {formStep} {t("of 2")}</span>
                 </div>
                 <div className="p-6 md:p-8">
                   <form aria-busy={isSubmitting} onSubmit={formStep === 1 ? (e) => { e.preventDefault(); setFormStep(2); } : handleSubmit} className="space-y-5">
-                    {submitError && <div role="alert" className="patient-feedback"><p>{submitError}</p><p>Your entries are saved on this page. Use Generate Report to retry.</p></div>}
-                    {isSubmitting && <p role="status" className="patient-loading"><Loader2 size={18} className="animate-spin"/> Running your screening model. Please keep this page open…</p>}
+                    {submitError && <div role="alert" className="patient-feedback"><p>{submitError}</p><p>{t("Your entries are saved on this page. Use Generate Report to retry.")}</p></div>}
+                    {isSubmitting && <p role="status" className="patient-loading"><Loader2 size={18} className="animate-spin"/> {t("Running your screening model. Please keep this page open…")}</p>}
                     {formStep === 1 ? (
                       <Motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
                         <div>
-                          <label htmlFor="patient-name" className="block text-sm font-semibold text-slate-700 mb-1.5">Full Name</label>
+                          <label htmlFor="patient-name" className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Full Name")}</label>
                             <input id="patient-name" 
                             type="text" required
                             className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
                             value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
-                            placeholder="Enter your full name"
+                            placeholder={t("Enter your full name")}
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-5">
                           <div>
-                            <label htmlFor="patient-age" className="block text-sm font-semibold text-slate-700 mb-1.5">Age</label>
+                            <label htmlFor="patient-age" className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Age")}</label>
                             <input id="patient-age" 
                               type="number" required min="1" max="120"
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
@@ -738,20 +724,19 @@ export default function PatientDashboard() {
                             />
                           </div>
                           <div>
-                            <label htmlFor="patient-gender" className="block text-sm font-semibold text-slate-700 mb-1.5">Gender</label>
+                            <label htmlFor="patient-gender" className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Gender")}</label>
                             <select id="patient-gender" 
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                               value={formData.gender} onChange={e => setFormData({...formData, gender: e.target.value})}
                             >
-                              <option value="Male">Male</option>
-                              <option value="Female">Female</option>
-                              <option value="Other">Other</option>
+                              <option value="Male">{t("Male")}</option>
+                              <option value="Female">{t("Female")}</option>
+                              <option value="Other">{t("Other")}</option>
                             </select>
                           </div>
                         </div>
                         <div>
-                          <label htmlFor="assigned-doctor" className="block text-sm font-semibold text-slate-700 mb-1.5">
-                            Your doctor <span className="text-slate-400 font-normal text-xs">(required)</span>
+                          <label htmlFor="assigned-doctor" className="block text-sm font-semibold text-slate-700 mb-1.5"> {t("Your doctor")} <span className="text-slate-400 font-normal text-xs">{t("(required)")}</span>
                           </label>
                           <select
                             required
@@ -760,24 +745,24 @@ export default function PatientDashboard() {
                             disabled={doctorsLoading || !!doctorsError}
                             onChange={e => setSelectedDoctorId(e.target.value)}
                           >
-                            <option value="">-- Select your assigned doctor --</option>
+                            <option value="">{t("-- Select your assigned doctor --")}</option>
                             {doctors.map(d => (
                               <option key={d.id} value={d.id}>Dr. {d.name} ({d.email})</option>
                             ))}
                           </select>
-                          {doctorsLoading && <p role="status" className="text-sm text-slate-600 mt-2">Loading available doctors…</p>}
-                          {doctorsError && <div role="alert" className="patient-feedback"><p>{doctorsError}</p><button type="button" onClick={fetchDoctors}>Retry doctor list</button></div>}
+                          {doctorsLoading && <p role="status" className="text-sm text-slate-600 mt-2">{t("Loading available doctors…")}</p>}
+                          {doctorsError && <div role="alert" className="patient-feedback"><p>{doctorsError}</p><button type="button" onClick={fetchDoctors}>{t("Retry doctor list")}</button></div>}
                           {!doctorsLoading && !doctorsError && doctors.length === 0 && (
-                            <p className="text-xs text-amber-500 mt-1 font-medium">No doctors are available for assignment yet. Contact the hospital for help.</p>
+                            <p className="text-xs text-amber-500 mt-1 font-medium">{t("No doctors are available for assignment yet. Contact the hospital for help.")}</p>
                           )}
                         </div>
-                        <button type="submit" className="w-full rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-6 transition-all shadow-lg hover:shadow-blue-500/30">Continue to daily routine</button>
+                        <button type="submit" className="w-full rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 mt-6 transition-all shadow-lg hover:shadow-blue-500/30">{t("Continue to daily routine")}</button>
                       </Motion.div>
                     ) : (
                       <Motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-5">
                         <div className="grid grid-cols-2 gap-5">
                           <div>
-                            <label htmlFor="screen-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">Screen Time (hrs)</label>
+                            <label htmlFor="screen-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Screen Time (hrs)")}</label>
                             <input id="screen-hours" 
                               type="number" required min="0" max="24" step="0.5"
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
@@ -785,7 +770,7 @@ export default function PatientDashboard() {
                             />
                           </div>
                           <div>
-                            <label htmlFor="reading-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">Reading Time (hrs)</label>
+                            <label htmlFor="reading-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Reading Time (hrs)")}</label>
                             <input id="reading-hours" 
                               type="number" required min="0" max="24" step="0.5"
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
@@ -795,7 +780,7 @@ export default function PatientDashboard() {
                         </div>
                         <div className="grid grid-cols-2 gap-5">
                           <div>
-                            <label htmlFor="work-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">Work/Study (hrs)</label>
+                            <label htmlFor="work-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Work/Study (hrs)")}</label>
                             <input id="work-hours"
                               type="number" required min="0" max="24" step="0.5"
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
@@ -803,7 +788,7 @@ export default function PatientDashboard() {
                             />
                           </div>
                           <div>
-                            <label htmlFor="sleep-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">Sleep Time (hrs)</label>
+                            <label htmlFor="sleep-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Sleep Time (hrs)")}</label>
                             <input id="sleep-hours"
                               type="number" required min="0" max="24" step="0.5"
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
@@ -813,7 +798,7 @@ export default function PatientDashboard() {
                         </div>
                         <div className="grid grid-cols-2 gap-5">
                           <div>
-                            <label htmlFor="outdoor-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">Outdoor Time (hrs)</label>
+                            <label htmlFor="outdoor-hours" className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Outdoor Time (hrs)")}</label>
                             <input id="outdoor-hours" 
                               type="number" required min="0" max="24" step="0.5"
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
@@ -821,24 +806,24 @@ export default function PatientDashboard() {
                             />
                           </div>
                           <div>
-                            <label htmlFor="parental-myopia" className="block text-sm font-semibold text-slate-700 mb-1.5">Parental Myopia</label>
+                            <label htmlFor="parental-myopia" className="block text-sm font-semibold text-slate-700 mb-1.5">{t("Parental Myopia")}</label>
                             <select id="parental-myopia" 
                               className="w-full rounded-lg border-slate-200 bg-slate-50 px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors"
                               value={formData.parentalMyopia} onChange={e => setFormData({...formData, parentalMyopia: e.target.value})}
                             >
-                              <option value="0">0 Parents</option>
-                              <option value="1">1 Parent</option>
-                              <option value="2">2 Parents</option>
+                              <option value="0">{t("0 Parents")}</option>
+                              <option value="1">{t("1 Parent")}</option>
+                              <option value="2">{t("2 Parents")}</option>
                             </select>
                           </div>
                         </div>
                         <div className="flex space-x-4 pt-4">
-                          <button type="button" onClick={() => setFormStep(1)} className="w-1/3 rounded-xl text-md font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 h-12 transition-all">Back</button>
+                          <button type="button" onClick={() => setFormStep(1)} className="w-1/3 rounded-xl text-md font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 h-12 transition-all">{t("Back")}</button>
                           <button 
                             type="submit" disabled={isSubmitting}
                             className="w-2/3 inline-flex items-center justify-center rounded-xl text-md font-bold text-white bg-blue-600 hover:bg-blue-700 h-12 transition-all shadow-lg hover:shadow-blue-500/30 disabled:opacity-70"
                           >
-                            {isSubmitting ? <><Loader2 className="w-5 h-5 mr-2 animate-spin"/> Generating...</> : 'Generate Report'}
+                            {isSubmitting ? <><Loader2 className="w-5 h-5 mr-2 animate-spin"/> {t("Generating...")}</> : t("Generate Report")}
                           </button>
                         </div>
                       </Motion.div>
@@ -856,30 +841,30 @@ export default function PatientDashboard() {
             >
               <div className="flex justify-between items-end mb-6 border-b border-slate-200 pb-4">
                 <div>
-                  <h2 className="text-3xl font-extrabold text-slate-800">Your Eye-Health Screening Report</h2>
+                  <h2 className="text-3xl font-extrabold text-slate-800">{t("Your Eye-Health Screening Report")}</h2>
                   <p className="text-slate-600 mt-2 font-medium flex items-center">
-                    <User className="w-4 h-4 mr-1.5 text-blue-500"/> Patient: <span className="font-bold text-slate-800 mx-1">{result.patientName}</span> • {result.patientAge} Yrs • {result.patientGender}
+                    <User className="w-4 h-4 mr-1.5 text-blue-500"/> {t("Patient:")} <span className="font-bold text-slate-800 mx-1">{result.patientName}</span> • {result.patientAge} {t("Yrs •")} {result.patientGender}
                   </p>
-                  <p className="text-slate-500 text-sm mt-1 flex items-center"><CheckCircle2 className="w-4 h-4 mr-1 text-teal-500" /> Generated on {result.date}</p>
+                  <p className="text-slate-500 text-sm mt-1 flex items-center"><CheckCircle2 className="w-4 h-4 mr-1 text-teal-500" /> {t("Generated on")} {result.date}</p>
                 </div>
               </div>
               <ScreeningSummary result={result} />
               <PatientReportDelivery key={result.screeningId} screeningId={result.screeningId} initialState={result.reportEmail} registeredEmail={profile.email} />
               {result.careGuidance && (
                 <section className="rounded-2xl bg-white border p-6 text-left space-y-4">
-                  <p className="text-xs text-slate-500">Detailed care guidance · English</p>
+                  <p className="text-xs text-slate-500">{t("Detailed care guidance · English")}</p>
                   <h3 className="text-xl font-bold text-slate-800">{result.careGuidance.title}</h3>
                   <p className="text-slate-700">{result.careGuidance.meaning}</p>
                   <p className="text-sm text-slate-500">{result.careGuidance.probability_note}</p>
                   <p className="rounded-lg bg-blue-50 p-4 text-blue-900">{result.careGuidance.next_step}</p>
-                  <h4 className="font-bold text-slate-800">Daily precautions and healthy habits</h4>
+                  <h4 className="font-bold text-slate-800">{t("Daily precautions and healthy habits")}</h4>
                   <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700">{(result.careGuidance.habits || []).map(habit => <li key={habit}>{habit}</li>)}</ul>
                   <details className="rounded-lg border p-4 text-sm text-slate-700">
-                    <summary className="cursor-pointer font-bold">Doctor discussion and appointment preparation</summary>
+                    <summary className="cursor-pointer font-bold">{t("Doctor discussion and appointment preparation")}</summary>
                     <ul className="list-disc pl-5 mt-3 space-y-2">{[...(result.careGuidance.doctor_discussion || []), ...(result.careGuidance.appointment_checklist || [])].map(item => <li key={item}>{item}</li>)}</ul>
-                    <p className="mt-3">Your PDF includes your assigned doctor's registered contact, when available. Contact the practice to book an appointment.</p>
+                    <p className="mt-3">{t("Your PDF includes your assigned doctor's registered contact, when available. Contact the practice to book an appointment.")}</p>
                   </details>
-                  <p className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-900"><strong>Urgent symptoms: </strong>{result.careGuidance.urgent_care}</p>
+                  <p className="rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-900"><strong>{t("Urgent symptoms:")} </strong>{result.careGuidance.urgent_care}</p>
                 </section>
               )}
 
@@ -892,17 +877,16 @@ export default function PatientDashboard() {
                     </svg>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                       <span className="text-3xl font-black text-slate-800">{result.riskScore}%</span>
-                      <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">Model estimate</span>
+                      <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">{t("Model estimate")}</span>
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold mb-1">{result.severity} Risk</h3>
+                  <h3 className="text-xl font-bold mb-1">{result.severity} {t("Risk")}</h3>
                   <p className="text-sm text-slate-500">{result.detection}</p>
                 </div>
 
                 <div className="md:col-span-2 min-w-0 bg-white rounded-2xl p-6 border shadow-sm">
                   <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
-                    <Activity className="w-5 h-5 mr-2 text-blue-500" /> Recorded Screening Probabilities
-                  </h3>
+                    <Activity className="w-5 h-5 mr-2 text-blue-500" /> {t("Recorded Screening Probabilities")} </h3>
                   <div className="h-[200px] w-full">
                     <Line data={chartData} options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 100, grid: { color: '#f1f5f9' } }, x: { grid: { display: false } } } }} />
                   </div>
@@ -911,16 +895,15 @@ export default function PatientDashboard() {
 
               {result.nextSpheq !== null && Number.isFinite(result.nextSpheq) && (
                 <div className="bg-blue-50 border border-blue-100 rounded-2xl p-6 text-center">
-                  <p className="text-xs font-bold uppercase tracking-widest mb-2 text-slate-500">Predicted Next SPHEQ</p>
+                  <p className="text-xs font-bold uppercase tracking-widest mb-2 text-slate-500">{t("Predicted Next SPHEQ")}</p>
                   <p className="text-3xl font-bold text-blue-700">{result.nextSpheq.toFixed(2)} D</p>
-                  <p className="text-sm text-slate-500">Model-estimated refractive value at next visit</p>
+                  <p className="text-sm text-slate-500">{t("Model-estimated refractive value at next visit")}</p>
                 </div>
               )}
 
               {result.recommendations.length > 0 && <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-2xl p-6 border border-amber-100 mt-6 shadow-sm">
                 <h3 className="text-lg font-bold text-amber-800 mb-3 flex items-center">
-                  <AlertTriangle className="w-5 h-5 mr-2" /> Screening Recommendations
-                </h3>
+                  <AlertTriangle className="w-5 h-5 mr-2" /> {t("Screening Recommendations")} </h3>
                 <ul className="space-y-3">
                   {result.recommendations.map((rec, i) => (
                     <li key={i} className="flex items-start">
@@ -951,7 +934,7 @@ export default function PatientDashboard() {
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-4 text-white flex justify-between items-center">
                 <div className="flex items-center space-x-2">
                   <Bot className="w-6 h-6" />
-                  <span className="font-bold">Vision AI Assistant</span>
+                  <span className="font-bold">{t("Vision AI Assistant")}</span>
                 </div>
                 <button onClick={() => setIsChatOpen(false)} className="text-white/80 hover:text-white hover:bg-white/10 p-1 rounded-lg transition-colors">
                   <ChevronDown className="w-5 h-5" />
@@ -966,7 +949,7 @@ export default function PatientDashboard() {
               </div>
               <div className="p-3 bg-white border-t border-slate-100">
                 <div className="relative">
-                  <input type="text" value={chatMessage} onChange={e => setChatMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChatMessage()} placeholder="Ask about your report..." className="w-full bg-slate-100 border-transparent rounded-full pl-4 pr-12 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-inner" />
+                  <input type="text" value={chatMessage} onChange={e => setChatMessage(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChatMessage()} placeholder={t("Ask about your report...")} className="w-full bg-slate-100 border-transparent rounded-full pl-4 pr-12 py-3 text-sm focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all shadow-inner" />
                   <button onClick={sendChatMessage} className="absolute right-2 top-2 p-1.5 bg-blue-600 text-white rounded-full shadow hover:bg-blue-700 transition-colors">
                     <Send className="w-4 h-4 ml-px" />
                   </button>
@@ -976,7 +959,7 @@ export default function PatientDashboard() {
           )}
         </AnimatePresence>
         <Motion.button
-          aria-label={isChatOpen ? 'Close patient assistant' : 'Open patient assistant'}
+          aria-label={isChatOpen ? 'Close patient assistant' : t("Open patient assistant")}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setIsChatOpen(!isChatOpen)}

@@ -46,3 +46,4 @@ try {
     }
     Write-Host "All services stopped." -ForegroundColor Green
 }
+

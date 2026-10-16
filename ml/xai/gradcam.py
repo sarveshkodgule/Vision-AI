@@ -272,8 +272,8 @@ def overlay_heatmap_on_image(
 def load_baseline_model(checkpoint_path: str = DEFAULT_CHECKPOINT, device: Optional[torch.device] = None) -> nn.Module:
     """Load the confirmed production PALM-only baseline model."""
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = build_model(num_classes=2)
-    ckpt = torch.load(checkpoint_path, map_location=device)
+    model = build_model(num_classes=2, pretrained=False)
+    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=True)
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
         model.load_state_dict(ckpt["model_state_dict"])
     else:

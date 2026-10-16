@@ -2,6 +2,7 @@
 import sys
 from pathlib import Path
 import unittest
+import tempfile
 from unittest.mock import AsyncMock, Mock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -22,13 +23,17 @@ class ApiErrors(unittest.TestCase):
                 self.assertEqual(set(response.json()), {'detail'})
 
     def test_failed_initialization_does_not_retry_per_request(self):
-        with patch.object(gradcam, '_cam', None), patch.object(gradcam, 'load_baseline_model', side_effect=RuntimeError('load failed')) as load:
-            with self.assertRaises(RuntimeError):
-                gradcam.initialize()
-            for _ in range(2):
-                with self.assertRaises(FileNotFoundError):
-                    gradcam.explain(b'image')
-            self.assertEqual(load.call_count, 1)
+        # Exercise loader failure independently of real training artifacts.
+        with tempfile.TemporaryDirectory() as directory:
+            checkpoint = Path(directory) / 'test.pth'
+            checkpoint.write_bytes(b'unit-test-only; loader is mocked')
+            with patch.object(gradcam, 'CHECKPOINT', checkpoint), patch.object(gradcam, '_cam', None), patch.object(gradcam, '_error', None), patch.object(gradcam, '_checkpoint_sha256', None), patch.object(gradcam, 'load_baseline_model', side_effect=RuntimeError('load failed')) as load:
+                with self.assertRaises(RuntimeError):
+                    gradcam.initialize()
+                for _ in range(2):
+                    with self.assertRaises(FileNotFoundError):
+                        gradcam.explain(b'image')
+                self.assertEqual(load.call_count, 1)
 
 
 class BackendContract(unittest.IsolatedAsyncioTestCase):

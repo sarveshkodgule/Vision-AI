@@ -18,7 +18,7 @@ import torch.nn as nn
 from torchvision.models import efficientnet_b0, EfficientNet_B0_Weights
 
 
-def build_model(num_classes: int = 2, dropout: float = 0.4) -> nn.Module:
+def build_model(num_classes: int = 2, dropout: float = 0.4, pretrained: bool = True) -> nn.Module:
     """
     Build an EfficientNet-B0 model with a custom classification head.
 
@@ -28,13 +28,17 @@ def build_model(num_classes: int = 2, dropout: float = 0.4) -> nn.Module:
         Number of output classes (2 for PM / Non-PM).
     dropout : float
         Dropout probability before the final linear layer.
+    pretrained : bool
+        Load ImageNet weights for training. Set False before loading a complete
+        saved checkpoint so inference does not require a separate download.
 
     Returns
     -------
     nn.Module
         Model with ImageNet-pretrained backbone and randomly initialised head.
     """
-    model = efficientnet_b0(weights=EfficientNet_B0_Weights.IMAGENET1K_V1)
+    weights = EfficientNet_B0_Weights.IMAGENET1K_V1 if pretrained else None
+    model = efficientnet_b0(weights=weights)
 
     # Replace the default classifier head
     in_features = model.classifier[1].in_features   # 1280 for EfficientNet-B0

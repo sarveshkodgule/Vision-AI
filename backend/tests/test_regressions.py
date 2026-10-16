@@ -179,7 +179,10 @@ class ModelTests(unittest.TestCase):
         from ml.inference_service.main import app as inference_app
         from ml.inference_service.gradcam import explain
         import numpy as np
-        dataset = Path(os.environ.get('PALM_DATA_ROOT', ROOT / 'backend/DL dataset/PALM/PALM'))
+        default_dataset = ROOT / 'PALM/PALM'
+        if not default_dataset.is_dir():
+            default_dataset = ROOT / 'backend/DL dataset/PALM/PALM'
+        dataset = Path(os.environ.get('PALM_DATA_ROOT', default_dataset))
         picture = (dataset / 'Testing/Images/T0001.jpg').read_bytes()
         with TestClient(inference_app) as client:
             normal, pm = explain(picture, 0), explain(picture, 1)

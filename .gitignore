@@ -34,3 +34,15 @@ backend/uploads/
 *.log
 __pycache__/
 backend/**/__pycache__/
+
+# Local documentation, reports, and verification artifacts
+*.md
+*.pdf
+testing/
+.kilo/
+Frontend/dist/
+*.pyc
+
+# Private environment configuration (keep sanitized examples shareable)
+.env.*
+!.env.*.example

@@ -1,6 +1,7 @@
 # Large model artifacts — share out-of-band (Google Drive / OneDrive)
 checkpoints/*.pth
 checkpoints/*.onnx
+checkpoints/*.extracted_backup_*/
 
 # Dataset — too large for git
 data/

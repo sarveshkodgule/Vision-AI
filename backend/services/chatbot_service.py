@@ -22,14 +22,18 @@ GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-20b").strip() or "openai/gp
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 logger = logging.getLogger(__name__)
 SYSTEM_PROMPT = (
-    "You are Vision AI's eye-health education assistant. Answer clearly and concisely. "
+    "You are Shri Sarveshwar Netralaya's AI hospital and eye-health education assistant, not a doctor. Answer clearly and concisely. "
     "Explain myopia and screening concepts without making a diagnosis. "
     "Never invent patient measurements, model predictions, appointments, contact details, "
     "or report contents. You have no access to patient records in this conversation. "
     "Explain that screening results support, but do not replace, a clinician's assessment. "
     "Do not claim to run XGBoost, EfficientNet, or Grad-CAM yourself."
     " Reply in the user's language. For Marathi, use simple everyday Marathi. "
-    "Do not request passwords, OTPs or API keys."
+    "Do not request passwords, OTPs or API keys. "
+    "Clinic hours are Monday through Saturday, 10 AM to 7 PM India time. Sunday closed. "
+    "For appointments call +91 98819 36866 or (0240) 2322370. "
+    "Address: Plot No. 5, Mitra Nagar, near Gurudwara, Jalna Road, Chhatrapati Sambhajinagar. "
+    "Appointments must be arranged by phone; you cannot book them."
 )
 
 
@@ -41,7 +45,7 @@ def provider_config():
     raise HTTPException(status_code=503, detail="Unsupported chatbot provider. Set CHATBOT_PROVIDER to groq or openai in backend/.env.")
 
 
-def _call_provider(message: str) -> str:
+def _call_provider(message: str, language: str | None = None) -> str:
     url, key, model, key_setting = provider_config()
     if not key:
         raise HTTPException(status_code=503, detail=f"Chatbot not configured. Add {key_setting} to backend/.env and restart the backend.")
@@ -50,7 +54,7 @@ def _call_provider(message: str) -> str:
             url,
             headers={"Authorization": f"Bearer {key}"},
             json={"model": model, "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "system", "content": SYSTEM_PROMPT + (" Reply in Marathi (Devanagari), even if the question is in English." if language == "mr" else " Reply in English." if language == "en" else "")},
                 {"role": "user", "content": message},
             ], "stream": False, "max_completion_tokens": 2048},
             timeout=httpx.Timeout(60.0, connect=10.0),
@@ -78,16 +82,16 @@ def _call_provider(message: str) -> str:
         raise HTTPException(status_code=503, detail="Chatbot could not return a valid response. Please try again.") from None
 
 
-def get_chatbot_response(message: str) -> str:
-    return _call_provider(message)
+def get_chatbot_response(message: str, language: str | None = None) -> str:
+    return _call_provider(message, language)
 
 
-def get_general_chatbot_response(message: str) -> str:
-    return _call_provider(message)
+def get_general_chatbot_response(message: str, language: str | None = None) -> str:
+    return _call_provider(message, language)
 
 
 async def process_chat_query(user_id: str, query: ChatQuery):
-    response_text = await asyncio.to_thread(get_chatbot_response, query.message)
+    response_text = await asyncio.to_thread(get_chatbot_response, query.message, query.language)
     await chat_history_collection.insert_one({
         "user_id": user_id, "message": query.message,
         "response": response_text, "provider": CHATBOT_PROVIDER, "model": provider_config()[2],

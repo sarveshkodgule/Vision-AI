@@ -35,6 +35,20 @@ class OpenAITests(unittest.TestCase):
             self.assertEqual(post.call_args.kwargs['json']['model'], chat.OPENAI_MODEL)
             self.assertEqual(post.call_args.kwargs['json']['messages'][-1]['content'], 'Hello')
 
+    def test_selected_language_and_clinic_hours_reach_provider(self):
+        reply = httpx.Response(200, json={'choices': [{'message': {'content': 'reply'}}]}, request=httpx.Request('POST', chat.OPENAI_URL))
+        for language, expected in [('mr', 'Reply in Marathi (Devanagari)'), ('en', 'Reply in English.')]:
+            with self.subTest(language=language), patch.object(chat, 'OPENAI_API_KEY', 'test-only'), patch.object(chat.httpx, 'post', return_value=reply) as post, patch('routes.chatbot.chat_history_collection.insert_one', new_callable=AsyncMock):
+                response = TestClient(app).post('/chatbot/general', json={'message': 'When can I visit?', 'language': language})
+                self.assertEqual(response.status_code, 200)
+                prompt = post.call_args.kwargs['json']['messages'][0]['content']
+                self.assertIn(expected, prompt)
+                self.assertIn('10 AM to 7 PM', prompt)
+                self.assertIn('Sunday closed', prompt)
+
+    def test_unsupported_language_is_rejected(self):
+        self.assertEqual(TestClient(app).post('/chatbot/general', json={'message': 'Hello', 'language': 'invalid'}).status_code, 422)
+
     def test_provider_errors_have_no_fallback_or_secret(self):
         for code in [401, 403, 429, 500]:
             reply = httpx.Response(code, json={'error': 'private-provider-message'}, request=httpx.Request('POST', chat.OPENAI_URL))

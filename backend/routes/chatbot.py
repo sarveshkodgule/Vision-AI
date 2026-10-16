@@ -20,7 +20,7 @@ async def query_chatbot(query: ChatQuery, current_user: dict = Depends(get_curre
 @router.post("/general", response_model=dict)
 async def query_general_chatbot(query: ChatQuery):
     # Unauthenticated route for landing page
-    response_text = await asyncio.to_thread(get_general_chatbot_response, query.message)
+    response_text = await asyncio.to_thread(get_general_chatbot_response, query.message, query.language)
     
     # Optionally store anonymous queries
     chat_record = {

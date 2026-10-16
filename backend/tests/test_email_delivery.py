@@ -1,4 +1,6 @@
 """Real mail formatting and OTP lifecycle, with SMTP/database mocked."""
+import importlib
+import os
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -12,6 +14,23 @@ from database.mongodb import otp_codes_collection
 
 
 class EmailTests(unittest.TestCase):
+    def test_runtime_smtp_settings_take_precedence_over_dotenv(self):
+        runtime_settings = {
+            'SMTP_HOST': 'smtp.runtime.example',
+            'SMTP_PORT': '2525',
+            'SMTP_EMAIL': 'runtime@example.com',
+            'SMTP_PASSWORD': 'runtime-password',
+        }
+        try:
+            with patch.dict(os.environ, runtime_settings):
+                importlib.reload(mail)
+                self.assertEqual(mail.SMTP_HOST, runtime_settings['SMTP_HOST'])
+                self.assertEqual(mail.SMTP_PORT, 2525)
+                self.assertEqual(mail.SMTP_EMAIL, runtime_settings['SMTP_EMAIL'])
+                self.assertEqual(mail.SMTP_PASSWORD, runtime_settings['SMTP_PASSWORD'])
+        finally:
+            importlib.reload(mail)
+
     def test_otp_has_hospital_brand_plain_text_and_no_code_in_subject(self):
         message = mail.build_otp_email('patient@example.com', '654321')
         self.assertNotIn('654321', message['Subject'])

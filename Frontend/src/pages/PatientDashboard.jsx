@@ -12,6 +12,8 @@ import HospitalBrand from '../components/HospitalBrand';
 import PatientLanguageSwitch from '../components/PatientLanguageSwitch';
 import ScreeningSummary from '../components/ScreeningSummary';
 import { usePatientLanguage } from '../lib/patientLanguage';
+import OnboardingFlow from '../components/OnboardingFlow';
+import AccountDangerZone from '../components/AccountDangerZone';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -39,6 +41,7 @@ export default function PatientDashboard() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(() => localStorage.getItem('visionai_onboarding_complete') !== 'true');
   
   // Simulator States
   const [simScreen, setSimScreen] = useState(4);
@@ -418,6 +421,7 @@ export default function PatientDashboard() {
                     <button onClick={() => setIsEditingProfile(true)} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">{t("Edit Profile")}</button>
                   )}
                 </div>
+                <AccountDangerZone onDeleted={() => navigate('/')} />
               </div>
 
             </div>
@@ -920,6 +924,7 @@ export default function PatientDashboard() {
         </AnimatePresence>
         )}
       </main>
+      {showOnboarding && <OnboardingFlow name={profile.name === 'Loading...' ? '' : profile.name} onComplete={() => setShowOnboarding(false)} />}
 
       {/* Chatbot Floating UI */}
       <div className="patient-chat-widget fixed bottom-6 right-6 z-50">

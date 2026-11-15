@@ -89,6 +89,8 @@ async def authenticate_google(credential: str, challenge: str):
                 user = await users_collection.find_one({"google_sub": identity["sub"]})
                 if not user:
                     raise HTTPException(409, "Account already exists. Please sign in again.") from None
+    if user.get("is_active", True) is False:
+        raise HTTPException(403, "This account has been deactivated. Contact the hospital.")
     if user.get("role") not in ("patient", "doctor"):
         raise HTTPException(403, "This account has no portal access. Please contact the hospital.")
     return {"access_token": create_access_token(str(user["_id"]), user["role"]), "token_type": "bearer",

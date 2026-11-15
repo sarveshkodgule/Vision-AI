@@ -39,4 +39,5 @@ export const api = {
   get: endpoint => request('GET', endpoint),
   post: (endpoint, data, isForm = false) => request('POST', endpoint, data, isForm),
   put: (endpoint, data) => request('PUT', endpoint, data),
+  delete: endpoint => request('DELETE', endpoint),
 };

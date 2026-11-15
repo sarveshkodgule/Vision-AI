@@ -123,6 +123,22 @@ class ReportTests(unittest.TestCase):
             self.assertEqual(result['report_email']['status'], 'queued')
             self.assertEqual(insert.call_args.args[0]['myopia_probability'], .12)
 
+    def test_assessment_rejects_non_doctor_assignment(self):
+        payload = PatientRiskInput(name='Sample', age=12, gender='Female', screen_time=2, reading_time=1, work_hours=0, sleep_hours=8, outdoor_activity=2, parental_myopia=0, assigned_doctor_id=str(ObjectId()))
+        with patch.object(patient_service.users_collection, 'find_one', AsyncMock(return_value=None)), patch.object(patient_service.patients_collection, 'insert_one', AsyncMock()) as insert:
+            with self.assertRaises(HTTPException) as error:
+                asyncio.run(patient_service.assess_patient_risk(str(ObjectId()), payload))
+            self.assertEqual(error.exception.status_code, 400)
+            insert.assert_not_awaited()
+
+    def test_assessment_accepts_only_existing_doctor_assignment(self):
+        doctor_id = ObjectId()
+        payload = PatientRiskInput(name='Sample', age=12, gender='Female', screen_time=2, reading_time=1, work_hours=0, sleep_hours=8, outdoor_activity=2, parental_myopia=0, assigned_doctor_id=str(doctor_id))
+        identity = ObjectId()
+        with patch.object(patient_service.users_collection, 'find_one', AsyncMock(return_value={'_id': doctor_id})), patch.object(patient_service, 'calculate_risk', return_value=('Low', 'advice', .12, None)), patch.object(patient_service.patients_collection, 'insert_one', AsyncMock(return_value=Mock(inserted_id=identity))):
+            result = asyncio.run(patient_service.assess_patient_risk(str(ObjectId()), payload))
+            self.assertEqual(result['screening_id'], str(identity))
+
 
 class ReportRouteTests(unittest.TestCase):
     def setUp(self):

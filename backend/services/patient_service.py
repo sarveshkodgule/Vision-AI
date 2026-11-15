@@ -9,7 +9,7 @@ from typing import Optional, Tuple, Any, Dict
 
 from fastapi import HTTPException
 from schemas.patient import PatientRiskInput
-from database.mongodb import patients_collection
+from database.mongodb import patients_collection, users_collection
 
 MODELS_DIR = Path(__file__).parent.parent / "models"
 
@@ -72,6 +72,18 @@ def calculate_risk(data: PatientRiskInput) -> Tuple[str, str, float, Optional[fl
 
 
 async def assess_patient_risk(user_id: str, data: PatientRiskInput):
+    if data.assigned_doctor_id:
+        from bson import ObjectId
+
+        if not ObjectId.is_valid(data.assigned_doctor_id):
+            raise HTTPException(status_code=400, detail="Assigned doctor is invalid")
+        doctor = await users_collection.find_one(
+            {"_id": ObjectId(data.assigned_doctor_id), "role": "doctor"},
+            {"_id": 1},
+        )
+        if not doctor:
+            raise HTTPException(status_code=400, detail="Assigned account is not a valid doctor")
+
     risk_level, recommendation, probability, next_spheq = calculate_risk(data)
 
     patient_record = data.model_dump()
@@ -91,11 +103,9 @@ async def assess_patient_risk(user_id: str, data: PatientRiskInput):
     # ── Send high-risk email alert to assigned doctor (best-effort) ──────────
     if risk_level == "High" and data.assigned_doctor_id:
         try:
-            from database.mongodb import users_collection
-            from bson import ObjectId
             from services.email_service import send_high_risk_alert
             import asyncio
-            doc = await users_collection.find_one({"_id": ObjectId(data.assigned_doctor_id)})
+            doc = await users_collection.find_one({"_id": ObjectId(data.assigned_doctor_id), "role": "doctor", "is_active": {"$ne": False}})
             if doc and doc.get("email"):
                 # Fire-and-forget in a thread (smtplib is blocking)
                 loop = asyncio.get_event_loop()

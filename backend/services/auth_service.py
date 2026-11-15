@@ -9,7 +9,7 @@ from bson import ObjectId
 
 def validate_doctor_registration_code(passcode: str | None):
     """Temporary staff-registration gate, not a WebAuthn passkey or login factor."""
-    configured = os.getenv("HOSPITAL_DOCTOR_CODE", "SARVESHWAR2026").strip()
+    configured = os.getenv("HOSPITAL_DOCTOR_CODE", "").strip()
     if not configured:
         raise HTTPException(
             status_code=503,
@@ -52,7 +52,7 @@ async def authenticate_user(email: str, password: str):
     db_user = await users_collection.find_one({
         "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}
     })
-    if not db_user or not db_user.get("password") or not verify_password(password, db_user["password"]):
+    if not db_user or db_user.get("is_active", True) is False or not db_user.get("password") or not verify_password(password, db_user["password"]):
         raise HTTPException(status_code=400, detail="Incorrect email or password. Please try again.")
     
     if clean_email.lower() in FAILED_LOGIN_ATTEMPTS:
@@ -68,6 +68,18 @@ async def authenticate_user(email: str, password: str):
             "role": user_role
         }
     }
+
+
+async def deactivate_user(user_id: str) -> None:
+    if not ObjectId.is_valid(user_id):
+        raise HTTPException(status_code=400, detail="Invalid account")
+    from datetime import datetime, timezone
+    result = await users_collection.update_one(
+        {"_id": ObjectId(user_id), "is_active": {"$ne": False}},
+        {"$set": {"is_active": False, "deactivated_at": datetime.now(timezone.utc)}},
+    )
+    if not result.modified_count:
+        raise HTTPException(status_code=404, detail="Active account not found")
 
 async def update_user_profile(user_id: str, profile_data: dict):
     update_data = {k: v for k, v in profile_data.items() if v is not None}

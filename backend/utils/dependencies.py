@@ -4,16 +4,7 @@ import jwt
 from typing import Optional
 from database.mongodb import users_collection
 from bson import ObjectId
-import os
-from dotenv import load_dotenv
-
-# Load .env explicitly using absolute path to prevent startup directory issues
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-env_path = os.path.join(base_dir, ".env")
-load_dotenv(dotenv_path=env_path, override=True)
-
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "supersecretkey_please_change_in_production")
-ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+from utils.security import SECRET_KEY, ALGORITHM
 
 # Setting auto_error=False to handle missing tokens gracefully in some contexts if needed
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -43,7 +34,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
     
     user = await users_collection.find_one({"_id": ObjectId(user_id)})
-    if user is None:
+    if user is None or user.get("is_active", True) is False:
         raise credentials_exception
     
     # Add string ID for convenience

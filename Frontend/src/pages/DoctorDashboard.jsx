@@ -10,6 +10,7 @@ import {
 import { api, API_BASE_URL } from '../lib/api';
 import HospitalBrand from '../components/HospitalBrand';
 import { hospital } from '../lib/hospital';
+import AccountDangerZone from '../components/AccountDangerZone';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement, Filler);
 
@@ -306,6 +307,7 @@ export default function DoctorDashboard() {
                 <button onClick={() => setIsEditingProfile(true)} className="bg-slate-100 text-slate-600 px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 transition-colors">{t("Edit Details")}</button>
               )}
             </div>
+            <AccountDangerZone onDeleted={() => navigate('/')} />
             </div>
         </Motion.div>
       );

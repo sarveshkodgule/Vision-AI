@@ -2,6 +2,8 @@ import PatientLanguageSwitch from './components/PatientLanguageSwitch';
 import { usePatientLanguage } from './lib/patientLanguage';
 import React, { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import AppErrorBoundary from './components/AppErrorBoundary';
+import { reportClientError, trackEvent } from './lib/telemetry';
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
@@ -10,6 +12,9 @@ const PatientDashboard = lazy(() => import('./pages/PatientDashboard'));
 const DoctorDashboard = lazy(() => import('./pages/DoctorDashboard'));
 const AboutUs = lazy(() => import('./pages/AboutUs'));
 const ContactUs = lazy(() => import('./pages/ContactUs'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Protected Route wrapper component
 function ProtectedRoute({ children, allowedRole }) {
@@ -46,19 +51,30 @@ function LanguageSettings() {
   const { language } = usePatientLanguage();
   const { pathname } = useLocation();
   useEffect(() => { document.documentElement.lang = language; }, [language]);
+  useEffect(() => { trackEvent(`page_view:${pathname}`); }, [pathname]);
   if (['/', '/about', '/contact', '/patient/dashboard'].includes(pathname)) return null;
   return <div className="portal-language-bar"><PatientLanguageSwitch compact /></div>;
 }
 
 function App() {
+  useEffect(() => {
+    const handleError = event => reportClientError(event.error || new Error(event.message), { source: 'window' });
+    const handleRejection = event => reportClientError(event.reason, { source: 'unhandledrejection' });
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleRejection);
+    return () => { window.removeEventListener('error', handleError); window.removeEventListener('unhandledrejection', handleRejection); };
+  }, []);
   return (
     <BrowserRouter>
       <LanguageSettings />
+      <AppErrorBoundary>
       <Suspense fallback={<p role="status" className="p-6">Loading...</p>}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/contact" element={<ContactUs />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
         
         {/* Public auth routes (restricted if logged in) */}
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
@@ -82,8 +98,10 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        <Route path="*" element={<NotFound />} />
       </Routes>
       </Suspense>
+      </AppErrorBoundary>
     </BrowserRouter>
   );
 }

@@ -93,6 +93,27 @@
 .login-account-note svg { flex-shrink:0; color:#254e7a; }
 .google-login-card .login-help { font-size:11px; margin-top:15px; }
 .login-help a { color:#17365d; text-decoration:underline; }
+.app-error-page { min-height:100dvh; display:grid; place-items:center; gap:35px; padding:32px; background:#f5f8fc; color:var(--hospital-ink); }
+.app-error-page > div { max-width:620px; }
+.app-error-page h1 { font:clamp(34px,5vw,58px)/1.1 'Segoe UI','Nirmala UI',Arial,sans-serif; margin-bottom:18px; }
+.app-error-page p:not(.eyebrow) { color:var(--hospital-muted); line-height:1.8; margin-bottom:24px; }
+.legal-page { padding-block:80px; max-width:800px; }
+.legal-page h1 { font:clamp(38px,5vw,64px)/1.1 'Segoe UI','Nirmala UI',Arial,sans-serif; margin-bottom:24px; }
+.legal-page h2 { font-size:26px; margin:42px 0 12px; }
+.legal-page p { color:var(--hospital-muted); line-height:1.9; }
+.onboarding-backdrop { position:fixed; inset:0; z-index:80; display:grid; place-items:center; padding:20px; background:#101f358c; }
+.onboarding-card { width:min(520px,100%); background:white; border:1px solid var(--hospital-line); border-radius:18px; padding:32px; box-shadow:0 20px 70px #101f3540; }
+.onboarding-card h2 { font-size:30px; color:var(--hospital-ink); margin-bottom:12px; }
+.onboarding-card > p:not(.eyebrow) { color:var(--hospital-muted); line-height:1.8; min-height:58px; }
+.onboarding-progress { display:flex; gap:7px; margin:24px 0; }
+.onboarding-progress span { height:4px; flex:1; border-radius:10px; background:#d5e0ed; }
+.onboarding-progress span.active { background:var(--hospital-primary); }
+.account-danger-zone { margin-top:28px; padding:22px; border:1px solid #efd1c8; border-radius:12px; background:#fff7f3; }
+.account-danger-zone h3 { color:#7c342d; font-size:16px; }
+.account-danger-zone p:not(.patient-feedback) { color:#7c342d; font-size:12px; line-height:1.7; margin:7px 0 14px; }
+.danger-button { padding:10px 15px; border-radius:8px; background:#823c46; color:white; font-size:12px; font-weight:700; }
+.danger-button:disabled { opacity:.55; cursor:wait; }
+@media(max-width:640px) { .app-error-page { padding:22px 16px; } .legal-page { padding-block:50px; } .onboarding-card { padding:24px; } .patient-hospital-nav { padding-inline:12px; } .patient-tabs { gap:3px!important; overflow-x:auto; max-width:70vw; } .patient-tabs > button:not(:last-child) { white-space:nowrap; font-size:11px; } }
 @media(max-width:800px) { .google-login-page { grid-template-columns:1fr; } .google-login-story { display:none; } .google-login-form { padding:25px 16px; } .google-login-card { padding:25px; } .google-login-form .mobile-brand { display:flex; } }
 @media(max-width:680px) { .summary-heading { flex-direction:column; gap:16px; } .summary-probability { text-align:left; } .screening-summary,.report-access { padding:20px; } .report-actions button { flex:1 1 110px; } .hospital-gallery { grid-template-columns:1fr; } .hospital-gallery img { height:260px; } .visit-guidance { padding:22px; } }
 :root { --hospital-primary:#17365d; --hospital-ink:#24354b; --hospital-muted:#53657b; --hospital-paper:#faf9f7; --hospital-line:#d5e0ed; --hospital-accent:#823c46; }

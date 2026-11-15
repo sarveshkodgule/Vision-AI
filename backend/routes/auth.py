@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from schemas.user import UserUpdate, GoogleLogin, UserCreate, PasswordReset, OTPRequest, OTPVerify
 from fastapi.security import OAuth2PasswordRequestForm
-from services.auth_service import update_user_profile, create_user, authenticate_user, reset_password, generate_and_save_otp, verify_otp_code
+from services.auth_service import update_user_profile, create_user, authenticate_user, reset_password, generate_and_save_otp, verify_otp_code, deactivate_user
 from services.google_auth_service import google_config, authenticate_google
 from utils.dependencies import get_current_user, oauth2_scheme
 from database.mongodb import users_collection
@@ -86,10 +86,17 @@ async def update_profile(user_update: UserUpdate, current_user: dict = Depends(g
     }
 
 
+@router.delete("/account", response_model=dict)
+async def delete_account(current_user: dict = Depends(get_current_user)):
+    """Deactivate the account while retaining clinical records for required retention."""
+    await deactivate_user(str(current_user["_id"]))
+    return {"status": "success", "message": "Your account has been deactivated."}
+
+
 @router.get("/doctors", response_model=dict)
 async def get_doctors(current_user: dict = Depends(get_current_user)):
     """Returns all registered doctors — used by patient form to assign a doctor."""
-    cursor = users_collection.find({"role": "doctor"}, {"_id": 1, "name": 1, "email": 1})
+    cursor = users_collection.find({"role": "doctor", "is_active": {"$ne": False}}, {"_id": 1, "name": 1, "email": 1})
     doctors = await cursor.to_list(length=200)
     result = [{"id": str(d["_id"]), "name": d.get("name", ""), "email": d.get("email", "")} for d in doctors]
     return {

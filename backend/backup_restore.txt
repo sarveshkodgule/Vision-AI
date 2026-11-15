@@ -1,0 +1,18 @@
+MongoDB backup and restore
+==========================
+
+These commands require mongodump and mongorestore from the MongoDB Database
+Tools package. Run them from the repository root and keep the output folder
+outside source control.
+
+Backup:
+  mongodump --uri "%MONGODB_URI%" --db "%DB_NAME%" --out ".\backups\%date:~10,4%%date:~4,2%%date:~7,2%"
+
+Restore a selected backup:
+  mongorestore --uri "%MONGODB_URI%" --drop ".\backups\YYYYMMDD\%DB_NAME%"
+
+Operational requirements:
+* Run an encrypted daily backup and retain at least one tested off-site copy.
+* Restrict backup access to the hospital administrator and never commit dumps.
+* Test restoration in a separate database before relying on a backup.
+* Set MONGODB_URI and DB_NAME in the server environment before running commands.

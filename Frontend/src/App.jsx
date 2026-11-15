@@ -4,6 +4,8 @@ import React, { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import AppErrorBoundary from './components/AppErrorBoundary';
 import { reportClientError, trackEvent } from './lib/telemetry';
+import CommandMenu from './components/CommandMenu';
+import Skeleton from './components/Skeleton';
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
@@ -68,7 +70,8 @@ function App() {
     <BrowserRouter>
       <LanguageSettings />
       <AppErrorBoundary>
-      <Suspense fallback={<p role="status" className="p-6">Loading...</p>}>
+      <CommandMenu />
+      <Suspense fallback={<div className="app-loading" role="status"><Skeleton className="ui-skeleton-title" /><Skeleton className="ui-skeleton-line" /></div>}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/about" element={<AboutUs />} />

@@ -27,7 +27,7 @@ export default function ScreeningSummary({ result }) {
   const plan = guidance[band];
   if (!plan) return null;
   return <section className={`screening-summary risk-${band.toLowerCase()}`} lang={language} aria-label={t('Your result at a glance', 'तुमच्या निकालाचा सारांश')}>
-    <div className="summary-heading"><div><p className="screening-kicker">{t('YOUR RESULT AT A GLANCE', 'तुमच्या निकालाचा सारांश')}</p><h3>{t(...plan.label)}</h3></div><div className="summary-probability"><strong>{Number.isFinite(result.probability) ? `${(result.probability * 100).toFixed(1)}%` : '—'}</strong><span>{t('Model-estimated probability', 'मॉडेलने अंदाजित केलेली शक्यता')}</span></div></div>
+    <div className="summary-heading"><div><p className="screening-kicker">{t('YOUR RESULT AT A GLANCE', 'तुमच्या निकालाचा सारांश')}</p><h3>{t(...plan.label)}</h3></div><div className="summary-probability"><strong className="ui-tabular">{Number.isFinite(result.probability) ? `${(result.probability * 100).toFixed(1)}%` : '—'}</strong><span>{t('Model-estimated probability', 'मॉडेलने अंदाजित केलेली शक्यता')}</span></div></div>
     <p>{t(...plan.meaning)}</p>
     <p className="summary-explanation">{t('This questionnaire provides a model estimate, not a confirmed diagnosis, prescription strength or forecast of future vision.', 'ही प्रश्नावली मॉडेलचा अंदाज देते. हे निश्चित निदान, चष्म्याचा नंबर किंवा भविष्यातील दृष्टीचे भाकीत नाही.')}</p>
     <div className="summary-next"><span>01</span><div><h4>{t('Your next step', 'पुढील पाऊल')}</h4><p>{t(...plan.next)}</p></div></div>

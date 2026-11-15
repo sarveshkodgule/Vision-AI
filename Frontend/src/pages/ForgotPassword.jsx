@@ -128,6 +128,10 @@ export default function ForgotPassword() {
                           type="text" 
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value)}
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          pattern="[0-9]{6}"
+                          maxLength={6}
                           className="w-full rounded-xl border-slate-200 bg-slate-50 pl-11 pr-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors" 
                           placeholder={t("Enter 6-digit code")} 
                           required

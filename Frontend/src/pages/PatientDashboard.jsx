@@ -14,6 +14,7 @@ import ScreeningSummary from '../components/ScreeningSummary';
 import { usePatientLanguage } from '../lib/patientLanguage';
 import OnboardingFlow from '../components/OnboardingFlow';
 import AccountDangerZone from '../components/AccountDangerZone';
+import { HistorySkeleton } from '../components/Skeleton';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
@@ -439,7 +440,7 @@ export default function PatientDashboard() {
               </div>
             </div>
 
-            {historyLoading ? <div className="patient-loading" role="status"><Loader2 className="animate-spin" size={22}/>{t("Loading your screening history and doctor reports…")}</div> : historyError ? null : <>
+            {historyLoading ? <HistorySkeleton /> : historyError ? null : <>
             {/* Progression Curve Mapping */}
             {reports.length > 0 ? (
               <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">

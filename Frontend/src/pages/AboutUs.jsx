@@ -1,14 +1,20 @@
 import { usePatientLanguage } from '../lib/patientLanguage';
 import { createElement } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowUpRight, HeartHandshake, MapPin, FileCheck2, Eye, Phone, GraduationCap } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowUpRight, HeartHandshake, MapPin, FileCheck2, Eye, Phone, GraduationCap } from 'lucide-react';
 import HospitalLayout from '../components/HospitalLayout';
 import HospitalGallery from '../components/HospitalGallery';
 import { hospital } from '../lib/hospital';
 
 export default function AboutUs() {
   const { t } = usePatientLanguage();
+  const navigate = useNavigate();
   return <HospitalLayout>
+    <div className="hospital-container pt-6">
+      <button type="button" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))} className="inline-flex items-center text-sm font-semibold text-slate-600 hover:text-blue-700 transition-colors">
+        <ArrowLeft className="w-4 h-4 mr-1.5" /> {t("Back")}
+      </button>
+    </div>
     <section className="page-intro hospital-container"><p className="eyebrow">{t("OUR HOSPITAL · OUR COMMUNITY")}</p><h1>{t("Here for your eyes.")}<br/><em>{t("Here for you.")}</em></h1><p>{t("Get to know Shri Sarveshwar Netralaya, your local eye-care destination in Mitra Nagar, Chhatrapati Sambhajinagar.")}</p></section>
     <section className="hospital-container about-intro">
       <div className="hospital-address-art"><span className="eyebrow">श्री सर्वेश्वर नेत्रालय</span><img className="about-hospital-emblem" src="/sarveshwar-eye.png" width="2172" height="724" alt="" /><h2>{t("Rooted in")}<br/>{t("our community.")}</h2><span><MapPin size={16}/> {t("Mitra Nagar · Jalna Road")}</span></div>

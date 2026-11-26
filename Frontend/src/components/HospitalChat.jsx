@@ -3,6 +3,7 @@ import { X, Send, Loader2, Languages, Phone, Clock3, MapPin, ClipboardCheck } fr
 import { api } from '../lib/api';
 import { hospital } from '../lib/hospital';
 import { usePatientLanguage } from '../lib/patientLanguage';
+import ChatMessageBody from './ChatMessageBody';
 
 function CareCompanion() {
   return <svg className="care-companion" viewBox="0 0 64 64" aria-hidden="true">
@@ -51,7 +52,19 @@ export default function HospitalChat() {
       <div className="chat-messages" role="log" aria-live="polite">
         <p className="chat-bot">{t('Hello! Welcome to Shri Sarveshwar Netralaya. Let’s make your visit a little easier. Choose a topic below or ask me a question.', 'नमस्कार! श्री सर्वेश्वर नेत्रालयात आपले स्वागत आहे. तुमच्या भेटीची तयारी करूया. खाली विषय निवडा किंवा तुमचा प्रश्न विचारा.')}</p>
         <div className="chat-topics">{topics.map(({ id, icon: Icon, label }) => <button key={id} type="button" disabled={loading} onClick={() => setMessages(previous => [...previous, { role: 'user', topic: id }, { role: 'bot', topic: id }])}>{createElement(Icon, { size: 16 })}{label}</button>)}</div>
-        {messages.map((message, index) => <p key={index} lang={message.topic || message.failed ? language : message.language} className={`chat-${message.role}`}>{message.failed ? t('I couldn’t connect just now. Please try again, or call the hospital for help.', 'आत्ता संपर्क झाला नाही. पुन्हा प्रयत्न करा किंवा मदतीसाठी रुग्णालयाला फोन करा.') : message.topic ? topics.find(topic => topic.id === message.topic)?.[message.role === 'user' ? 'label' : 'answer'] : message.text}</p>)}
+        {messages.map((message, index) => (
+          <div key={index} lang={message.topic || message.failed ? language : message.language} className={`chat-${message.role}`}>
+            {message.failed ? (
+              t('I couldn’t connect just now. Please try again, or call the hospital for help.', 'आत्ता संपर्क झाला नाही. पुन्हा प्रयत्न करा किंवा मदतीसाठी रुग्णालयाला फोन करा.')
+            ) : message.topic ? (
+              topics.find(topic => topic.id === message.topic)?.[message.role === 'user' ? 'label' : 'answer']
+            ) : message.role === 'bot' ? (
+              <ChatMessageBody text={message.text} />
+            ) : (
+              message.text
+            )}
+          </div>
+        ))}
         {loading && <p role="status"><Loader2 className="animate-spin" size={18}/> {t('Preparing your answer…', 'तुमचे उत्तर तयार होत आहे…')}</p>}
         <div ref={end}/>
       </div>

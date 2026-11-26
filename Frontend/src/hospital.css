@@ -452,7 +452,7 @@ button, a, input, select, textarea { -webkit-tap-highlight-color:transparent; }
 .hospital-site h1 { text-wrap:balance; }
 .hero-copy { animation:welcome-in .65s ease-out both; }
 .hero-art { animation:welcome-in .85s ease-out both; box-shadow:0 22px 55px -30px #142a4550; }
-.hospital-emblem-display { animation:eye-breathe 9s ease-in-out infinite; }
+.hospital-emblem-display { position:relative; }
 .hero-description { max-width:440px; }
 .hospital-site .hospital-button { box-shadow:0 3px 0 #142a4510; }
 .hospital-site .button-outline { box-shadow:none; }
@@ -663,3 +663,33 @@ html[lang=mr] p,html[lang=mr] label,html[lang=mr] button { line-height:1.7; }
 .chat-footer a { display:flex; align-items:center; gap:4px; white-space:nowrap; color:#17365d; }
 @media(max-width:680px) { .hospital-chat { bottom:calc(150px + env(safe-area-inset-bottom)); height:min(540px,calc(100dvh - 180px)); } .care-chat-launcher { padding:6px; } .care-chat-launcher .care-companion { width:44px; height:44px; } }
 @media(prefers-reduced-motion:reduce) { .care-chat-launcher { transition:none; } }
+
+/* Unified clinical workspace tokens (Patient & Doctor Portals) */
+.clinical-shell { min-height:100dvh; background:#f5f8fc; color:#24354b; }
+.clinical-card { background:#ffffff; border:1px solid #d5e0ed; border-radius:14px; box-shadow:0 1px 3px rgba(16,31,53,.04); }
+.clinical-card-muted { background:#f8fafc; border:1px solid #d5e0ed; border-radius:12px; }
+.clinical-label { display:block; font-size:12px; font-weight:600; color:#24354b; margin-bottom:6px; line-height:1.4; }
+.clinical-help { font-size:12px; color:#53657b; line-height:1.5; }
+.clinical-input { width:100%; min-width:0; border:1px solid #c4d5e9; background:#ffffff; color:#24354b; border-radius:8px; padding:9px 12px; font-size:14px; transition:border-color .15s, box-shadow .15s; }
+.clinical-input.pl-10 { padding-left:2.6rem; }
+.clinical-input.pl-11 { padding-left:2.85rem; }
+.clinical-input.pr-11 { padding-right:2.75rem; }
+.clinical-input.pr-12 { padding-right:3rem; }
+.clinical-input:focus { outline:none; border-color:#17365d; box-shadow:0 0 0 3px rgba(23,54,93,.12); }
+.clinical-btn-primary { display:inline-flex; align-items:center; justify-content:center; gap:8px; background:#17365d; color:#ffffff; border:1px solid #17365d; border-radius:8px; padding:10px 18px; min-height:42px; font-size:13px; font-weight:600; transition:background-color .15s, border-color .15s; cursor:pointer; }
+.clinical-btn-primary:hover:not(:disabled) { background:#254e7a; border-color:#254e7a; }
+.clinical-btn-primary:disabled { opacity:.55; cursor:not-allowed; }
+.clinical-btn-secondary { display:inline-flex; align-items:center; justify-content:center; gap:8px; background:#ffffff; color:#17365d; border:1px solid #c4d5e9; border-radius:8px; padding:9px 16px; min-height:40px; font-size:13px; font-weight:600; transition:background-color .15s, border-color .15s; cursor:pointer; }
+.clinical-btn-secondary:hover:not(:disabled) { background:#f1f5fa; border-color:#9ab8d9; }
+.clinical-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:6px; font-size:12px; font-weight:600; line-height:1.2; border:1px solid transparent; }
+.clinical-badge-high { background:#fef2f2; color:#991b1b; border-color:#fecaca; }
+.clinical-badge-medium { background:#fffbeb; color:#92400e; border-color:#fde68a; }
+.clinical-badge-low { background:#f0fdfa; color:#115e59; border-color:#99f6e4; }
+.clinical-badge-neutral { background:#f1f5fa; color:#17365d; border-color:#d5e0ed; }
+.clinical-lightbox { width:min(960px,calc(100vw - 24px)); max-height:calc(100dvh - 24px); padding:0; border:1px solid #c4d5e9; border-radius:14px; background:#ffffff; color:#24354b; }
+.clinical-lightbox::backdrop { background:rgba(16,31,53,.72); }
+@media print {
+  aside, header, .no-print, .patient-chat-widget, .command-trigger { display:none !important; }
+  .clinical-shell, main { background:#ffffff !important; padding:0 !important; }
+  .clinical-card { box-shadow:none !important; break-inside:avoid; }
+}

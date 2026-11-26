@@ -411,4 +411,35 @@ Doctor account successfully created! Redirecting to Login...|डॉक्टर 
 Password must be at least 6 characters long.|पासवर्ड किमान ६ अक्षरांचा असावा.
 Unable to send a new code. Please try again.|नवीन संकेतांक पाठवता आला नाही. पुन्हा प्रयत्न करा.
 Save Profile|माहिती जतन करा
+Print Summary|सारांश प्रिंट करा
+Period Comparison|कालावधीनुसार तुलना
+AI vs Doctor Agreement|AI आणि डॉक्टरांचे एकमत
+Clinical Assessment History|वैद्यकीय तपासणी इतिहास
+Previous vs. Current Comparison|मागील आणि सद्य तपासणी तुलना
+Previous|मागील
+Latest|नवीनतम
+Doctor Verdict:|डॉक्टरांचा निर्णय:
+Signed off|स्वाक्षरी पूर्ण
+Preliminary|प्राथमिक
+Pending sign-off|स्वाक्षरी प्रलंबित
+Clinician Review & Sign-Off|डॉक्टरांचे पुनरावलोकन आणि अंतिम स्वाक्षरी
+Final Doctor Verdict|डॉक्टरांचा अंतिम निर्णय
+Clinical Note (optional)|वैद्यकीय नोंद (ऐच्छिक)
+Optional clinical notes or follow-up plan|ऐच्छिक वैद्यकीय नोंद किंवा पुढील तपासणी नियोजन
+Save Clinical Sign-Off|अंतिम स्वाक्षरी जतन करा
+Clinical sign-off saved.|वैद्यकीय अंतिम स्वाक्षरी जतन झाली.
+Unable to save clinical sign-off.|वैद्यकीय अंतिम स्वाक्षरी जतन करता आली नाही.
+Clinical PDF report downloaded.|वैद्यकीय PDF अहवाल डाउनलोड झाला.
+Loading assessment history...|तपासणी इतिहास लोड होत आहे…
+Unable to load previous clinical assessments.|मागील तपासणी इतिहास लोड करता आला नाही.
+No previous clinical assessments recorded for this patient.|या रुग्णासाठी मागील वैद्यकीय तपासण्या नोंदवलेल्या नाहीत.
+Preliminary Clinical Assessment|प्राथमिक वैद्यकीय मूल्यांकन
+Clinical Decision Support Output|वैद्यकीय निर्णय सहाय्यक निकाल
+Doctor Clinical Verdict|डॉक्टरांचा वैद्यकीय निर्णय
+Doctor Clinical Assessments|डॉक्टरांचे वैद्यकीय अहवाल
+Self-Reported Lifestyle Screenings|स्व-नोंदवलेली जीवनशैली तपासणी
+Screening Guidance|तपासणी मार्गदर्शन
+General guidance, not a diagnosis.|सामान्य मार्गदर्शन, वैद्यकीय निदान नाही.
+Preparing PDF...|PDF तयार करत आहे…
+Retry|पुन्हा प्रयत्न करा
 `.trim().split('\n').map(line => line.split('|')));

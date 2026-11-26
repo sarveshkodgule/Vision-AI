@@ -54,7 +54,7 @@ function LanguageSettings() {
   const { pathname } = useLocation();
   useEffect(() => { document.documentElement.lang = language; }, [language]);
   useEffect(() => { trackEvent(`page_view:${pathname}`); }, [pathname]);
-  if (['/', '/about', '/contact', '/patient/dashboard'].includes(pathname)) return null;
+  if (['/', '/about', '/contact', '/patient/dashboard', '/doctor/dashboard', '/login', '/signup', '/forgot-password'].includes(pathname)) return null;
   return <div className="portal-language-bar"><PatientLanguageSwitch compact /></div>;
 }
 

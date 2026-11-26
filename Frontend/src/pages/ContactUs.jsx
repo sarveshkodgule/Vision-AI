@@ -1,6 +1,6 @@
 import { usePatientLanguage } from '../lib/patientLanguage';
-import { Link } from 'react-router-dom';
-import { Phone, MapPin, Clock3, ArrowUpRight, Check, FileText } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Phone, MapPin, Clock3, ArrowLeft, ArrowUpRight, Check, FileText } from 'lucide-react';
 import HospitalLayout from '../components/HospitalLayout';
 import VisitChecklist from '../components/VisitChecklist';
 import CopyAddressButton from '../components/CopyAddressButton';
@@ -9,7 +9,13 @@ import { hospital } from '../lib/hospital';
 
 export default function ContactUs() {
   const { t } = usePatientLanguage();
+  const navigate = useNavigate();
   return <HospitalLayout>
+    <div className="hospital-container pt-6">
+      <button type="button" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))} className="inline-flex items-center text-sm font-semibold text-slate-600 hover:text-blue-700 transition-colors">
+        <ArrowLeft className="w-4 h-4 mr-1.5" /> {t("Back")}
+      </button>
+    </div>
     <section className="page-intro hospital-container"><p className="eyebrow">{t("CONTACT & DIRECTIONS")}</p><h1>{t("Your next step")}<br/>{t("to")} <em>{t("better eye care.")}</em></h1><p>{t("Speak to the hospital, plan your journey, and arrive prepared for your consultation.")}</p></section>
     <VisitGuidance />
     <section className="hospital-container contact-grid">

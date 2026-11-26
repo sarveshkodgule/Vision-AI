@@ -14,7 +14,7 @@ export default function OnboardingFlow({ name, onComplete }) {
   };
   return <div className="onboarding-backdrop" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
     <div className="onboarding-card">
-      <p className="eyebrow">WELCOME{ name ? `, ${name.toUpperCase()}` : '' }</p>
+      <p className="eyebrow">{name ? `Patient portal · ${name}` : 'Patient portal'}</p>
       <h2 id="onboarding-title">{steps[step][0]}</h2><p>{steps[step][1]}</p>
       <div className="onboarding-progress" aria-label={`Step ${step + 1} of ${steps.length}`}>{steps.map((_, index) => <span className={index === step ? 'active' : ''} key={index} />)}</div>
       <div className="button-row">{step < steps.length - 1 ? <><button className="hospital-button button-outline" onClick={complete}>Skip</button><button className="hospital-button" onClick={() => setStep(step + 1)}>Next</button></> : <button className="hospital-button" onClick={complete}><CheckCircle2 size={17}/> Get started</button>}</div>

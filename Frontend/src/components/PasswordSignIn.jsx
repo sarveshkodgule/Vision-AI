@@ -80,7 +80,6 @@ export default function PasswordSignIn({ role, onRoleChange }) {
       > {t("Doctor")} </button>
     </div>
 
-    {role === 'doctor' && <p className="doctor-signin-note">{t("Use your registered doctor email and your own password. The hospital registration code is only for creating a staff account. You can also continue with Google below using the same registered email.")}</p>}
     <label htmlFor="login-email">{role === 'doctor' ? t("Doctor email address") : t("Patient email address")}</label>
     <input id="login-email" type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} placeholder={role === 'doctor' ? 'doctor@example.com' : 'patient@example.com'} />
     <div className="password-label"><label htmlFor="login-password">{t("Password")}</label><Link to="/forgot-password">{t("Forgot password?")}</Link></div>

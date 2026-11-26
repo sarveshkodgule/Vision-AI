@@ -44,7 +44,7 @@ export default function DoctorDashboard() {
       next.delete('patient');
       next.delete('edit');
       return next;
-    });
+    }, { replace: true });
   }, [activeTab, searchParams, setSearchParams]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientSearch, setPatientSearch] = useState('');
@@ -851,7 +851,7 @@ export default function DoctorDashboard() {
                           <div className="inline-flex items-center gap-2">
                             <button
                               type="button"
-                              onClick={() => { transitionPatient(p); setActiveTab('patients'); }}
+                              onClick={() => transitionPatient(p)}
                               className="clinical-btn-secondary px-3 py-1.5 min-h-[36px] text-xs"
                             >
                               Open Record
@@ -1781,7 +1781,7 @@ export default function DoctorDashboard() {
                 key={id}
                 type="button"
                 aria-current={active ? 'page' : undefined}
-                onClick={() => { setActiveTab(id); transitionPatient(null); }}
+                onClick={() => { setActiveTab(id); transitionPatient(null, false); }}
                 className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
                   active ? 'bg-blue-700 text-white' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                 }`}
@@ -1823,7 +1823,7 @@ export default function DoctorDashboard() {
             <button
               type="button"
               aria-label={t('View screening reports')}
-              onClick={() => { setActiveTab('screening-reports'); transitionPatient(null); }}
+              onClick={() => { setActiveTab('screening-reports'); transitionPatient(null, false); }}
               className="p-2 text-slate-500 hover:text-blue-700 transition-colors rounded-lg hover:bg-slate-100"
             >
               <Bell className="w-[18px] h-[18px]" />
@@ -1831,7 +1831,7 @@ export default function DoctorDashboard() {
             <button
               type="button"
               aria-label="Open doctor profile"
-              onClick={() => { setActiveTab('profile'); transitionPatient(null); }}
+              onClick={() => { setActiveTab('profile'); transitionPatient(null, false); }}
               className={`w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-800 font-semibold text-sm border transition-colors ${
                 activeTab === 'profile' ? 'border-blue-700 ring-2 ring-blue-200' : 'border-slate-300 hover:bg-slate-200'
               }`}

@@ -36,14 +36,16 @@ function ProtectedRoute({ children, allowedRole }) {
   return children;
 }
 
-// Public Route wrapper component (prevents logged in users from visiting login/signup)
+// Public auth routes always render the requested screen. This prevents a saved
+// browser token from silently routing a public portal link to a dashboard.
 function PublicRoute({ children }) {
-  const token = localStorage.getItem('token');
-  const role = localStorage.getItem('role');
+  const { search } = useLocation();
+  const forceSignIn = new URLSearchParams(search).get('reauth') === '1';
 
-  if (token) {
-    // If already logged in, redirect to their dashboard
-    return <Navigate to={role === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard'} replace />;
+  if (forceSignIn) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('role');
+    return children;
   }
 
   return children;

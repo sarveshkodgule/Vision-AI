@@ -24,7 +24,8 @@ export default function HospitalLayout({ children }) {
     document.addEventListener('keydown', dismiss);
     return () => document.removeEventListener('keydown', dismiss);
   }, [menuOpen]);
-  const portal = localStorage.getItem('token') ? (localStorage.getItem('role') === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard') : '/login';
+  // Portal links on the public site always start a new sign-in.
+  const portal = '/login?reauth=1';
   return <div className="hospital-site" lang={language}>
     <a href="#main-content" className="skip-link">{t('Skip to content', 'थेट मुख्य माहितीवर जा')}</a>
     <div className="hospital-topbar"><div className="hospital-container"><span><MapPin size={13} /> {t(`Mitra Nagar, ${hospital.city}`, 'मित्रनगर, छत्रपती संभाजीनगर')}</span><a href={hospital.phoneHref}><Phone size={13} /> {t('Appointments:', 'भेटीसाठी फोन:')} {hospital.phone}</a></div></div>

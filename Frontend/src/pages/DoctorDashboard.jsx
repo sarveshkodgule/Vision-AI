@@ -22,6 +22,7 @@ export default function DoctorDashboard() {
   const [patientSearch, setPatientSearch] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [assessmentComplete, setAssessmentComplete] = useState(false);
+  const [toast, setToast] = useState(null);
 
   const [profile, setProfile] = useState({ name: 'Loading...', email: 'Loading...', role: 'doctor' });
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -100,6 +101,11 @@ export default function DoctorDashboard() {
   // Live patient list from MongoDB via API
   const [patients, setPatients] = useState([]);
   const [patientsLoading, setPatientsLoading] = useState(false);
+
+  const notify = (message, tone = 'error') => {
+    setToast({ message, tone });
+    window.setTimeout(() => setToast(null), 5000);
+  };
 
   useEffect(() => {
     if (activeTab === 'patients') {
@@ -192,7 +198,7 @@ export default function DoctorDashboard() {
       } catch (err) {
         console.error(err);
         setUploadedScan(null);
-        alert(err.message || 'Image upload failed');
+        notify(err.message || 'Image upload failed');
       }
     }
   };
@@ -232,7 +238,7 @@ export default function DoctorDashboard() {
       setAssessmentComplete(true);
     } catch(err) {
       console.error('Assessment error:', err);
-      alert('Assessment failed. Please check your inputs and try again.');
+      notify(err.message || 'Assessment failed. Please check your inputs and try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -475,7 +481,7 @@ export default function DoctorDashboard() {
                           }
                         );
                         if (!response.ok) {
-                          alert('No clinical report has been generated for this patient yet. Please fill out the Deep Learning Clinical Diagnostic Form first.');
+                          notify('No clinical report has been generated for this patient yet. Please fill out the Deep Learning Clinical Diagnostic Form first.');
                           return;
                         }
                         const blob = await response.blob();
@@ -489,7 +495,7 @@ export default function DoctorDashboard() {
                         URL.revokeObjectURL(url);
                       } catch (err) {
                         console.error('PDF download failed', err);
-                        alert('Network error. Failed to download report PDF.');
+                        notify('Network error. Failed to download report PDF.');
                       }
                     }}
                     className="w-full mt-2 inline-flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold py-2.5 px-4 rounded-xl transition-all border border-blue-100 shadow-sm active:scale-95"
@@ -714,6 +720,11 @@ export default function DoctorDashboard() {
                               </span>
                             )}
                           </div>
+                          {predictionData.fundus_review_required && (
+                            <p className="mt-2 text-xs font-semibold text-amber-700" role="status">
+                              {t("Confidence is below the review threshold. Confirm this result clinically.")}
+                            </p>
+                          )}
                         </div>
                         {predictionData.fundus_pm_prediction === 'Service Unavailable' && (
                           <span className="text-xs text-slate-400 font-medium text-right max-w-[160px]"> {t("Start the inference service on port 8001")} </span>
@@ -763,7 +774,7 @@ export default function DoctorDashboard() {
                         );
                         if (!response.ok) {
                           const err = await response.json().catch(() => ({}));
-                          alert(err.detail || 'PDF generation failed — run evaluation first');
+                          notify(err.detail || 'PDF generation failed — run evaluation first');
                           return;
                         }
                         const blob = await response.blob();
@@ -777,7 +788,7 @@ export default function DoctorDashboard() {
                         URL.revokeObjectURL(url);
                       } catch (err) {
                         console.error('PDF download error:', err);
-                        alert('PDF download failed. Make sure an evaluation was run first.');
+                        notify('PDF download failed. Make sure an evaluation was run first.');
                       }
                     }} className="px-5 py-2.5 rounded-xl font-bold text-blue-600 bg-blue-50 border border-blue-100 shadow-sm hover:bg-blue-100 transition-colors flex items-center">
                       <FileText className="w-5 h-5 mr-2" /> {t("Download PDF Report")} </button>
@@ -851,6 +862,11 @@ export default function DoctorDashboard() {
 
   return (
     <div className="care-workspace min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
+      {toast && (
+        <div className={`fixed right-4 top-4 z-50 max-w-sm rounded-xl border px-4 py-3 text-sm shadow-lg ${toast.tone === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-red-200 bg-red-50 text-red-800'}`} role="alert">
+          {toast.message}
+        </div>
+      )}
       <aside className="w-full md:w-64 bg-white border-r border-slate-200 flex flex-col shadow-sm z-20 sticky top-0 md:h-screen transition-all">
         <div className="p-4 border-b border-slate-100 flex items-center space-x-2">
           <HospitalBrand compact />

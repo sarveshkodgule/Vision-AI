@@ -18,6 +18,8 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [consentDataProcessing, setConsentDataProcessing] = useState(false);
+  const [consentAiAnalysis, setConsentAiAnalysis] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -27,6 +29,10 @@ export default function Signup() {
     e.preventDefault();
     if (role === 'doctor' && !doctorPasscode.trim()) {
       setError('Hospital doctor security code is required.');
+      return;
+    }
+    if (!consentDataProcessing || !consentAiAnalysis) {
+      setError('Please agree to both medical data processing and AI analysis consent.');
       return;
     }
     setLoading(true);
@@ -59,7 +65,9 @@ export default function Signup() {
         email,
         password,
         role,
-        otp_code: otpCode
+        otp_code: otpCode,
+        consent_data_processing: consentDataProcessing,
+        consent_ai_analysis: consentAiAnalysis,
       };
       if (role === 'doctor') {
         payload.doctor_passcode = doctorPasscode.trim();
@@ -172,7 +180,7 @@ export default function Signup() {
                   <div className="relative">
                     <Lock className="absolute left-3.5 top-3 h-5 w-5 text-slate-400" />
                     <input 
-                      minLength={6}
+                      minLength={8}
                       maxLength={128}
                       type={showPassword ? "text" : "password"} 
                       value={password}
@@ -189,6 +197,31 @@ export default function Signup() {
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    {t("Use 8+ chars with uppercase, lowercase, number & special symbol.")}
+                  </p>
+                </div>
+                <div className="space-y-2 pt-1 text-xs text-slate-600">
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={consentDataProcessing}
+                      onChange={(e) => setConsentDataProcessing(e.target.checked)}
+                      className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      required
+                    />
+                    <span>{t("I consent to the secure processing of my clinical & health data.")}</span>
+                  </label>
+                  <label className="flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={consentAiAnalysis}
+                      onChange={(e) => setConsentAiAnalysis(e.target.checked)}
+                      className="mt-0.5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      required
+                    />
+                    <span>{t("I understand AI outputs are clinical decision support and consent to AI screening analysis.")}</span>
+                  </label>
                 </div>
                 <button 
                   type="submit"

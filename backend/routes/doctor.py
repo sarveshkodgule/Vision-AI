@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query
 from fastapi.responses import FileResponse
 from utils.dependencies import get_current_doctor
 from schemas.doctor import ClinicalDataInput, PredictionResponse, ReportResponse
@@ -27,6 +27,8 @@ async def require_assigned_patient(patient_id: str, doctor: dict):
 @router.post("/upload-image")
 async def upload_image(file: UploadFile = File(...), current_user: dict = Depends(get_current_doctor)):
     file_path = await handle_image_upload(file)
+    from utils.audit import log_action
+    await log_action(str(current_user["_id"]), "FUNDUS_IMAGE_UPLOADED", file_path)
     return {
         "status": "success",
         "data": {"image_url": file_path},
@@ -42,6 +44,8 @@ async def predict(data: ClinicalDataInput, current_user: dict = Depends(get_curr
         data.model_dump(),
         doctor_verdict=data.doctor_verdict
     )
+    from utils.audit import log_action
+    await log_action(str(current_user["_id"]), "CLINICAL_REPORT_CREATED", f"patient_id={data.patient_id}")
     return {
         "status": "success",
         "data": report,
@@ -49,9 +53,13 @@ async def predict(data: ClinicalDataInput, current_user: dict = Depends(get_curr
     }
 
 @router.get("/patients")
-async def get_patients(current_user: dict = Depends(get_current_doctor)):
+async def get_patients(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=100),
+    current_user: dict = Depends(get_current_doctor),
+):
     doctor_id = str(current_user.get("_id", current_user.get("id", "")))
-    patients = await fetch_doctor_patients(doctor_id=doctor_id)
+    patients = await fetch_doctor_patients(doctor_id=doctor_id, skip=skip, limit=limit)
     return {
         "status": "success",
         "data": patients,

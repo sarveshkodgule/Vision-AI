@@ -22,6 +22,8 @@ MODELS_DIR = Path(__file__).parent.parent / "models"
 # Start it with:  uvicorn ml.inference_service.main:app --port 8001
 
 PALM_SERVICE_URL = os.getenv("PALM_SERVICE_URL", "http://127.0.0.1:8001")
+PALM_MODEL_VERSION = os.getenv("PALM_MODEL_VERSION", "palm-efficientnet-b0-v1")
+PALM_REVIEW_THRESHOLD = float(os.getenv("PALM_REVIEW_THRESHOLD", "0.80"))
 
 
 async def predict_fundus_palm(image_bytes: bytes) -> dict:
@@ -67,6 +69,9 @@ async def predict_fundus_palm(image_bytes: bytes) -> dict:
                 "fundus_pm_confidence": confidence,
                 "fundus_pm_label": label,
                 "gradcam": explanation,
+                "model_version": PALM_MODEL_VERSION,
+                "review_required": confidence < PALM_REVIEW_THRESHOLD,
+                "confidence_threshold": PALM_REVIEW_THRESHOLD,
             }
     except Exception as e:
         raise HTTPException(status_code=503, detail="Fundus model unavailable or inference failed") from e

@@ -1,5 +1,15 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional, Literal
+from datetime import datetime
+import re
+
+_XSS_PATTERN = re.compile(r"(<|>|javascript:|on\w+\s*=)", re.I)
+
+
+def _reject_script_tags(value: Optional[str]) -> Optional[str]:
+    if value is not None and _XSS_PATTERN.search(value):
+        raise ValueError("Invalid characters or script tags are not allowed")
+    return value
 
 class GoogleLogin(BaseModel):
     credential: str = Field(min_length=20, max_length=10000)
@@ -13,10 +23,29 @@ class UserCreate(BaseModel):
     role: Literal["patient", "doctor"] = "patient"
     doctor_passcode: Optional[str] = Field(default=None, max_length=256)
     otp_code: str = Field(pattern=r"^\d{6}$")
+    # Informed consent — required for healthcare data processing (GDPR / HIPAA compliance)
+    consent_data_processing: bool = Field(
+        default=False,
+        description="Patient must explicitly consent to medical data processing"
+    )
+    consent_ai_analysis: bool = Field(
+        default=False,
+        description="Patient must explicitly consent to AI-based diagnosis analysis"
+    )
+
+    @field_validator("name")
+    @classmethod
+    def validate_safe_name(cls, v: str) -> str:
+        return _reject_script_tags(v.strip())
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(default=None, min_length=2, max_length=100)
     email: Optional[EmailStr] = None
+
+    @field_validator("name")
+    @classmethod
+    def validate_safe_name(cls, v: Optional[str]) -> Optional[str]:
+        return _reject_script_tags(v.strip()) if v is not None else v
 
 class UserLogin(BaseModel):
     email: EmailStr

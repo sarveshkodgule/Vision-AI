@@ -45,3 +45,23 @@ class BackendContract(unittest.IsolatedAsyncioTestCase):
                 with self.assertRaises(HTTPException) as caught:
                     await ai_service.predict_fundus_palm(b'image')
                 self.assertEqual(caught.exception.status_code, 503)
+
+    async def test_low_confidence_prediction_requires_review(self):
+        reply = Mock()
+        reply.json.return_value = {
+            'data': {
+                'prediction': 'PM',
+                'label': 1,
+                'confidence': .65,
+                'gradcam': {
+                    'method': 'Grad-CAM++',
+                    'target_class': 1,
+                    'overlay': 'data:image/png;base64,overlay',
+                    'model_input': 'data:image/png;base64,input',
+                },
+            }
+        }
+        with patch('httpx.AsyncClient.post', new_callable=AsyncMock, return_value=reply):
+            result = await ai_service.predict_fundus_palm(b'image')
+        self.assertTrue(result['review_required'])
+        self.assertEqual(result['model_version'], ai_service.PALM_MODEL_VERSION)

@@ -1,13 +1,16 @@
 import os
 import shutil
+import logging
 from pathlib import Path
 from uuid import uuid4
 from fastapi import UploadFile, HTTPException
-from datetime import datetime
+from datetime import datetime, timezone
 from database.mongodb import patients_collection, reports_collection, clinical_data_collection
 from services.ai_service import predict_fundus_palm, predict_clinical_evaluation
 from typing import Optional, Any, Dict, List
 from bson import ObjectId
+
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 UPLOADS_DIR = BASE_DIR / "uploads"
@@ -19,16 +22,44 @@ async def handle_image_upload(file: UploadFile):
     content = await file.read(10 * 1024 * 1024 + 1)
     if len(content) > 10 * 1024 * 1024:
         raise HTTPException(status_code=413, detail="Image must be at most 10 MB")
-    if not content or cv2.imdecode(np.frombuffer(content, dtype=np.uint8), cv2.IMREAD_COLOR) is None:
+    decoded = cv2.imdecode(np.frombuffer(content, dtype=np.uint8), cv2.IMREAD_COLOR) if content else None
+    if decoded is None:
         raise HTTPException(status_code=422, detail="Upload a valid image")
+    # --- Clinical Image Quality & Resolution Gate ---
+    height, width = decoded.shape[:2]
+    if height < 100 or width < 100:
+        raise HTTPException(
+            status_code=422,
+            detail="Fundus image resolution is too low (minimum 100x100 px required for reliable AI analysis)."
+        )
+    if float(np.std(decoded)) < 3.0:
+        raise HTTPException(
+            status_code=422,
+            detail="Image appears blank or uniform; please upload a valid retinal fundus scan."
+        )
     suffix = Path(file.filename or "image.jpg").suffix.lower()
     if suffix not in {".jpg", ".jpeg", ".png"}:
         raise HTTPException(status_code=422, detail="Upload a JPEG or PNG image")
+    # --- Magic Byte Validation (defense against disguised malicious files) ---
+    MAGIC_BYTES = {
+        ".jpg":  [(b"\xff\xd8\xff", 0)],
+        ".jpeg": [(b"\xff\xd8\xff", 0)],
+        ".png":  [(b"\x89PNG\r\n\x1a\n", 0)],
+    }
+    valid = any(
+        content[offset:offset + len(magic)] == magic
+        for magic, offset in MAGIC_BYTES.get(suffix, [])
+    )
+    if not valid:
+        raise HTTPException(
+            status_code=422,
+            detail="File content does not match its extension. Only real JPEG or PNG images are accepted."
+        )
     filename = f"{uuid4().hex}{suffix}"
     (UPLOADS_DIR / filename).write_bytes(content)
     return f"uploads/{filename}"
 
-async def fetch_doctor_patients(doctor_id: str = None) -> List[Dict[str, Any]]:
+async def fetch_doctor_patients(doctor_id: str = None, skip: int = 0, limit: int = 100) -> List[Dict[str, Any]]:
     """
     Fetch patients assigned to a specific doctor.
     Filters out invalid/incomplete records (where name is missing/empty).
@@ -38,8 +69,8 @@ async def fetch_doctor_patients(doctor_id: str = None) -> List[Dict[str, Any]]:
         # Show patients explicitly assigned to this doctor
         query["assigned_doctor_id"] = doctor_id
     
-    patients_cursor = patients_collection.find(query)
-    patients = await patients_cursor.to_list(length=1000)
+    patients_cursor = patients_collection.find(query).skip(skip).limit(limit)
+    patients = await patients_cursor.to_list(length=limit)
     
     result = []
     for p in patients:
@@ -93,6 +124,7 @@ async def process_prediction(patient_id: str, image_path: str, clinical_data: di
     
     # Save clinical data
     clinical_data["patient_id"] = patient_id
+    clinical_data["created_at"] = datetime.now(timezone.utc)
     await clinical_data_collection.insert_one(clinical_data)
     
     # Generate DB report record
@@ -103,6 +135,10 @@ async def process_prediction(patient_id: str, image_path: str, clinical_data: di
         "fundus_pm_prediction":  palm_result["fundus_pm_prediction"],
         "fundus_pm_confidence":  palm_result["fundus_pm_confidence"],
         "gradcam": palm_result.get("gradcam"),
+        "fundus_model_version": palm_result.get("model_version"),
+        "fundus_review_required": palm_result.get("review_required"),
+        "fundus_confidence_threshold": palm_result.get("confidence_threshold"),
+        "fundus_checkpoint_sha256": (palm_result.get("gradcam") or {}).get("checkpoint_sha256"),
         "current_spheq": clinical_data.get("refractive_error", clinical_data.get("spheq")),
         # Clinical XGBoost model results (unchanged)
         "severity":              clinical_ai["severity"],
@@ -112,7 +148,7 @@ async def process_prediction(patient_id: str, image_path: str, clinical_data: di
         "predicted_next_spheq": clinical_ai["predicted_next_spheq"],
         "progression_rate":      clinical_ai["progression_rate"],
         "doctor_verdict":        doctor_verdict,
-        "created_at":            datetime.now().isoformat()
+        "created_at":            datetime.now(timezone.utc).isoformat()
     }
     
     result = await reports_collection.insert_one(report_record)
@@ -197,8 +233,8 @@ async def create_pdf_report(patient_id: str) -> str:
                     patient_name,
                     pdf_path
                 )
-        except Exception as e:
-            print(f"[Email] Skipping report send: {e}")
+        except Exception:
+            logger.warning("Skipping report email", exc_info=True)
 
     return pdf_path
 

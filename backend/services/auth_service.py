@@ -21,7 +21,39 @@ def validate_doctor_registration_code(passcode: str | None):
             detail="Invalid hospital registration code. Check it with hospital administration; your email verification code has not been used."
         )
 
+def _validate_password_strength(password: str):
+    """Enforce minimum password security requirements."""
+    errors = []
+    if len(password) < 8:
+        errors.append("at least 8 characters")
+    if not re.search(r"[A-Z]", password):
+        errors.append("one uppercase letter")
+    if not re.search(r"[a-z]", password):
+        errors.append("one lowercase letter")
+    if not re.search(r"\d", password):
+        errors.append("one number")
+    if not re.search(r"[!@#$%^&*(),.?\":{}|<>_\-]", password):
+        errors.append("one special character (!@#$% etc.)")
+    if errors:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Password must contain: {', '.join(errors)}."
+        )
+
 async def create_user(user: UserCreate):
+    # Enforce password strength before anything else
+    _validate_password_strength(user.password)
+    # Enforce informed consent — required for GDPR/HIPAA compliant healthcare data processing
+    if not user.consent_data_processing:
+        raise HTTPException(
+            status_code=400,
+            detail="You must consent to medical data processing to create an account."
+        )
+    if not user.consent_ai_analysis:
+        raise HTTPException(
+            status_code=400,
+            detail="You must consent to AI-based analysis to use this clinical system."
+        )
     # Check staff authorisation BEFORE consuming a single-use email OTP.
     if user.role == "doctor":
         validate_doctor_registration_code(user.doctor_passcode)
@@ -36,27 +68,76 @@ async def create_user(user: UserCreate):
     user_data = user.model_dump(exclude={"otp_code", "doctor_passcode"})
     user_data["email"] = clean_email.lower()
     user_data["password"] = get_password_hash(user.password)
+    # Store consent timestamp for audit trail (GDPR Article 7 compliance)
+    from datetime import datetime, timezone
+    user_data["consent_granted_at"] = datetime.now(timezone.utc).isoformat()
     
     result = await users_collection.insert_one(user_data)
     
     return {"id": str(result.inserted_id), "name": user.name, "email": user_data["email"], "role": user.role}
 
-import time
-from collections import defaultdict
+MAX_LOGIN_ATTEMPTS = 5
+LOCKOUT_MINUTES = 15
 
-FAILED_LOGIN_ATTEMPTS = defaultdict(list)
+async def _check_and_record_failed_login(email: str, success: bool):
+    """DB-backed brute-force protection. Locks account for 15 min after 5 failures."""
+    from database.mongodb import audit_logs_collection
+    from datetime import datetime, timezone, timedelta
+    clean = email.strip().lower()
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(minutes=LOCKOUT_MINUTES)
+
+    if success:
+        # Clear all failed attempts on successful login
+        await audit_logs_collection.delete_many({"event": "login_failed", "email": clean})
+        return
+
+    # Count recent failures
+    recent = await audit_logs_collection.count_documents({
+        "event": "login_failed",
+        "email": clean,
+        "timestamp": {"$gte": window_start}
+    })
+    # Record this failure
+    await audit_logs_collection.insert_one({
+        "event": "login_failed",
+        "email": clean,
+        "timestamp": now
+    })
+    if recent + 1 >= MAX_LOGIN_ATTEMPTS:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Account temporarily locked after {MAX_LOGIN_ATTEMPTS} failed attempts. Try again in {LOCKOUT_MINUTES} minutes."
+        )
 
 async def authenticate_user(email: str, password: str):
     clean_email = email.strip()
-    
+    from database.mongodb import audit_logs_collection
+    from datetime import datetime, timezone, timedelta
+
+    # --- Brute-force lockout check ---
+    now = datetime.now(timezone.utc)
+    window_start = now - timedelta(minutes=LOCKOUT_MINUTES)
+    recent_failures = await audit_logs_collection.count_documents({
+        "event": "login_failed",
+        "email": clean_email.lower(),
+        "timestamp": {"$gte": window_start}
+    })
+    if recent_failures >= MAX_LOGIN_ATTEMPTS:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Account temporarily locked after {MAX_LOGIN_ATTEMPTS} failed attempts. Try again in {LOCKOUT_MINUTES} minutes."
+        )
+
     db_user = await users_collection.find_one({
         "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}
     })
     if not db_user or db_user.get("is_active", True) is False or not db_user.get("password") or not verify_password(password, db_user["password"]):
+        await _check_and_record_failed_login(clean_email, success=False)
         raise HTTPException(status_code=400, detail="Incorrect email or password. Please try again.")
-    
-    if clean_email.lower() in FAILED_LOGIN_ATTEMPTS:
-        del FAILED_LOGIN_ATTEMPTS[clean_email.lower()]
+
+    # Successful login — clear lockout history
+    await _check_and_record_failed_login(clean_email, success=True)
 
     user_role = (db_user.get("role") or "patient").lower()
     access_token = create_access_token(subject=str(db_user["_id"]), role=user_role)
@@ -105,6 +186,7 @@ async def update_user_profile(user_id: str, profile_data: dict):
     }
 
 async def reset_password(email: str, new_password: str, otp_code: str = None):
+    _validate_password_strength(new_password.strip())
     clean_email = email.strip()
     db_user = await users_collection.find_one({
         "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"}
@@ -122,8 +204,7 @@ async def reset_password(email: str, new_password: str, otp_code: str = None):
         {"_id": db_user["_id"]},
         {"$set": {"password": hashed_password}}
     )
-    if clean_email.lower() in FAILED_LOGIN_ATTEMPTS:
-        del FAILED_LOGIN_ATTEMPTS[clean_email.lower()]
+    await _check_and_record_failed_login(clean_email, success=True)
     return True
 
 def _otp_digest(email, code):

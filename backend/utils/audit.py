@@ -1,5 +1,8 @@
 from datetime import datetime, timezone
+import logging
 from database.mongodb import audit_logs_collection
+
+logger = logging.getLogger(__name__)
 
 async def log_action(user_id: str, action: str, details: str = None, status: str = "success"):
     """
@@ -13,5 +16,5 @@ async def log_action(user_id: str, action: str, details: str = None, status: str
             "details": details,
             "status": status
         })
-    except Exception as e:
-        print(f"[AUDIT LOG ERROR] Failed to write audit log: {e}")
+    except Exception:
+        logger.exception("Failed to write audit log", extra={"user_id": user_id, "action": action})

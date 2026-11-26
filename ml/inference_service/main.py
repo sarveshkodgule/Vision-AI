@@ -73,11 +73,15 @@ app.add_middleware(
 
 @app.get("/health")
 async def health():
-    """Liveness check — also confirms the ONNX model can be loaded."""
+    """Liveness check — confirms the ONNX model can be loaded and reports Grad-CAM++ status."""
     try:
         await run_in_threadpool(predictor._get_session)
-        gradcam.require_ready()
-        return {"status": "ok", "model": "palm_efficientnet_b0.onnx"}
+        gradcam_status = "ok"
+        try:
+            gradcam.require_ready()
+        except FileNotFoundError:
+            gradcam_status = "unavailable"
+        return {"status": "ok", "model": "palm_efficientnet_b0.onnx", "gradcam": gradcam_status}
     except FileNotFoundError as e:
         return JSONResponse(
             status_code=503,

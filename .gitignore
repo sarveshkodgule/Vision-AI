@@ -37,6 +37,8 @@ backend/**/__pycache__/
 
 # Local documentation, reports, and verification artifacts
 *.md
+!backend/README.md
+!ml/README.md
 *.pdf
 testing/
 .kilo/
@@ -45,4 +47,6 @@ Frontend/dist/
 
 # Private environment configuration (keep sanitized examples shareable)
 .env.*
+!backend/.env.example.*
+!backend/.env.example
 !.env.*.example

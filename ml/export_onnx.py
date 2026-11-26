@@ -31,7 +31,7 @@ def export_onnx(checkpoint_path: Path, output_path: Path) -> None:
 
     print(f"Loading checkpoint: {checkpoint_path}")
     model = build_model(num_classes=2)
-    ckpt  = torch.load(checkpoint_path, map_location=device)
+    ckpt  = torch.load(checkpoint_path, map_location=device, weights_only=True)
     state = ckpt["model_state_dict"] if "model_state_dict" in ckpt else ckpt
     model.load_state_dict(state)
     model.eval()

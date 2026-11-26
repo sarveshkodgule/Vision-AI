@@ -9,13 +9,34 @@ from threading import Lock
 
 import cv2
 import numpy as np
-from xai.gradcam import GradCAMPP, load_baseline_model, preprocess_with_crop_coords, overlay_heatmap_on_image
+
+# Lazy-loaded in initialize() so ONNX inference on port 8001 still boots
+# even if PyTorch DLLs fail to load on low-memory/paging-file hosts.
+GradCAMPP = None
+load_baseline_model = None
+preprocess_with_crop_coords = None
+overlay_heatmap_on_image = None
 
 CHECKPOINT = Path(__file__).resolve().parents[1] / 'checkpoints' / 'best_overall.pth'
 _cam = None
 _error = 'Grad-CAM++ has not been initialized.'
 _lock = Lock()
 _checkpoint_sha256 = None
+
+
+def _ensure_xai_imports():
+    global GradCAMPP, load_baseline_model, preprocess_with_crop_coords, overlay_heatmap_on_image
+    if load_baseline_model is None:
+        from xai.gradcam import (
+            GradCAMPP as _GradCAMPP,
+            load_baseline_model as _load_baseline_model,
+            preprocess_with_crop_coords as _preprocess,
+            overlay_heatmap_on_image as _overlay,
+        )
+        GradCAMPP = _GradCAMPP
+        load_baseline_model = _load_baseline_model
+        preprocess_with_crop_coords = _preprocess
+        overlay_heatmap_on_image = _overlay
 
 
 def initialize():
@@ -27,6 +48,7 @@ def initialize():
         try:
             if not CHECKPOINT.is_file():
                 raise FileNotFoundError(f'Missing explanation checkpoint: {CHECKPOINT}')
+            _ensure_xai_imports()
             _checkpoint_sha256 = hashlib.sha256(CHECKPOINT.read_bytes()).hexdigest()
             _cam = GradCAMPP(load_baseline_model(str(CHECKPOINT)))
             _error = None

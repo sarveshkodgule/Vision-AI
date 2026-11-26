@@ -33,12 +33,35 @@ from preprocessing import _to_bgr, _apply_clahe, _crop_black_border, TARGET_SIZE
 DEFAULT_CHECKPOINT = os.path.join(_ML_DIR, "checkpoints", "best_overall.pth")
 
 
+def resolve_device(device: Optional[Union[str, torch.device]] = None) -> torch.device:
+    """Choose the Grad-CAM execution device.
+
+    CPU is the safe default for the web service and tests: the explanation model
+    otherwise competes for VRAM with the ONNX service and can make readiness
+    fail on small or already-busy GPUs.  Set ``PALM_DEVICE=cuda`` to opt into
+    GPU execution, or ``PALM_DEVICE=auto`` to use CUDA only when available.
+    """
+    if device is not None:
+        return torch.device(device)
+
+    configured = os.environ.get("PALM_DEVICE", "cpu").strip().lower()
+    if configured == "auto":
+        return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    if configured == "cuda":
+        if not torch.cuda.is_available():
+            raise RuntimeError("PALM_DEVICE=cuda was requested, but CUDA is unavailable.")
+        return torch.device("cuda")
+    if configured == "cpu":
+        return torch.device("cpu")
+    raise ValueError("PALM_DEVICE must be one of: cpu, cuda, auto.")
+
+
 class GradCAMBase:
     """Base class for Gradient-weighted Class Activation Mapping."""
 
     def __init__(self, model: nn.Module, target_layer: Optional[nn.Module] = None, device: Optional[torch.device] = None):
         self.model = model
-        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = resolve_device(device)
         self.model.to(self.device).eval()
 
         # Default target layer is the final 1x1 conv layer before global pooling
@@ -271,9 +294,11 @@ def overlay_heatmap_on_image(
 
 def load_baseline_model(checkpoint_path: str = DEFAULT_CHECKPOINT, device: Optional[torch.device] = None) -> nn.Module:
     """Load the confirmed production PALM-only baseline model."""
-    device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = resolve_device(device)
     model = build_model(num_classes=2, pretrained=False)
-    ckpt = torch.load(checkpoint_path, map_location=device, weights_only=True)
+    # Always deserialize on CPU first.  This avoids an unnecessary GPU memory
+    # spike while loading a checkpoint, even when CUDA was explicitly selected.
+    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
         model.load_state_dict(ckpt["model_state_dict"])
     else:

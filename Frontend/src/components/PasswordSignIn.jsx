@@ -1,7 +1,7 @@
 import { usePatientLanguage } from '../lib/patientLanguage';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
 import { api } from '../lib/api';
 
 export default function PasswordSignIn({ role, onRoleChange }) {
@@ -9,6 +9,8 @@ export default function PasswordSignIn({ role, onRoleChange }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [mfaStep, setMfaStep] = useState(false);
   const [visible, setVisible] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -19,8 +21,16 @@ export default function PasswordSignIn({ role, onRoleChange }) {
     setError('');
     try {
       const body = new URLSearchParams({ username: email.trim(), password });
+      if (mfaStep && otpCode.trim()) {
+        body.set('otp_code', otpCode.trim());
+      }
       const response = await api.post('/auth/login', body, true);
       const payload = response.data || response;
+      if (payload.mfa_required || response.mfa_required) {
+        setMfaStep(true);
+        setOtpCode('');
+        return;
+      }
       const access_token = payload.access_token || response.access_token;
       const user = payload.user || response.user;
       if (!access_token || !user?.role) {
@@ -80,11 +90,46 @@ export default function PasswordSignIn({ role, onRoleChange }) {
       > {t("Doctor")} </button>
     </div>
 
-    <label htmlFor="login-email">{role === 'doctor' ? t("Doctor email address") : t("Patient email address")}</label>
-    <input id="login-email" type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} placeholder={role === 'doctor' ? 'doctor@example.com' : 'patient@example.com'} />
-    <div className="password-label"><label htmlFor="login-password">{t("Password")}</label><Link to="/forgot-password">{t("Forgot password?")}</Link></div>
-    <div className="password-input"><input id="login-password" type={visible ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)}/><button type="button" aria-label={visible ? t("Hide password") : t("Show password")} aria-pressed={visible} onClick={() => setVisible(value => !value)}>{visible ? <EyeOff size={18}/> : <Eye size={18}/>}</button></div>
-    {error && <p className="patient-feedback" role="alert">{t(error)}</p>}
-    <button type="submit" className="password-submit" disabled={busy}>{busy && <Loader2 size={18} className="animate-spin"/>}{busy ? t("Signing in…") : t(`Sign in as ${role === 'doctor' ? 'Doctor' : 'Patient'}`, `${role === 'doctor' ? 'डॉक्टर' : 'रुग्ण'} म्हणून लॉग इन करा`)}</button>
+    {mfaStep ? (
+      <>
+        <p style={{ fontSize: '13px', color: '#475569', marginBottom: '12px', lineHeight: '1.5' }}>
+          {t('A 6-digit verification code was sent to')} <strong>{email}</strong>.
+        </p>
+        <label htmlFor="login-otp">{t("Verification Code (OTP)")}</label>
+        <input
+          id="login-otp"
+          type="text"
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          pattern="[0-9]{6}"
+          maxLength={6}
+          required
+          value={otpCode}
+          onChange={event => setOtpCode(event.target.value)}
+          placeholder={t("Enter 6-digit code")}
+        />
+        {error && <p className="patient-feedback" role="alert">{t(error)}</p>}
+        <button type="submit" className="password-submit" disabled={busy}>
+          {busy && <Loader2 size={18} className="animate-spin" />}
+          {busy ? t("Verifying…") : t("Verify & Sign in as Doctor")}
+        </button>
+        <button
+          type="button"
+          onClick={() => { setMfaStep(false); setOtpCode(''); setError(''); }}
+          style={{ marginTop: '10px', background: 'none', border: 'none', color: '#17365d', fontSize: '13px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+        >
+          <ArrowLeft size={15} /> {t("Back")}
+        </button>
+      </>
+    ) : (
+      <>
+        <label htmlFor="login-email">{role === 'doctor' ? t("Doctor email address") : t("Patient email address")}</label>
+        <input id="login-email" type="email" autoComplete="username" required value={email} onChange={event => setEmail(event.target.value)} placeholder={role === 'doctor' ? 'doctor@example.com' : 'patient@example.com'} />
+        <div className="password-label"><label htmlFor="login-password">{t("Password")}</label><Link to="/forgot-password">{t("Forgot password?")}</Link></div>
+        <div className="password-input"><input id="login-password" type={visible ? 'text' : 'password'} autoComplete="current-password" required value={password} onChange={event => setPassword(event.target.value)}/><button type="button" aria-label={visible ? t("Hide password") : t("Show password")} aria-pressed={visible} onClick={() => setVisible(value => !value)}>{visible ? <EyeOff size={18}/> : <Eye size={18}/>}</button></div>
+        {error && <p className="patient-feedback" role="alert">{t(error)}</p>}
+        <button type="submit" className="password-submit" disabled={busy}>{busy && <Loader2 size={18} className="animate-spin"/>}{busy ? t("Signing in…") : t(`Sign in as ${role === 'doctor' ? 'Doctor' : 'Patient'}`, `${role === 'doctor' ? 'डॉक्टर' : 'रुग्ण'} म्हणून लॉग इन करा`)}</button>
+      </>
+    )}
   </form>;
 }

@@ -36,6 +36,8 @@ export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [consentDataProcessing, setConsentDataProcessing] = useState(false);
   const [consentAiAnalysis, setConsentAiAnalysis] = useState(false);
+  const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(false);
+  const [termsConditionsAccepted, setTermsConditionsAccepted] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -47,8 +49,8 @@ export default function Signup() {
       setError('Hospital doctor security code is required.');
       return;
     }
-    if (!consentDataProcessing || !consentAiAnalysis) {
-      setError('Please agree to both medical data processing and AI analysis consent.');
+    if (!consentDataProcessing || !consentAiAnalysis || !privacyPolicyAccepted || !termsConditionsAccepted) {
+      setError('Please review and accept the required consents, Privacy Policy and Terms & Conditions.');
       return;
     }
     setLoading(true);
@@ -84,6 +86,8 @@ export default function Signup() {
         otp_code: otpCode,
         consent_data_processing: consentDataProcessing,
         consent_ai_analysis: consentAiAnalysis,
+        privacy_policy_accepted: privacyPolicyAccepted,
+        terms_conditions_accepted: termsConditionsAccepted,
       };
       if (role === 'doctor') {
         payload.doctor_passcode = doctorPasscode.trim();
@@ -254,6 +258,14 @@ export default function Signup() {
                       {t("I consent to the secure processing of my clinical & health data under the ")}{' '}
                       <Link to="/privacy" className="text-blue-700 font-semibold hover:underline">{t("Privacy Policy")}</Link>.
                     </span>
+                  </label>
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input type="checkbox" checked={privacyPolicyAccepted} onChange={(e) => setPrivacyPolicyAccepted(e.target.checked)} className="mt-0.5 rounded border-slate-300 text-blue-700 focus:ring-blue-700" required />
+                    <span>{t("I have read and accept the ")} <Link to="/privacy" className="text-blue-700 font-semibold hover:underline">{t("Privacy Policy")}</Link>.</span>
+                  </label>
+                  <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input type="checkbox" checked={termsConditionsAccepted} onChange={(e) => setTermsConditionsAccepted(e.target.checked)} className="mt-0.5 rounded border-slate-300 text-blue-700 focus:ring-blue-700" required />
+                    <span>{t("I have read and accept the ")} <Link to="/terms" className="text-blue-700 font-semibold hover:underline">{t("Terms & Conditions")}</Link>.</span>
                   </label>
                   <label className="flex items-start gap-2.5 cursor-pointer">
                     <input

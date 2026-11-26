@@ -1,102 +1,19 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShieldCheck, Lock, Database, Eye, FileCheck2, Mail } from 'lucide-react';
-import HospitalLayout from '../components/HospitalLayout';
+import { Link } from 'react-router-dom';
+import LegalDocument from '../components/LegalDocument';
 import { hospital } from '../lib/hospital';
 
-export default function Privacy() {
-  const navigate = useNavigate();
-  const handleBack = () => (window.history.length > 1 ? navigate(-1) : navigate('/'));
+const sections = [
+  { id: 'scope', title: 'Introduction and scope', content: <><p>This policy explains how {hospital.name} handles personal and health information in the Vision AI care portal. It applies to registered patients, authorised doctors and authorised hospital staff.</p><p>Read it with the <Link to="/terms">Terms & Conditions</Link>. It describes current portal features and is not a claim of legal, medical-device or clinical certification.</p></> },
+  { id: 'collect', title: 'Information we collect', content: <><p>We collect information needed for account access, screening and clinical review:</p><ul><li><strong>Account information:</strong> name, email, account role, password hash or Google identity link, and account-security events.</li><li><strong>Screening and lifestyle information:</strong> age, gender where provided, reading time, screen time, outdoor activity, sleep hours and parental myopia history.</li><li><strong>Clinical and biometric information:</strong> refractive error / SPHEQ, axial length (AL), anterior chamber depth (ACD), lens thickness (LT), vitreous chamber depth (VCD), and other entered measurements.</li><li><strong>Medical images and outputs:</strong> uploaded fundus images, analysis results and Grad-CAM++ visual explanations when used.</li><li><strong>Technical information:</strong> authentication events, audit events, IP-based rate-limit records and application activity needed to operate and protect the service.</li></ul></> },
+  { id: 'use', title: 'How information is used', content: <ul><li>create and secure patient or doctor accounts;</li><li>provide preliminary lifestyle-risk screening and clinical biometric assessment;</li><li>analyse submitted fundus images and present decision-support output;</li><li>support doctor review, sign-off, clinical history and report generation;</li><li>deliver requested OTPs and reports; and</li><li>prevent misuse, maintain the application and meet applicable obligations.</li></ul> },
+  { id: 'access', title: 'Doctor access and information sharing', content: <><p>Access is role-based. A doctor may access information for patients assigned to that doctor, including relevant reports, clinical measurements and uploaded images required for review. The portal does not intend to give every doctor unrestricted access to every patient.</p><p>Clinical access and selected security events are logged. Configured providers for identity, email, hosting, databases or AI processing may process information only to provide their service under appropriate controls.</p></> },
+  { id: 'ai', title: 'AI processing and automated analysis', content: <><p>The portal may use an XGBoost classifier/regressor for screening and clinical-support calculations, an ONNX fundus-image model, and Grad-CAM++ visual explanations. These tools support—not replace—clinical judgement.</p><p>Patient screening and doctor assessment are different stages. A preliminary High Risk result and a doctor’s Low assessment are not automatically an error; they can reflect different evidence. The original screening record remains distinct from the doctor’s judgement.</p><p>AI outputs can be inaccurate or unsuitable for an individual. They do not independently establish a diagnosis. A qualified healthcare professional must make final clinical decisions.</p></> },
+  { id: 'retention', title: 'Storage, retention and account closure', content: <><p>Data is stored in the database and file-storage environment configured for this deployment. This portal does not publish a fixed retention period because production retention, backup and applicable clinical-record obligations require administrator and legal review.</p><p>Account deactivation disables sign-in; it does not promise immediate deletion of clinical, report, audit or legally required records. Administrators must define and document production retention and secure-deletion schedules before deployment.</p></> },
+  { id: 'security', title: 'Security safeguards', content: <ul><li>password hashing and authenticated JWT-based sessions;</li><li>role and assignment-based authorisation for clinical routes;</li><li>token revocation, audit logging, request-rate limiting and account lockout controls;</li><li>server-side upload validation, including image decoding, size, type and magic-byte checks; and</li><li>HTTPS/TLS where configured by the deployment.</li></ul> },
+  { id: 'rights', title: 'Rights, consent and complaints', content: <><p>You may request access to, correction of, or information about personal data held for your account. You may withdraw optional consent where applicable; withdrawal does not necessarily remove information that must be retained for care, security or legal reasons. You may deactivate your account from Profile Settings.</p><p>Contact the hospital using your registered email, your request type and enough information to verify identity. Do not include emergency medical information in email. The hospital should appoint and publish a privacy/grievance officer and written response process before production use.</p></> },
+  { id: 'providers', title: 'Third parties and children', content: <><p>The portal may use Google Identity Services for sign-in, SMTP/email services for OTP and report delivery, and deployment-specific hosting, database and model-inference services. The exact providers depend on the configured deployment and should be listed by an administrator before production launch.</p><p>For patients under 18, a parent or legal guardian should provide required information and consent where applicable. The portal does not replace an appropriate age/guardian verification process.</p></> },
+  { id: 'changes', title: 'Policy changes and contact', content: <><p>Material policy updates will be published with a new version and updated date. Where a new mandatory consent is required, it must be requested without fabricating acceptance for existing users. Historical consent records are retained when recorded.</p><p><strong>Contact:</strong> {hospital.name}, {hospital.address}. Phone: <a href={hospital.phoneHref}>{hospital.phone}</a>. Privacy/grievance officer email and formal response timeline are pending hospital designation and legal review.</p></> },
+];
 
-  return (
-    <HospitalLayout>
-      <section className="legal-page hospital-container py-10 max-w-4xl mx-auto">
-        <button
-          type="button"
-          onClick={handleBack}
-          className="inline-flex items-center text-sm font-semibold text-slate-600 hover:text-blue-700 transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
-        </button>
-
-        <div className="clinical-card p-6 sm:p-10 space-y-8">
-          <div className="border-b border-slate-200 pb-6">
-            <p className="eyebrow text-blue-700 font-semibold tracking-wider text-xs uppercase mb-2">
-              {hospital.name} · Patient Privacy & Data Protection
-            </p>
-            <h1 className="text-3xl font-bold text-slate-900">Hospital Privacy Policy</h1>
-            <p className="text-sm text-slate-500 mt-2">
-              Last Updated: January 2026 · Committed to confidential, ethical handling of clinical & retinal data
-            </p>
-          </div>
-
-          <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-3">
-            <ShieldCheck className="w-5 h-5 text-blue-700 shrink-0 mt-0.5" />
-            <div className="text-sm text-blue-950 leading-relaxed">
-              Your health records, ocular biometry, and fundus scans are used <strong>solely for your clinical care
-              and screening workflow</strong>. We never sell, rent, or share patient health data with third-party advertisers.
-            </div>
-          </div>
-
-          <div className="space-y-6 text-slate-700 text-sm leading-relaxed">
-            <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <Database className="w-5 h-5 text-blue-700" /> 1. Information We Collect
-              </h2>
-              <ul className="list-disc pl-5 space-y-1.5">
-                <li><strong>Account Information:</strong> Name, email address, role (patient or staff), and explicit consent timestamps.</li>
-                <li><strong>Screening & Clinical Biometry:</strong> Age, lifestyle metrics (screen time, outdoor hours, reading, sleep), family myopia history, Axial Length (AL), Spherical Equivalent (SPHEQ), and related ocular measurements.</li>
-                <li><strong>Retinal Imaging:</strong> Uploaded fundus photographs and generated Grad-CAM++ visual explanation maps.</li>
-                <li><strong>Security & Audit Logs:</strong> Sign-in timestamps, IP-based rate-limit records, and clinical access audit logs.</li>
-              </ul>
-            </div>
-
-            <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <Eye className="w-5 h-5 text-blue-700" /> 2. How We Use Your Data
-              </h2>
-              <p>
-                Your data is processed to generate personalized myopia risk assessments, enable your assigned doctor at{' '}
-                {hospital.name} to evaluate your eye health, generate downloadable PDF reports, and send requested
-                verification OTPs or clinical PDF reports to your registered email address.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <Lock className="w-5 h-5 text-blue-700" /> 3. Security Safeguards
-              </h2>
-              <ul className="list-disc pl-5 space-y-1.5">
-                <li>Passwords are salted and hashed using <strong>bcrypt + SHA-256</strong> and never stored in plain text.</li>
-                <li>Clinical portals enforce strict Role-Based Access Control (RBAC), token blacklisting on logout, and no-cache browser policies on patient/doctor endpoints.</li>
-                <li>Uploaded fundus images undergo binary magic-byte and resolution verification before processing.</li>
-                <li>API endpoints enforce rate limiting, brute-force account lockouts, input sanitization, and Content-Security-Policy (CSP) headers.</li>
-              </ul>
-            </div>
-
-            <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <FileCheck2 className="w-5 h-5 text-blue-700" /> 4. Your Rights & Informed Consent
-              </h2>
-              <p>
-                You provide explicit informed consent before account creation and AI screening analysis. You may review
-                your screening history, download your clinical PDFs, update your profile details, or deactivate your account
-                from your dashboard. For data correction or deletion inquiries, contact hospital administration.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <Mail className="w-5 h-5 text-blue-700" /> 5. Contact Privacy Officer
-              </h2>
-              <p>
-                {hospital.name} · {hospital.address} · Phone: <strong>{hospital.phone}</strong>.
-                See also our <Link to="/terms" className="text-blue-700 font-semibold hover:underline">Terms & Conditions</Link>.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-    </HospitalLayout>
-  );
-}
+export default function Privacy() { return <LegalDocument type="privacy" title="Privacy Policy" version="2026.11" updated="26 November 2026" audience="Patients, doctors and authorised staff" summary="How the Vision AI care portal handles account, screening, clinical and image information." notices={[{ title: 'Privacy notice', body: 'This policy describes the portal as implemented. Production retention, provider disclosures and grievance-officer details require hospital and legal approval.' }, { title: 'Not emergency care', tone: 'warning', body: 'Do not use this portal or email to seek urgent eye care. Seek immediate in-person help for sudden vision loss, flashes, floaters, severe pain or a curtain-like shadow.' }]} sections={sections} />; }

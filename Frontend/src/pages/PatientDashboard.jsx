@@ -847,14 +847,12 @@ export default function PatientDashboard() {
                 <p className="text-xs text-slate-500">{t('Detailed care guidance · English')}</p>
                 <h3 className="text-lg font-semibold text-slate-900">{result.careGuidance.title}</h3>
                 <p className="text-sm text-slate-700">{result.careGuidance.meaning}</p>
-                <p className="text-xs text-slate-600">{result.careGuidance.probability_note}</p>
                 <p className="rounded-lg bg-slate-50 border border-slate-200 p-4 text-sm text-slate-900">{result.careGuidance.next_step}</p>
                 <h4 className="font-semibold text-slate-900 text-sm">{t('Daily precautions and healthy habits')}</h4>
                 <ul className="list-disc pl-5 space-y-2 text-sm text-slate-700">{(result.careGuidance.habits || []).map((habit) => <li key={habit}>{habit}</li>)}</ul>
                 <details className="rounded-lg border border-slate-200 p-4 text-sm text-slate-700">
                   <summary className="cursor-pointer font-semibold text-slate-900">{t('Doctor discussion and appointment preparation')}</summary>
                   <ul className="list-disc pl-5 mt-3 space-y-2">{[...(result.careGuidance.doctor_discussion || []), ...(result.careGuidance.appointment_checklist || [])].map((item) => <li key={item}>{item}</li>)}</ul>
-                  <p className="mt-3 text-xs text-slate-600">{t("Your PDF includes your assigned doctor's registered contact, when available. Contact the practice to book an appointment.")}</p>
                 </details>
                 <p className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-900"><strong>{t('Urgent symptoms:')} </strong>{result.careGuidance.urgent_care}</p>
               </section>
@@ -890,7 +888,6 @@ export default function PatientDashboard() {
               <div className="clinical-card p-5 text-center">
                 <p className="text-xs font-semibold text-slate-600 mb-1">{t('Predicted Next SPHEQ')}</p>
                 <p className="text-2xl font-semibold text-blue-700 ui-tabular">{result.nextSpheq.toFixed(2)} D</p>
-                <p className="text-xs text-slate-500 mt-1">{t('Model-estimated refractive value at next visit')}</p>
               </div>
             )}
 

@@ -27,7 +27,7 @@ function riskBadgeClass(level) {
   const v = String(level || '').toLowerCase();
   if (v === 'high' || v === 'needs review' || v === 'pm') return 'clinical-badge clinical-badge-high';
   if (v === 'medium' || v === 'moderate' || v === 'monitoring') return 'clinical-badge clinical-badge-medium';
-  if (v === 'low' || v === 'cleared' || v === 'non-pm') return 'clinical-badge clinical-badge-low';
+  if (v === 'low' || v === 'cleared' || v === 'reviewed' || v === 'non-pm') return 'clinical-badge clinical-badge-low';
   return 'clinical-badge clinical-badge-neutral';
 }
 
@@ -245,7 +245,13 @@ export default function DoctorDashboard() {
           gender: p.gender || 'N/A',
           probability: p.myopia_probability,
           riskLevel: p.risk_level || 'Low',
-          status: p.risk_level === 'High' ? 'Needs Review' : p.risk_level === 'Medium' ? 'Monitoring' : 'Cleared',
+          status: p.review_status === 'signed_off' || p.has_report
+            ? 'Reviewed'
+            : p.risk_level === 'High'
+            ? 'Needs Review'
+            : p.risk_level === 'Medium'
+            ? 'Monitoring'
+            : 'Cleared',
           screen_time: p.screen_time,
           reading_time: p.reading_time,
           work_hours: p.work_hours,
@@ -462,6 +468,7 @@ export default function DoctorDashboard() {
       setSignOffSaved(true);
       notify(t('Clinical sign-off saved.'), 'success');
       if (selectedPatientIdRef.current) fetchPatientHistory(selectedPatientIdRef.current);
+      fetchPatientsList();
     } catch (err) {
       if (predictionDataIdRef.current === reportId) {
         console.error('Sign-off error:', err);
@@ -1301,18 +1308,10 @@ export default function DoctorDashboard() {
                           <option value="Medium">{t('Medium Risk')}</option>
                           <option value="High">{t('High Risk (Urgent)')}</option>
                         </select>
-                        <p className="text-xs text-slate-600 leading-relaxed">
-                          Recorded with this evaluation for AI-vs-clinician agreement. You will confirm sign-off after reviewing AI and Grad-CAM++ results.
-                        </p>
                       </div>
                     </div>
 
                     <div className="flex flex-wrap items-center justify-end gap-3 pt-4 border-t border-slate-200">
-                      {!uploadedImageUrl && (
-                        <p className="text-xs text-slate-600 mr-auto">
-                          Upload a valid retinal fundus image to run the combined clinical and deep learning evaluation.
-                        </p>
-                      )}
                       <button
                         type="submit"
                         disabled={isProcessing || uploadStatus === 'uploading'}
@@ -1423,19 +1422,13 @@ export default function DoctorDashboard() {
                           <span className="text-xs text-slate-500">{t('Start the inference service on port 8001')}</span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-500 mt-3 pt-2.5 border-t border-slate-100">
-                        {t('Trained on PALM dataset (1,200 fundus images) · Binary pathologic myopia classification only · Clinical validation pending · Not a substitute for clinical diagnosis')}
-                      </p>
                     </div>
                   )}
 
                   {/* Progression Chart + Grad-CAM++ Comparison */}
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="clinical-card p-6">
-                      <h3 className="text-base font-semibold text-slate-900 mb-1.5">{t('Model progression estimate')}</h3>
-                      <p className="text-xs text-slate-600 mb-4">
-                        {t('Measured refraction and experimental next-visit estimate. This is not a measured historical trend.')}
-                      </p>
+                      <h3 className="text-base font-semibold text-slate-900 mb-4">{t('Model progression estimate')}</h3>
                       {predictionData?.current_spheq != null && predictionData?.predicted_next_spheq != null ? (
                         <div className="h-52">
                           <Line
@@ -1476,10 +1469,6 @@ export default function DoctorDashboard() {
                       </div>
                       {predictionData?.gradcam ? (
                         <>
-                          <p className="text-xs text-slate-600 mb-4">
-                            {t('Evidence for')} {predictionData.gradcam.target_label}{' '}
-                            {t('on the cropped model input. This is not a lesion boundary.')}
-                          </p>
                           <div className="grid grid-cols-2 gap-3">
                             <figure className="space-y-1.5">
                               <div className="relative bg-slate-950 rounded-lg overflow-hidden border border-slate-200">
@@ -1545,9 +1534,6 @@ export default function DoctorDashboard() {
                         <h3 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                           <UserCheck className="w-4 h-4 text-blue-700" /> {t('Clinician Review & Sign-Off')}
                         </h3>
-                        <p className="text-xs text-slate-600 mt-0.5">
-                          {t('Review the AI biometry output and Grad-CAM++ attribution above, then finalize and save your clinical verdict.')}
-                        </p>
                       </div>
                       <span className={predictionData?.review_status === 'signed_off' || signOffSaved ? 'clinical-badge clinical-badge-low' : 'clinical-badge clinical-badge-medium'}>
                         {predictionData?.review_status === 'signed_off' || signOffSaved ? t('Signed off') : t('Pending sign-off')}

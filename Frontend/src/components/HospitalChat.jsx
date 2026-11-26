@@ -22,14 +22,22 @@ export default function HospitalChat() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const end = useRef(null), launcher = useRef(null), inputRef = useRef(null), busy = useRef(false);
+  const end = useRef(null), latestBotMessage = useRef(null), launcher = useRef(null), inputRef = useRef(null), busy = useRef(false);
   const topics = [
     { id: 'hours', icon: Clock3, label: t('Clinic timings', 'रुग्णालयाची वेळ'), answer: t(`${hospital.hours}. ${hospital.closed}. Call ${hospital.phone} to confirm doctor availability.`, `${hospital.marathiHours}. ${hospital.marathiClosed}. डॉक्टरांची उपलब्धता विचारण्यासाठी ${hospital.phone} वर फोन करा.`) },
     { id: 'visit', icon: Phone, label: t('Book a visit', 'भेटीची वेळ घ्या'), answer: t(`Please call ${hospital.phone} or ${hospital.landline} to arrange your visit. An online screening does not book an appointment.`, `भेटीची वेळ ठरवण्यासाठी ${hospital.phone} किंवा ${hospital.landline} वर फोन करा. ऑनलाइन तपासणी केल्याने भेटीची वेळ निश्चित होत नाही.`) },
     { id: 'directions', icon: MapPin, label: t('Find the clinic', 'रुग्णालयाचा पत्ता'), answer: t(hospital.address, hospital.marathiAddress) },
     { id: 'prepare', icon: ClipboardCheck, label: t('What to bring', 'सोबत काय आणावे'), answer: t('Bring your glasses, earlier prescriptions and eye reports, medicines list, and your screening PDF. A parent or guardian should accompany a child.', 'चष्मा, जुनी प्रिस्क्रिप्शन्स व नेत्रतपासणी अहवाल, औषधांची यादी आणि तपासणीचा PDF सोबत आणा. लहान मुलासोबत पालक असावेत.') },
   ];
-  useEffect(() => { if (open) end.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, [messages, open, loading]);
+  useEffect(() => {
+    if (!open) return;
+    const latest = messages.at(-1);
+    if (!loading && latest?.role === 'bot') {
+      latestBotMessage.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+    end.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, [messages, open, loading]);
   useEffect(() => { if (open) inputRef.current?.focus(); }, [open]);
   function close() { setOpen(false); launcher.current?.focus(); }
   async function send(event) {
@@ -53,7 +61,7 @@ export default function HospitalChat() {
         <p className="chat-bot">{t('Hello! Welcome to Shri Sarveshwar Netralaya. Let’s make your visit a little easier. Choose a topic below or ask me a question.', 'नमस्कार! श्री सर्वेश्वर नेत्रालयात आपले स्वागत आहे. तुमच्या भेटीची तयारी करूया. खाली विषय निवडा किंवा तुमचा प्रश्न विचारा.')}</p>
         <div className="chat-topics">{topics.map(({ id, icon: Icon, label }) => <button key={id} type="button" disabled={loading} onClick={() => setMessages(previous => [...previous, { role: 'user', topic: id }, { role: 'bot', topic: id }])}>{createElement(Icon, { size: 16 })}{label}</button>)}</div>
         {messages.map((message, index) => (
-          <div key={index} lang={message.topic || message.failed ? language : message.language} className={`chat-${message.role}`}>
+          <div ref={index === messages.length - 1 && message.role === 'bot' ? latestBotMessage : null} key={index} lang={message.topic || message.failed ? language : message.language} className={`chat-${message.role}`}>
             {message.failed ? (
               t('I couldn’t connect just now. Please try again, or call the hospital for help.', 'आत्ता संपर्क झाला नाही. पुन्हा प्रयत्न करा किंवा मदतीसाठी रुग्णालयाला फोन करा.')
             ) : message.topic ? (

@@ -52,6 +52,13 @@ def initialize():
             _checkpoint_sha256 = hashlib.sha256(CHECKPOINT.read_bytes()).hexdigest()
             _cam = GradCAMPP(load_baseline_model(str(CHECKPOINT)))
             _error = None
+        except OSError as exc:
+            _error = (
+                f'Grad-CAM++ initialization failed ({exc}). '
+                'On Windows, WinError 1455 means the paging file is too small for PyTorch DLLs; '
+                'increase Windows virtual memory or install CPU-only PyTorch.'
+            )
+            raise
         except Exception as exc:
             _error = f'Grad-CAM++ initialization failed: {exc}'
             raise

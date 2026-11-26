@@ -36,6 +36,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     user = await users_collection.find_one({"_id": ObjectId(user_id)})
     if user is None or user.get("is_active", True) is False:
         raise credentials_exception
+
+    user_tv = int(user.get("token_version", 0))
+    token_tv = payload.get("tv")
+    if token_tv is not None:
+        if int(token_tv) != user_tv:
+            raise credentials_exception
+    elif user_tv > 0:
+        raise credentials_exception
     
     # Add string ID for convenience
     user["id"] = str(user["_id"])

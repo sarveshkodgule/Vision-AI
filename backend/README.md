@@ -101,6 +101,20 @@ You can test all endpoints, authorize using the "Authorize" button (entering the
 
 See [project checks and full-stack startup](../PROJECT_CHECKS.md) for regression tests, SMTP setup, model versions, and the development launcher.
 
+### Running regression tests on Windows
+
+Run the supplied script from a normal PowerShell terminal:
+
+```powershell
+.\run-tests.ps1
+```
+
+It runs Grad-CAM on CPU and limits OpenBLAS-related thread pools, preventing
+GPU out-of-memory and OpenBLAS allocation failures during the combined suite.
+The application also now uses CPU for Grad-CAM by default. To use a GPU
+deliberately, set `PALM_DEVICE=cuda` before launching the ML service; use
+`PALM_DEVICE=auto` to select CUDA only when it is available.
+
 ### Operational checklist
 
 - Start MongoDB before the backend so startup can verify indexes.

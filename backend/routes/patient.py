@@ -100,11 +100,14 @@ async def preview_risk(data: PatientRiskInput, current_user: dict = Depends(get_
 
 @router.get("/screening-report/{screening_id}")
 async def download_screening_report(screening_id: str, current_user: dict = Depends(get_current_user)):
+    import re
     record = await owned_screening(screening_id, str(current_user["_id"]))
     owner, doctor = await report_context(record)
     pdf = await asyncio.to_thread(make_patient_pdf, record, owner, doctor)
+    raw_name = record.get("name") or owner.get("name") or "Patient"
+    safe_name = re.sub(r"[^A-Za-z0-9]+", "_", str(raw_name)).strip("_") or "Patient"
     return Response(pdf, media_type="application/pdf", headers={
-        "Content-Disposition": f'attachment; filename="VisionAI_Screening_{screening_id}.pdf"',
+        "Content-Disposition": f'attachment; filename="{safe_name}_Screening_Report.pdf"',
         "Cache-Control": "no-store",
     })
 

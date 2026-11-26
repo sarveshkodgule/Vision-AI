@@ -33,7 +33,7 @@ class OpenAITests(unittest.TestCase):
             self.assertEqual(response.json()['data']['response'], 'GPT reply')
             self.assertEqual(post.call_args.kwargs['headers']['Authorization'], 'Bearer test-only')
             self.assertEqual(post.call_args.kwargs['json']['model'], chat.OPENAI_MODEL)
-            self.assertEqual(post.call_args.kwargs['json']['messages'][-1]['content'], 'Hello')
+            self.assertEqual(post.call_args.kwargs['json']['messages'][-1]['content'], '<user_query>\nHello\n</user_query>')
 
     def test_selected_language_and_clinic_hours_reach_provider(self):
         reply = httpx.Response(200, json={'choices': [{'message': {'content': 'reply'}}]}, request=httpx.Request('POST', chat.OPENAI_URL))

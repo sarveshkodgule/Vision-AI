@@ -93,5 +93,8 @@ async def authenticate_google(credential: str, challenge: str):
         raise HTTPException(403, "This account has been deactivated. Contact the hospital.")
     if user.get("role") not in ("patient", "doctor"):
         raise HTTPException(403, "This account has no portal access. Please contact the hospital.")
-    return {"access_token": create_access_token(str(user["_id"]), user["role"]), "token_type": "bearer",
-            "user": {"id": str(user["_id"]), "name": user.get("name"), "email": user["email"], "role": user["role"]}}
+    return {
+        "access_token": create_access_token(str(user["_id"]), user["role"], token_version=int(user.get("token_version", 0))),
+        "token_type": "bearer",
+        "user": {"id": str(user["_id"]), "name": user.get("name"), "email": user["email"], "role": user["role"]},
+    }

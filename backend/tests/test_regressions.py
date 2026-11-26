@@ -17,6 +17,7 @@ from fastapi import HTTPException, UploadFile
 from fastapi.testclient import TestClient
 from PIL import Image
 from main import app
+import main as api_main
 from services import ai_service, auth_service, doctor_service, pdf_service
 from utils.dependencies import get_current_user
 from utils.security import create_access_token, get_password_hash, verify_password
@@ -24,16 +25,22 @@ from utils.security import create_access_token, get_password_hash, verify_passwo
 
 def image_bytes():
     buf = io.BytesIO()
-    Image.new("RGB", (64, 64), (120, 65, 30)).save(buf, format="JPEG")
+    img = Image.new("RGB", (128, 128), (120, 65, 30))
+    for x in range(64):
+        for y in range(64):
+            img.putpixel((x, y), (200, 140, 90))
+    img.save(buf, format="JPEG")
     return buf.getvalue()
 
 
 class ApiTests(unittest.TestCase):
     def setUp(self):
+        api_main.request_history.clear()
         self.client = TestClient(app)
 
     def tearDown(self):
         app.dependency_overrides.clear()
+        api_main.request_history.clear()
 
     def test_startup_and_auth_guards(self):
         for path in ("/", "/docs", "/openapi.json"):
@@ -45,7 +52,10 @@ class ApiTests(unittest.TestCase):
 
     def test_password_login_and_google_only_account(self):
         user = {"_id": ObjectId(), "email": "test@example.com", "role": "doctor", "password": get_password_hash("secret")}
-        with patch.object(auth_service.users_collection, 'find_one', new_callable=AsyncMock, return_value=user):
+        with patch.object(auth_service.users_collection, 'find_one', new_callable=AsyncMock, return_value=user), \
+             patch("database.mongodb.audit_logs_collection.count_documents", new_callable=AsyncMock, return_value=0), \
+             patch("database.mongodb.audit_logs_collection.insert_one", new_callable=AsyncMock), \
+             patch("database.mongodb.audit_logs_collection.delete_many", new_callable=AsyncMock):
             response = self.client.post('/auth/login', data={'username': user['email'], 'password': 'secret'})
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response.json()['data']['user']['role'], 'doctor')
@@ -110,6 +120,28 @@ class ApiTests(unittest.TestCase):
         self.assertTrue(verify_password(password, hashed))
         self.assertFalse(verify_password("wrong", hashed))
 
+    def test_rate_limit_fallback_preserves_mongo_window_usage(self):
+        """A MongoDB outage must not grant an IP a second request quota."""
+        api_main.request_history.clear()
+        # A small limit keeps this regression check fast; production remains 150.
+        with patch.object(api_main, "RATE_LIMIT_MAX_REQUESTS", 2):
+            with patch.object(
+                api_main.rate_limits_collection,
+                "find_one_and_update",
+                new_callable=AsyncMock,
+                return_value={"count": 1},
+            ):
+                for _ in range(api_main.RATE_LIMIT_MAX_REQUESTS):
+                    self.assertEqual(self.client.get("/").status_code, 200)
+
+            with patch.object(
+                api_main.rate_limits_collection,
+                "find_one_and_update",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("MongoDB unavailable"),
+            ):
+                self.assertEqual(self.client.get("/").status_code, 429)
+
 
 class ServiceTests(unittest.IsolatedAsyncioTestCase):
     async def test_image_service_failure_does_not_create_prediction(self):
@@ -146,10 +178,12 @@ class ServiceTests(unittest.IsolatedAsyncioTestCase):
     async def test_clinical_only_evaluation_uses_patient_defaults(self):
         patient_id = str(ObjectId())
         report_insert = Mock(inserted_id=ObjectId())
-        with patch.object(doctor_service.patients_collection, "find_one", new_callable=AsyncMock, return_value={"age": 12, "reading_time": 0}), patch.object(doctor_service.clinical_data_collection, "insert_one", new_callable=AsyncMock), patch.object(doctor_service.reports_collection, "insert_one", new_callable=AsyncMock, return_value=report_insert), patch.object(doctor_service, "predict_clinical_evaluation", return_value={"severity": "Low", "prediction": "Low", "confidence": 0.1, "predicted_next_spheq": 0, "progression_rate": "Low"}) as predict:
+        clinical_record_id = ObjectId()
+        with patch.object(doctor_service.patients_collection, "find_one", new_callable=AsyncMock, return_value={"age": 12, "reading_time": 0}), patch.object(doctor_service.clinical_data_collection, "insert_one", new_callable=AsyncMock, return_value=Mock(inserted_id=clinical_record_id)), patch.object(doctor_service.reports_collection, "insert_one", new_callable=AsyncMock, return_value=report_insert) as insert_report, patch.object(doctor_service, "predict_clinical_evaluation", return_value={"severity": "Low", "prediction": "Low", "confidence": 0.1, "predicted_next_spheq": 0, "progression_rate": "Low"}) as predict:
             result = await doctor_service.process_prediction(patient_id, "", {"age": None, "refractive_error": 0})
             self.assertEqual(predict.call_args.args[0]["age"], 12)
             self.assertEqual(result["fundus_pm_prediction"], "No Image")
+            self.assertEqual(insert_report.call_args.args[0]["clinical_record_id"], str(clinical_record_id))
 
     async def test_email_failure_is_not_reported_as_success(self):
         with patch.object(auth_service.users_collection, "find_one", new_callable=AsyncMock, return_value=None), patch("database.mongodb.otp_codes_collection.find_one", new_callable=AsyncMock, return_value=None), patch("database.mongodb.otp_codes_collection.delete_many", new_callable=AsyncMock), patch("database.mongodb.otp_codes_collection.insert_one", new_callable=AsyncMock), patch("services.email_service.send_otp_email", return_value=False):

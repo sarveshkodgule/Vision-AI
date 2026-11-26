@@ -11,8 +11,16 @@ from schemas.user import UserCreate
 
 class DoctorRegistrationTests(unittest.IsolatedAsyncioTestCase):
     def payload(self, **changes):
-        return UserCreate(**(dict(name='Test Doctor', email='doctor@example.com', password='test-password-only',
-                                 role='doctor', doctor_passcode='test-registration-code-only', otp_code='123456') | changes))
+        return UserCreate(**(dict(
+            name='Test Doctor',
+            email='doctor@example.com',
+            password='Test-Password-1!',
+            role='doctor',
+            doctor_passcode='test-registration-code-only',
+            otp_code='123456',
+            consent_data_processing=True,
+            consent_ai_analysis=True,
+        ) | changes))
 
     async def test_missing_or_demo_configuration_fails_closed_without_consuming_otp(self):
         for configured in ('',):
@@ -47,7 +55,7 @@ class DoctorRegistrationTests(unittest.IsolatedAsyncioTestCase):
             stored = insert.call_args.args[0]
             self.assertNotIn('doctor_passcode', stored)
             self.assertNotIn('otp_code', stored)
-            self.assertTrue(service.verify_password('test-password-only', stored['password']))
+            self.assertTrue(service.verify_password('Test-Password-1!', stored['password']))
 
     async def test_bad_otp_prevents_registration_even_with_valid_hospital_code(self):
         with patch.dict(os.environ, {'HOSPITAL_DOCTOR_CODE': 'test-registration-code-only'}), \
@@ -67,9 +75,11 @@ class DoctorRegistrationTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_doctor_login_uses_personal_password_without_registration_code(self):
         account = dict(_id=ObjectId(), email='doctor@example.com', role='doctor', password=service.get_password_hash('personal-password'))
-        service.FAILED_LOGIN_ATTEMPTS.clear()
         with patch.dict(os.environ, {'HOSPITAL_DOCTOR_CODE': ''}), \
-                patch.object(service.users_collection, 'find_one', new_callable=AsyncMock, return_value=account):
+                patch.object(service.users_collection, 'find_one', new_callable=AsyncMock, return_value=account), \
+                patch('database.mongodb.audit_logs_collection.count_documents', new_callable=AsyncMock, return_value=0), \
+                patch('database.mongodb.audit_logs_collection.insert_one', new_callable=AsyncMock), \
+                patch('database.mongodb.audit_logs_collection.delete_many', new_callable=AsyncMock):
             data = await service.authenticate_user(account['email'], 'personal-password')
             self.assertEqual(data['user']['role'], 'doctor')
             self.assertTrue(data['access_token'])

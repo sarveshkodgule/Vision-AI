@@ -1,14 +1,16 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query
 from fastapi.responses import FileResponse
 from utils.dependencies import get_current_doctor
-from schemas.doctor import ClinicalDataInput, PredictionResponse, ReportResponse
+from schemas.doctor import ClinicalDataInput, DoctorSignOffInput, PredictionResponse, ReportResponse
 from services.doctor_service import (
     handle_image_upload, 
     process_prediction, 
     fetch_doctor_patients,
     fetch_report,
     create_pdf_report,
-    fetch_screening_stats
+    fetch_screening_stats,
+    sign_off_report,
+    fetch_patient_clinical_history,
 )
 
 router = APIRouter(prefix="/doctor", tags=["Doctor Dashboard"])
@@ -91,9 +93,44 @@ async def generate_report(patient_id: str, current_user: dict = Depends(get_curr
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
+@router.get("/patient/{patient_id}/history")
+async def get_patient_clinical_history(patient_id: str, current_user: dict = Depends(get_current_doctor)):
+    await require_assigned_patient(patient_id, current_user)
+    history = await fetch_patient_clinical_history(patient_id)
+    return {
+        "status": "success",
+        "data": history,
+        "message": f"{len(history)} clinical assessment(s) found"
+    }
+
+@router.patch("/report/{report_id}/sign-off")
+async def sign_off_clinical_report(
+    report_id: str,
+    payload: DoctorSignOffInput,
+    current_user: dict = Depends(get_current_doctor),
+):
+    updated = await sign_off_report(
+        report_id=report_id,
+        doctor_id=str(current_user["_id"]),
+        doctor_name=current_user.get("name", "Doctor"),
+        doctor_verdict=payload.doctor_verdict,
+        clinical_note=payload.clinical_note,
+    )
+    from utils.audit import log_action
+    await log_action(
+        str(current_user["_id"]),
+        "CLINICAL_REPORT_SIGNED_OFF",
+        f"report_id={report_id} verdict={payload.doctor_verdict}",
+    )
+    return {
+        "status": "success",
+        "data": updated,
+        "message": "Clinical sign-off saved"
+    }
+
 @router.get("/screening-stats")
 async def get_screening_stats(current_user: dict = Depends(get_current_doctor)):
-    stats = await fetch_screening_stats()
+    stats = await fetch_screening_stats(doctor_id=str(current_user["_id"]))
     return {
         "status": "success",
         "data": stats,

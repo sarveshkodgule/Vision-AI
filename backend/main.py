@@ -47,6 +47,17 @@ RATE_LIMIT_WINDOW = 900  # 15 minutes in seconds
 RATE_LIMIT_MAX_REQUESTS = 150
 request_history = defaultdict(list)
 
+
+def _record_local_request(client_ip: str, now: float) -> None:
+    """Keep a bounded local mirror for safe failover when MongoDB is unavailable."""
+    request_history[client_ip] = [
+        timestamp
+        for timestamp in request_history[client_ip]
+        if now - timestamp < RATE_LIMIT_WINDOW
+    ]
+    request_history[client_ip].append(now)
+
+
 @app.middleware("http")
 async def rate_limiting_middleware(request: Request, call_next):
     client_ip = request.client.host if request.client else "unknown"
@@ -67,13 +78,19 @@ async def rate_limiting_middleware(request: Request, call_next):
             return_document=ReturnDocument.AFTER,
         )
         blocked = int(record.get("count", 0)) > RATE_LIMIT_MAX_REQUESTS
+        # Mirror only requests admitted by the shared limiter. If MongoDB goes
+        # down mid-window, this prevents the local fallback from granting an
+        # additional full quota to the same IP address.
+        if not blocked:
+            _record_local_request(client_ip, now)
     except Exception:
         logger.warning("MongoDB rate limiter unavailable; using local limiter", exc_info=True)
         request_history[client_ip] = [
             t for t in request_history[client_ip] if now - t < RATE_LIMIT_WINDOW
         ]
         blocked = len(request_history[client_ip]) >= RATE_LIMIT_MAX_REQUESTS
-        request_history[client_ip].append(now)
+        if not blocked:
+            request_history[client_ip].append(now)
 
     if blocked:
         return JSONResponse(
@@ -83,8 +100,7 @@ async def rate_limiting_middleware(request: Request, call_next):
                 "message": "Too many requests. API rate limit is 150 requests per 15 minutes."
             }
         )
-        
-    request_history[client_ip].append(now)
+
     return await call_next(request)
 
 # HTTP Security Header Protection (Helmet equivalent)
@@ -191,32 +207,6 @@ async def input_sanitization_middleware(request: Request, call_next):
                 logger.warning("JSON sanitization skipped", exc_info=True, extra={"request_id": getattr(request.state, "request_id", None)})
                 
     response = await call_next(request)
-    return response
-
-# Audit Logging: records every API request with IP, method, path, status, and latency
-@app.middleware("http")
-async def audit_log_middleware(request: Request, call_next):
-    start = time.time()
-    response = await call_next(request)
-    duration_ms = round((time.time() - start) * 1000, 1)
-    client_ip = request.client.host if request.client else "unknown"
-    # Only log sensitive clinical and auth routes
-    sensitive_prefixes = ("/auth/", "/doctor/", "/patient/", "/chatbot/")
-    if any(request.url.path.startswith(p) for p in sensitive_prefixes):
-        try:
-            from database.mongodb import audit_logs_collection
-            from datetime import datetime, timezone
-            await audit_logs_collection.insert_one({
-                "event": "api_request",
-                "method": request.method,
-                "path": request.url.path,
-                "ip": client_ip,
-                "status_code": response.status_code,
-                "duration_ms": duration_ms,
-                "timestamp": datetime.now(timezone.utc),
-            })
-        except Exception:
-            pass  # Never block request due to logging failure
     return response
 
 BASE_DIR = Path(__file__).resolve().parent

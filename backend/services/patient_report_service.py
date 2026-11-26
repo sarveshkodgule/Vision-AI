@@ -93,11 +93,14 @@ async def report_context(record):
 
 def make_patient_pdf(record, owner, doctor=None):
     """Three-page, branded patient report. Returns bytes; never exposes a file path."""
+    from pathlib import Path
     from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import mm
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak, Image, HRFlowable
+
+    logo_path = Path(__file__).resolve().parents[2] / "Frontend" / "public" / "sarveshwar-eye.png"
 
     probability = record.get("myopia_probability")
     if not isinstance(probability, (float, int)) or not math.isfinite(probability) or not 0 <= probability <= 1:
@@ -124,15 +127,24 @@ def make_patient_pdf(record, owner, doctor=None):
     def footer(canvas, doc):
         canvas.saveState()
         canvas.setFillColor(colors.HexColor("#123760"))
-        canvas.setFont("Helvetica-Bold", 12)
-        canvas.drawString(18*mm, A4[1]-15*mm, "VISION AI  |  EYE HEALTH")
+        canvas.setFont("Helvetica-Bold", 10)
+        canvas.drawString(18*mm, A4[1]-14*mm, "SHRI SARVESHWAR NETRALAYA  |  VISION AI")
         canvas.setStrokeColor(colors.HexColor("#CBD5E1"))
         canvas.line(18*mm, 16*mm, A4[0]-18*mm, 16*mm)
         canvas.setFont("Helvetica", 8)
-        canvas.drawString(18*mm, 11*mm, "Confidential patient information | Screening guidance, not a diagnosis")
+        canvas.drawString(18*mm, 11*mm, "Shri Sarveshwar Netralaya · +91 98819 36866 · Screening guidance, not a diagnosis")
         canvas.drawRightString(A4[0]-18*mm, 11*mm, f"Page {doc.page}")
         canvas.restoreState()
-    story = [p("Patient Screening & Personal Care Report", "Title"), Spacer(1, 4*mm)]
+    story = []
+    if logo_path.is_file():
+        header_copy = [
+            Paragraph("<b>SHRI SARVESHWAR NETRALAYA  |  VISION AI</b>", ParagraphStyle(name="HospHdr", fontName="Helvetica-Bold", fontSize=13, leading=16, textColor=colors.HexColor("#123760"))),
+            Paragraph("Plot No. 5, Mitra Nagar, near Gurudwara, Jalna Road, Chhatrapati Sambhajinagar<br/>Tel: +91 98819 36866 / (0240) 2322370 · Mon–Sat, 10 AM – 7 PM IST", styles["ReportSmall"]),
+        ]
+        hdr_table = Table([[Image(str(logo_path), width=36*mm, height=12*mm), header_copy]], colWidths=[40*mm, 134*mm])
+        hdr_table.setStyle(TableStyle([("VALIGN", (0,0), (-1,-1), "MIDDLE"), ("LEFTPADDING", (0,0), (-1,-1), 0), ("RIGHTPADDING", (0,0), (-1,-1), 0)]))
+        story.extend([hdr_table, Spacer(1, 2*mm), HRFlowable(width="100%", thickness=1.5, color=colors.HexColor("#123760")), Spacer(1, 3*mm)])
+    story.extend([p("Patient Screening & Personal Care Report", "Title"), Spacer(1, 4*mm)])
     story.append(table([
         ["Patient", record.get("name") or owner.get("name", "Patient"), "Age / gender", f"{record.get('age', 'Not provided')} / {record.get('gender', 'Not provided')}"],
         ["Report ID", f"VAI-{identity.upper()}", "Screening date", record.get("created_at", "Not recorded")],

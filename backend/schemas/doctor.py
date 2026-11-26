@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional
+from typing import Literal, Optional
 import re
 
 _XSS_PATTERN = re.compile(r"(<|>|javascript:|on\w+\s*=)", re.I)
@@ -46,3 +46,15 @@ class ReportResponse(BaseModel):
     progression_rate: Optional[str] = None
     pdf_url: Optional[str] = None
     created_at: str
+
+class DoctorSignOffInput(BaseModel):
+    doctor_verdict: Literal["Low", "Medium", "High"]
+    clinical_note: Optional[str] = Field(None, max_length=1000)
+
+    @field_validator("clinical_note")
+    @classmethod
+    def validate_safe_note(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and _XSS_PATTERN.search(v):
+            raise ValueError("Invalid characters or script tags are not allowed")
+        cleaned = v.strip() if v is not None else None
+        return cleaned or None

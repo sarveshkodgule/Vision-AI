@@ -142,8 +142,22 @@ async def get_patient_history(user_id: str) -> list:
         sort=[("created_at", -1)]
     )
     records = await cursor.to_list(length=50)
+    from database.mongodb import users_collection
+    from bson import ObjectId
+    doc_ids = {
+        ObjectId(r["assigned_doctor_id"])
+        for r in records
+        if r.get("assigned_doctor_id") and ObjectId.is_valid(str(r["assigned_doctor_id"]))
+    }
+    doc_map = {}
+    if doc_ids:
+        docs = await users_collection.find({"_id": {"$in": list(doc_ids)}}, {"name": 1}).to_list(length=100)
+        doc_map = {str(d["_id"]): d.get("name", "Assigned Doctor") for d in docs}
     result = []
     for r in records:
         r["id"] = str(r.pop("_id", ""))
+        aid = str(r.get("assigned_doctor_id") or "")
+        if aid in doc_map:
+            r["assigned_doctor_name"] = doc_map[aid]
         result.append(r)
     return result

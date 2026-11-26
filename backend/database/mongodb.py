@@ -11,7 +11,7 @@ load_dotenv(dotenv_path=env_path, override=False)
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 DB_NAME = os.getenv("DB_NAME", "myopia_db")
 
-client = AsyncIOMotorClient(MONGODB_URI)
+client = AsyncIOMotorClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
 db = client[DB_NAME]
 
 # Collections

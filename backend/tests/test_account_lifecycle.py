@@ -24,7 +24,8 @@ class AccountLifecycleTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_deactivated_token_user_is_rejected(self):
         token_user = {"_id": ObjectId(), "is_active": False}
-        with patch.object(dependencies.users_collection, "find_one", new_callable=AsyncMock, return_value=token_user), \
+        with patch("database.mongodb.blacklist_tokens_collection.find_one", new_callable=AsyncMock, return_value=None), \
+                patch.object(dependencies.users_collection, "find_one", new_callable=AsyncMock, return_value=token_user), \
                 patch("utils.dependencies.jwt.decode", return_value={"sub": str(token_user["_id"])}):
             with self.assertRaises(HTTPException):
                 await dependencies.get_current_user("token")

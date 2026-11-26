@@ -140,7 +140,11 @@ async def authenticate_user(email: str, password: str):
     await _check_and_record_failed_login(clean_email, success=True)
 
     user_role = (db_user.get("role") or "patient").lower()
-    access_token = create_access_token(subject=str(db_user["_id"]), role=user_role)
+    access_token = create_access_token(
+        subject=str(db_user["_id"]),
+        role=user_role,
+        token_version=int(db_user.get("token_version", 0)),
+    )
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -178,6 +182,17 @@ async def update_user_profile(user_id: str, profile_data: dict):
     )
     
     updated_user = await users_collection.find_one({"_id": ObjectId(user_id)})
+    if "name" in update_data and updated_user and updated_user.get("role") == "doctor":
+        from database.mongodb import reports_collection, patients_collection
+        new_name = updated_user.get("name")
+        await reports_collection.update_many(
+            {"signed_off_by": str(user_id)},
+            {"$set": {"signed_off_by_name": new_name}}
+        )
+        await patients_collection.update_many(
+            {"assigned_doctor_id": str(user_id)},
+            {"$set": {"assigned_doctor_name": new_name}}
+        )
     return {
         "id": str(updated_user["_id"]),
         "name": updated_user.get("name"),
@@ -202,7 +217,7 @@ async def reset_password(email: str, new_password: str, otp_code: str = None):
     hashed_password = get_password_hash(new_password.strip())
     await users_collection.update_one(
         {"_id": db_user["_id"]},
-        {"$set": {"password": hashed_password}}
+        {"$set": {"password": hashed_password}, "$inc": {"token_version": 1}}
     )
     await _check_and_record_failed_login(clean_email, success=True)
     return True

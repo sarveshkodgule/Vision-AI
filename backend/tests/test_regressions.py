@@ -43,8 +43,12 @@ class ApiTests(unittest.TestCase):
         api_main.request_history.clear()
 
     def test_startup_and_auth_guards(self):
-        for path in ("/", "/docs", "/openapi.json"):
+        for path in ("/", "/openapi.json"):
             self.assertEqual(self.client.get(path).status_code, 200)
+        docs_response = self.client.get("/docs")
+        self.assertEqual(docs_response.status_code, 200)
+        self.assertIn("https://cdn.jsdelivr.net", docs_response.headers["content-security-policy"])
+        self.assertIn("'unsafe-inline'", docs_response.headers["content-security-policy"])
         self.assertEqual(self.client.get("/auth/profile").status_code, 401)
         self.assertEqual(self.client.get("/auth/profile", headers={"Authorization": "Bearer invalid"}).status_code, 401)
         token = create_access_token("invalid-object-id")

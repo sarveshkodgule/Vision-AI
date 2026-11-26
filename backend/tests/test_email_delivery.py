@@ -38,6 +38,7 @@ class EmailTests(unittest.TestCase):
         self.assertIn('654321', message.get_body(preferencelist=('plain',)).get_content())
         self.assertIn('10 minutes', message.get_body(preferencelist=('html',)).get_content())
         self.assertEqual(message['To'], 'patient@example.com')
+        self.assertFalse(any(part.get_content_maintype() == 'image' for part in message.walk()))
 
     def test_otp_sends_with_verified_tls_and_reports_rejection(self):
         with patch.object(mail, 'SMTP_EMAIL', 'visionaisystemss@gmail.com'), patch.object(mail, 'SMTP_PASSWORD', 'test-only'), patch.object(mail, 'SMTP_PORT', 587), patch.object(mail.smtplib, 'SMTP') as smtp:

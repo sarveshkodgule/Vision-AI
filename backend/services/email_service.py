@@ -22,7 +22,6 @@ HOSPITAL_PHONE = "+91 98819 36866"
 HOSPITAL_LANDLINE = "(0240) 2322370"
 HOSPITAL_HOURS = "Monday – Saturday, 10:00 AM – 7:00 PM IST (Sunday Closed)"
 HOSPITAL_ADDRESS = "Plot No. 5, Mitra Nagar, near Gurudwara, Jalna Road, Chhatrapati Sambhajinagar"
-LOGO_PATH = Path(__file__).resolve().parents[2] / "Frontend" / "public" / "sarveshwar-eye.png"
 logger = logging.getLogger(__name__)
 
 
@@ -32,11 +31,6 @@ def _safe_filename(name: str, suffix: str) -> str:
 
 
 def _layout(kicker, title, body):
-    logo_html = (
-        '<img src="cid:hospital_logo" alt="Shri Sarveshwar Netralaya" height="38" '
-        'style="display:block;border:0;margin:0 0 14px;background:#ffffff;padding:6px 10px;border-radius:8px;">'
-        if LOGO_PATH.is_file() else ""
-    )
     # Table-based layout and inline styles are intentional for mail-client support.
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"></head>
@@ -44,7 +38,6 @@ def _layout(kicker, title, body):
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:28px 12px">
 <table role="presentation" width="640" cellpadding="0" cellspacing="0" style="width:100%;max-width:640px;background:#fff;border:1px solid #d5e0ed;border-radius:10px;overflow:hidden">
 <tr><td style="padding:28px 30px;background:#123760;color:#fff;border-top:5px solid #823c46">
-{logo_html}
 <p style="font-size:11px;letter-spacing:2px;margin:0 0 8px;color:#d6e2f1">{escape(kicker)}</p>
 <h1 style="font-size:23px;line-height:1.35;margin:0">{HOSPITAL_NAME}</h1>
 <p style="font-size:13px;margin:6px 0 0;color:#d6e2f1">Vision AI · {HOSPITAL_DEPT}</p></td></tr>
@@ -77,18 +70,6 @@ def _message(recipient, subject, text, html):
         "Do not use email for emergencies. Confidential: if received in error, please delete."
     )
     message.add_alternative(html, subtype="html")
-    if LOGO_PATH.is_file():
-        try:
-            html_part = message.get_payload()[1]
-            html_part.add_related(
-                LOGO_PATH.read_bytes(),
-                maintype="image",
-                subtype="png",
-                cid="hospital_logo",
-                filename="sarveshwar-eye.png",
-            )
-        except Exception:
-            logger.warning("Could not embed inline hospital logo in email", exc_info=True)
     return message
 
 
@@ -225,7 +206,7 @@ def send_pdf_report_email(patient_email: str, patient_name: str, pdf_path: str, 
             f'{doctor_line_html}'
             f'<p style="margin:0"><strong>Document:</strong> {escape(_safe_filename(patient_name, "Clinical_Report"))}</p></div>'
             "<p>Please keep this report with your earlier eye prescriptions and discuss its findings with your ophthalmologist.</p>"
-            "<p style=\"font-size:13px;color:#53657b\">AI outputs are clinical decision-support tools and do not replace an in-person ophthalmic diagnosis.</p>"
+            "<p style=\"font-size:13px;color:#53657b\">This is not a signed clinical diagnosis. AI outputs are clinical decision-support tools and do not replace an in-person ophthalmic diagnosis.</p>"
             f"<p>With care,<br><strong>Ophthalmology Care Team · {HOSPITAL_NAME}</strong></p>"
         )
         message = _message(

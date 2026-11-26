@@ -71,12 +71,29 @@ async def fetch_doctor_patients(doctor_id: str = None, skip: int = 0, limit: int
     
     patients_cursor = patients_collection.find(query).skip(skip).limit(limit)
     patients = await patients_cursor.to_list(length=limit)
-    
+
+    patient_ids = [str(p.get("_id", "")) for p in patients if p.get("_id")]
+    report_map: Dict[str, Dict[str, Any]] = {}
+    if patient_ids:
+        rep_cursor = reports_collection.find(
+            {"patient_id": {"$in": patient_ids}},
+            {"patient_id": 1, "review_status": 1, "created_at": 1},
+        ).sort("created_at", -1)
+        async for rep in rep_cursor:
+            pid = str(rep.get("patient_id", ""))
+            if pid and pid not in report_map:
+                report_map[pid] = rep
+            elif pid and rep.get("review_status") == "signed_off":
+                report_map[pid] = rep
+
     result = []
     for p in patients:
         id_str = str(p.get("_id", ""))
         p_data = {k: v for k, v in p.items() if k != "_id"}
         p_data["id"] = id_str
+        rep = report_map.get(id_str)
+        p_data["has_report"] = rep is not None
+        p_data["review_status"] = rep.get("review_status") if rep else None
         result.append(p_data)
     return result
 

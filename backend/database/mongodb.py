@@ -24,6 +24,8 @@ otp_codes_collection = db["otp_codes"]
 blacklist_tokens_collection = db["blacklist_tokens"]
 audit_logs_collection = db["audit_logs"]
 rate_limits_collection = db["rate_limits"]
+consent_records_collection = db["consent_records"]
+doctor_invites_collection = db["doctor_invites"]
 
 async def ensure_indexes():
     """Create indexes required for common lookups and audit retention."""
@@ -34,6 +36,9 @@ async def ensure_indexes():
     await clinical_data_collection.create_index([("patient_id", 1), ("created_at", -1)])
     await audit_logs_collection.create_index([("user_id", 1), ("timestamp", -1)])
     await rate_limits_collection.create_index("expires_at", expireAfterSeconds=0)
+    await consent_records_collection.create_index([("user_id", 1), ("document_type", 1), ("recorded_at", -1)])
+    await doctor_invites_collection.create_index([("email", 1), ("token_hash", 1)])
+    await doctor_invites_collection.create_index("expires_at", expireAfterSeconds=0)
     logging.getLogger(__name__).info("MongoDB indexes verified")
 
 def get_db():

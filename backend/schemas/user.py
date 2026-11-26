@@ -22,6 +22,7 @@ class UserCreate(BaseModel):
     password: str = Field(min_length=6, max_length=128)
     role: Literal["patient", "doctor"] = "patient"
     doctor_passcode: Optional[str] = Field(default=None, max_length=256)
+    medical_license_no: Optional[str] = Field(default=None, max_length=64)
     otp_code: str = Field(pattern=r"^\d{6}$")
     # Informed consent — required for healthcare data processing (GDPR / HIPAA compliance)
     consent_data_processing: bool = Field(
@@ -32,6 +33,8 @@ class UserCreate(BaseModel):
         default=False,
         description="Patient must explicitly consent to AI-based diagnosis analysis"
     )
+    privacy_policy_accepted: bool = Field(default=False)
+    terms_conditions_accepted: bool = Field(default=False)
 
     @field_validator("name")
     @classmethod
@@ -74,3 +77,9 @@ class UserResponse(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class DoctorInviteCreate(BaseModel):
+    email: EmailStr
+    medical_license_no: Optional[str] = Field(default=None, max_length=64)
+    expires_hours: int = Field(default=48, ge=1, le=168)

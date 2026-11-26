@@ -1,7 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
-from schemas.user import UserUpdate, GoogleLogin, UserCreate, PasswordReset, OTPRequest, OTPVerify
+from fastapi import APIRouter, Depends, HTTPException, Response, Header, Form
+from schemas.user import UserUpdate, GoogleLogin, UserCreate, PasswordReset, OTPRequest, OTPVerify, DoctorInviteCreate
 from fastapi.security import OAuth2PasswordRequestForm
-from services.auth_service import update_user_profile, create_user, authenticate_user, reset_password, generate_and_save_otp, verify_otp_code, deactivate_user
+from services.auth_service import (
+    update_user_profile, create_user, authenticate_user, reset_password,
+    generate_and_save_otp, verify_otp_code, deactivate_user, create_doctor_invite,
+)
 from services.google_auth_service import google_config, authenticate_google
 from utils.dependencies import get_current_user, oauth2_scheme
 from database.mongodb import users_collection
@@ -23,15 +26,41 @@ async def google_login(payload: GoogleLogin, response: Response):
 
 
 @router.post("/login")
-async def password_login(response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
+async def password_login(
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    otp_code: str | None = Form(default=None),
+):
     response.headers["Cache-Control"] = "no-store"
-    data = await authenticate_user(form_data.username, form_data.password)
+    data = await authenticate_user(form_data.username, form_data.password, otp_code=otp_code)
     return {"status": "success", **data, "data": data}
 
 
 @router.post("/signup")
 async def signup(payload: UserCreate):
     return {"status": "success", "data": await create_user(payload)}
+
+
+@router.post("/doctor-invites")
+async def issue_doctor_invite(
+    payload: DoctorInviteCreate,
+    x_admin_key: str | None = Header(default=None),
+):
+    """Issue a single-use, 48h, email-bound doctor registration invite (requires HOSPITAL_ADMIN_KEY)."""
+    import os
+    import secrets
+    configured = os.getenv("HOSPITAL_ADMIN_KEY", "").strip()
+    if not configured:
+        raise HTTPException(status_code=503, detail="HOSPITAL_ADMIN_KEY is not configured.")
+    if not x_admin_key or not secrets.compare_digest(x_admin_key.strip().encode(), configured.encode()):
+        raise HTTPException(status_code=403, detail="Invalid hospital admin key.")
+    invite = await create_doctor_invite(
+        email=payload.email,
+        medical_license_no=payload.medical_license_no,
+        issued_by="hospital_admin",
+        expires_hours=payload.expires_hours,
+    )
+    return {"status": "success", "data": invite}
 
 
 @router.post("/request-otp")

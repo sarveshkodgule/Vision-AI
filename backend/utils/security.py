@@ -15,7 +15,7 @@ SECRET_KEY = os.getenv("JWT_SECRET_KEY", "").strip()
 if len(SECRET_KEY) < 32:
     raise RuntimeError("JWT_SECRET_KEY must be configured with at least 32 characters")
 ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
 def get_password_hash(password: str) -> str:
     # Pre-hash with SHA256 to allow infinite password lengths securely (bypasses 72 byte limit)

@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2, ArrowLeft } from 'lucide-react';
 import { api } from '../lib/api';
+import { setAuthSession } from '../lib/authSession';
 
 export default function PasswordSignIn({ role, onRoleChange }) {
   const { t } = usePatientLanguage();
@@ -40,8 +41,7 @@ export default function PasswordSignIn({ role, onRoleChange }) {
       if (!['patient', 'doctor'].includes(userRole)) {
         throw new Error('Invalid account role. Please contact hospital administration.');
       }
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('role', userRole);
+      setAuthSession(access_token, userRole);
       navigate(userRole === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard', { replace: true });
     } catch (err) { setError(err.message || 'Sign-in failed. Please try again.'); }
     finally { setBusy(false); }

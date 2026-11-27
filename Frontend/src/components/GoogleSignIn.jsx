@@ -2,6 +2,7 @@ import { usePatientLanguage } from '../lib/patientLanguage';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
+import { setAuthSession } from '../lib/authSession';
 
 let scriptPromise;
 function loadGoogle() {
@@ -50,8 +51,7 @@ export default function GoogleSignIn() {
               throw new Error('Unable to open your portal. Please try again.');
             }
             const userRole = String(user.role).toLowerCase();
-            localStorage.setItem('token', access_token);
-            localStorage.setItem('role', userRole);
+            setAuthSession(access_token, userRole);
             navigate(userRole === 'doctor' ? '/doctor/dashboard' : '/patient/dashboard', { replace: true });
           } catch (err) { if (active) { setError(err.message); setPhase('error'); } }
         } });

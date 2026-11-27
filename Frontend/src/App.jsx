@@ -6,6 +6,7 @@ import AppErrorBoundary from './components/AppErrorBoundary';
 import { reportClientError, trackEvent } from './lib/telemetry';
 import CommandMenu from './components/CommandMenu';
 import Skeleton from './components/Skeleton';
+import { getAuthToken, getAuthRole, clearAuthSession } from './lib/authSession';
 const LandingPage = lazy(() => import('./pages/LandingPage'));
 const Login = lazy(() => import('./pages/Login'));
 const Signup = lazy(() => import('./pages/Signup'));
@@ -20,8 +21,8 @@ const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Protected Route wrapper component
 function ProtectedRoute({ children, allowedRole }) {
-  const token = localStorage.getItem('token');
-  const role = localStorage.getItem('role');
+  const token = getAuthToken();
+  const role = getAuthRole();
 
   if (!token) {
     // If not logged in, redirect to login page
@@ -43,8 +44,7 @@ function PublicRoute({ children }) {
   const forceSignIn = new URLSearchParams(search).get('reauth') === '1';
 
   if (forceSignIn) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
+    clearAuthSession();
     return children;
   }
 

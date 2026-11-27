@@ -1,8 +1,9 @@
 import { API_BASE_URL } from './api';
+import { getAuthToken } from './authSession';
 
 export async function fetchReportPdf(endpoint, signal) {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }, signal,
+    headers: { Authorization: `Bearer ${getAuthToken()}` }, signal,
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));

@@ -9,6 +9,8 @@ import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler
 } from 'chart.js';
 import { api, API_BASE_URL } from '../lib/api';
+import { getAuthToken, clearAuthSession } from '../lib/authSession';
+import useIdleTimeout from '../lib/useIdleTimeout';
 import PatientReportDelivery from '../components/PatientReportDelivery';
 import HospitalBrand from '../components/HospitalBrand';
 import PatientLanguageSwitch from '../components/PatientLanguageSwitch';
@@ -201,10 +203,11 @@ export default function PatientDashboard() {
     } catch (err) {
       console.error('Logout backend request failed:', err);
     }
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
+    clearAuthSession();
     navigate('/login', { replace: true });
   };
+
+  useIdleTimeout(handleSignOut);
 
   const [chatMessage, setChatMessage] = useState('');
   const [messages, setMessages] = useState([
@@ -357,7 +360,7 @@ export default function PatientDashboard() {
     setDownloadError('');
     setDownloadingId(patientId);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/patient/generate-report/${patientId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });

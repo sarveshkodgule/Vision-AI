@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../lib/api';
+import { clearAuthSession } from '../lib/authSession';
 
 export default function AccountDangerZone({ onDeleted }) {
   const [confirming, setConfirming] = useState(false);
@@ -9,8 +10,7 @@ export default function AccountDangerZone({ onDeleted }) {
     setBusy(true); setError('');
     try {
       await api.delete('/auth/account');
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
+      clearAuthSession();
       onDeleted();
     } catch (requestError) {
       setError(requestError.message || 'Account deactivation failed. Please try again.');

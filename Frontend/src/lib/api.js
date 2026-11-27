@@ -1,7 +1,9 @@
+import { getAuthToken, clearAuthSession } from './authSession';
+
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || `${window.location.protocol}//${window.location.hostname}:8000`).replace(/\/$/, '');
 
 async function request(method, endpoint, data, isForm = false) {
-  const token = localStorage.getItem('token');
+  const token = getAuthToken();
   const headers = token ? { Authorization: `Bearer ${token}` } : {};
   if (data !== undefined) {
     if (!isForm) {
@@ -19,8 +21,7 @@ async function request(method, endpoint, data, isForm = false) {
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     if (response.status === 401 && !endpoint.includes('/auth/login') && !endpoint.includes('/auth/google')) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('role');
+      clearAuthSession();
       if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         window.location.href = '/login';
       }

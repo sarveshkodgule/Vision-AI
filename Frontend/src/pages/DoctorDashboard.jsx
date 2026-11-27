@@ -12,6 +12,8 @@ import {
   BarElement, Title, Tooltip, Legend, ArcElement, Filler
 } from 'chart.js';
 import { api, API_BASE_URL } from '../lib/api';
+import { getAuthToken, clearAuthSession } from '../lib/authSession';
+import useIdleTimeout from '../lib/useIdleTimeout';
 import HospitalBrand from '../components/HospitalBrand';
 import PatientLanguageSwitch from '../components/PatientLanguageSwitch';
 import FundusLightbox from '../components/FundusLightbox';
@@ -227,10 +229,11 @@ export default function DoctorDashboard() {
     } catch (err) {
       console.error('Logout backend request failed:', err);
     }
-    localStorage.removeItem('token');
-    localStorage.removeItem('role');
+    clearAuthSession();
     navigate('/login', { replace: true });
   };
+
+  useIdleTimeout(handleSignOut);
 
   const fetchPatientsList = async () => {
     setPatientsLoading(true);
@@ -482,7 +485,7 @@ export default function DoctorDashboard() {
   const downloadPatientPdf = async (patientId, patientName = 'patient') => {
     setDownloadingPatientId(patientId);
     try {
-      const token = localStorage.getItem('token');
+      const token = getAuthToken();
       const response = await fetch(`${API_BASE_URL}/doctor/generate-report/${patientId}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
